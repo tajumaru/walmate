@@ -298,6 +298,148 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
 }
 .walk-blob-chip.saved { color: var(--teal); }
 
+/* ===== SOUND LAB ===== */
+.sound-lab {
+  background: linear-gradient(135deg, rgba(255,122,170,0.06), rgba(77,162,255,0.04));
+  border: 1px solid rgba(255,122,170,0.2);
+  border-radius: 18px; padding: 14px 14px 12px; margin: 10px 0;
+}
+.sound-lab-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.sound-lab-title {
+  font-family: 'Fredoka One', cursive; font-size: 0.95rem;
+  color: var(--pink); letter-spacing: 0.5px;
+}
+.sound-zone-row {
+  display: flex; gap: 5px; margin-bottom: 10px;
+}
+.zone-chip {
+  flex: 1; padding: 7px 4px; border-radius: 10px; text-align: center;
+  border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+  font-size: 0.68rem; font-weight: 800; color: rgba(228,242,248,0.4);
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.zone-chip.active {
+  border-color: var(--pink); background: rgba(255,122,170,0.14);
+  color: var(--pink); box-shadow: 0 0 10px rgba(255,122,170,0.2);
+}
+.sound-slots-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-bottom: 10px;
+}
+.sound-slot {
+  border-radius: 12px; border: 1px dashed rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.02); padding: 8px 9px; min-height: 58px;
+  display: flex; flex-direction: column; gap: 3px; transition: all 0.25s;
+  position: relative; overflow: hidden; cursor: pointer;
+}
+.sound-slot.filled {
+  border-style: solid; border-color: rgba(255,122,170,0.28);
+  background: linear-gradient(135deg, rgba(255,122,170,0.07), rgba(77,162,255,0.04));
+}
+.sound-slot.playing {
+  border-color: rgba(0,229,176,0.55);
+  background: linear-gradient(135deg, rgba(0,229,176,0.1), rgba(77,162,255,0.06));
+  box-shadow: 0 0 14px rgba(0,229,176,0.18);
+}
+.slot-label {
+  font-size: 0.56rem; font-weight: 900; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.28);
+}
+.slot-content { display: flex; align-items: center; gap: 5px; }
+.slot-emoji { font-size: 1rem; line-height: 1; }
+.slot-name { font-size: 0.7rem; font-weight: 700; color: var(--white); line-height: 1.3; }
+.slot-area-tag {
+  font-size: 0.52rem; font-weight: 800; letter-spacing: 0.06em;
+  padding: 1px 5px; border-radius: 5px;
+  background: rgba(255,122,170,0.18); color: rgba(255,122,170,0.9); text-transform: uppercase;
+}
+.slot-empty-hint { font-size: 0.62rem; color: rgba(255,255,255,0.2); font-style: italic; }
+.slot-waveform {
+  position: absolute; right: 6px; bottom: 6px;
+  display: flex; align-items: flex-end; gap: 1.5px; opacity: 0; transition: opacity 0.3s;
+}
+.sound-slot.playing .slot-waveform { opacity: 1; }
+.wf-bar {
+  width: 2px; border-radius: 2px; background: var(--teal);
+  animation: wfAnim 0.5s ease-in-out infinite alternate;
+}
+.wf-bar:nth-child(1){height:3px;animation-delay:0s}
+.wf-bar:nth-child(2){height:6px;animation-delay:0.07s}
+.wf-bar:nth-child(3){height:9px;animation-delay:0.14s}
+.wf-bar:nth-child(4){height:5px;animation-delay:0.21s}
+.wf-bar:nth-child(5){height:8px;animation-delay:0.09s}
+@keyframes wfAnim { from{transform:scaleY(0.35)} to{transform:scaleY(1)} }
+
+.sound-ctrl-row {
+  display: flex; gap: 7px; margin-bottom: 8px; align-items: center;
+}
+.sound-play-btn {
+  flex: 1; padding: 10px 8px; border-radius: 11px; border: none;
+  background: linear-gradient(90deg, var(--pink), rgba(77,162,255,0.8));
+  color: white; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.82rem;
+  cursor: pointer; transition: opacity 0.15s, transform 0.15s; letter-spacing: 0.2px;
+}
+.sound-play-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.sound-play-btn.playing {
+  background: linear-gradient(90deg, #ff6b6b, #ff9ab5);
+  animation: walkBtnPulse 1.4s ease-in-out infinite alternate;
+}
+.sound-play-btn:disabled { opacity: 0.35; pointer-events: none; }
+.sound-sm-btn {
+  padding: 10px 11px; border-radius: 11px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.38); font-size: 0.78rem; cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-weight: 700; transition: background 0.15s;
+}
+.sound-sm-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.65); }
+.sound-bpm-display {
+  font-size: 0.62rem; color: rgba(255,255,255,0.26); letter-spacing: 0.06em;
+  font-weight: 800; white-space: nowrap;
+}
+.sound-bpm-display span { color: var(--cyan); }
+
+.sound-memory-label {
+  font-size: 0.6rem; color: rgba(255,255,255,0.26); font-weight: 900;
+  letter-spacing: 0.08em; text-transform: uppercase; margin: 7px 0 5px;
+}
+.sound-memory-list {
+  display: flex; flex-direction: column; gap: 5px;
+  max-height: 104px; overflow-y: auto;
+}
+.sound-memory-list::-webkit-scrollbar { width: 2px; }
+.sound-memory-list::-webkit-scrollbar-thumb { background: rgba(255,122,170,0.2); border-radius: 2px; }
+.sound-memory-item {
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 9px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.68rem; cursor: pointer; transition: background 0.15s;
+}
+.sound-memory-item:hover { background: rgba(255,122,170,0.08); border-color: rgba(255,122,170,0.2); }
+.smi-date { color: var(--pink); font-weight: 700; font-size: 0.62rem; min-width: 40px; }
+.smi-name { flex: 1; color: rgba(228,242,248,0.72); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.smi-zones { color: rgba(255,255,255,0.32); font-size: 0.62rem; }
+.smi-play { font-size: 0.65rem; color: rgba(0,229,176,0.6); }
+
+/* Sound drop floating element */
+.sound-pick-float {
+  position: fixed; z-index: 55; pointer-events: all; cursor: pointer;
+  text-align: center; animation: soundPickFloat 3.8s ease-out forwards;
+  filter: drop-shadow(0 0 10px rgba(255,122,170,0.8));
+  user-select: none; -webkit-user-select: none; line-height: 1.2;
+}
+.sound-pick-float .spf-emoji { font-size: 22px; display: block; }
+.sound-pick-float .spf-label {
+  font-size: 8px; font-weight: 900; color: var(--pink); display: block;
+  font-family: 'Nunito', sans-serif; text-shadow: 0 0 6px rgba(0,0,0,0.9);
+  letter-spacing: 0.04em;
+}
+@keyframes soundPickFloat {
+  0%   { opacity:0; transform: translate(0,0) scale(0.5) rotate(-15deg); }
+  15%  { opacity:1; transform: translate(0,-20px) scale(1.2) rotate(5deg); }
+  60%  { opacity:1; transform: translate(var(--sdx,20px),-60px) scale(1) rotate(-3deg); }
+  100% { opacity:0; transform: translate(var(--sdx,20px),-100px) scale(0.7) rotate(10deg); }
+}
+
 /* ===== LOADING ===== */
 #loadScreen { gap: 20px; }
 .loader-wrap { position: relative; width: clamp(100px,28vw,130px); height: clamp(100px,28vw,130px); display: flex; align-items: center; justify-content: center; }
@@ -3297,6 +3439,49 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
             <div class="walk-blob-chip" id="walkBlobChip"></div>
         </div>
 
+        <!-- ===== SOUND LAB ===== -->
+        <div class="sound-lab" id="soundLab">
+            <div class="sound-lab-header">
+                <div class="sound-lab-title">🎵 サウンドラボ</div>
+                <div class="sound-bpm-display">BPM <span id="soundBpmVal">90</span></div>
+            </div>
+            <div class="sound-zone-row">
+                <div class="zone-chip active" id="zone_beach" onclick="setActiveZone('beach')">🌊 海辺</div>
+                <div class="zone-chip" id="zone_forest" onclick="setActiveZone('forest')">🌿 森</div>
+                <div class="zone-chip" id="zone_city" onclick="setActiveZone('city')">🏙 街</div>
+                <div class="zone-chip" id="zone_ruins" onclick="setActiveZone('ruins')">🏚 廃墟</div>
+            </div>
+            <div class="sound-slots-grid">
+                <div class="sound-slot" id="slot_drum" onclick="clearSlot('drum')">
+                    <div class="slot-label">🥁 DRUM</div>
+                    <div class="slot-content"><span class="slot-empty-hint">散歩中に拾えるよ</span></div>
+                    <div class="slot-waveform"><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div></div>
+                </div>
+                <div class="sound-slot" id="slot_bass" onclick="clearSlot('bass')">
+                    <div class="slot-label">🎸 BASS</div>
+                    <div class="slot-content"><span class="slot-empty-hint">散歩中に拾えるよ</span></div>
+                    <div class="slot-waveform"><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div></div>
+                </div>
+                <div class="sound-slot" id="slot_melody" onclick="clearSlot('melody')">
+                    <div class="slot-label">🎵 MELODY</div>
+                    <div class="slot-content"><span class="slot-empty-hint">散歩中に拾えるよ</span></div>
+                    <div class="slot-waveform"><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div></div>
+                </div>
+                <div class="sound-slot" id="slot_fx" onclick="clearSlot('fx')">
+                    <div class="slot-label">🌊 FX</div>
+                    <div class="slot-content"><span class="slot-empty-hint">散歩中に拾えるよ</span></div>
+                    <div class="slot-waveform"><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div><div class="wf-bar"></div></div>
+                </div>
+            </div>
+            <div class="sound-ctrl-row">
+                <button class="sound-play-btn" id="soundPlayBtn" onclick="toggleTrack()" disabled>▶ 演奏する</button>
+                <button class="sound-sm-btn" onclick="saveMemoryTrack()">💾</button>
+                <button class="sound-sm-btn" onclick="clearAllSlots()">✕</button>
+            </div>
+            <div class="sound-memory-label">📼 思い出トラック</div>
+            <div class="sound-memory-list" id="soundMemoryList"></div>
+        </div>
+
         <div class="unlock-section" id="sec1">
             <div class="utag">Lv.2 解禁</div>
             <div class="utitle">たじゅまる 自己紹介</div>
@@ -3769,6 +3954,435 @@ function sfxKuu(){
     [620,760,690].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.14,0.055),i*95));
 }
 
+// ===== SOUND LAB =====
+const SOUND_STORAGE_KEY = 'walrus_sound_slots';
+const SOUND_MEMORY_KEY  = 'walrus_sound_memory';
+
+let activeZone = 'beach';
+let soundSlots = { drum: null, bass: null, melody: null, fx: null };
+let isTrackPlaying = false;
+let soundLoopTimer = null;
+let soundNextBarTime = 0;
+
+// meters between potential sound drops
+const SOUND_DROP_EVERY_M = 130;
+let soundDropCheckpointM = 0;
+
+const SOUND_DEF = {
+    beach:  { drum:{name:'Wave Beat',emoji:'🌊'}, bass:{name:'Tide Bass',emoji:'🐋'}, melody:{name:'Seagull Cry',emoji:'🐦'}, fx:{name:'Ocean Mist',emoji:'💧'} },
+    forest: { drum:{name:'Bark Knock',emoji:'🌿'}, bass:{name:'Root Hum',emoji:'🌲'}, melody:{name:'Bird Trill',emoji:'🪶'}, fx:{name:'Leaf Breeze',emoji:'🍃'} },
+    city:   { drum:{name:'Street Snap',emoji:'🏙'}, bass:{name:'Metro Low',emoji:'🚇'}, melody:{name:'Neon Ping',emoji:'💡'}, fx:{name:'City Air',emoji:'🔊'} },
+    ruins:  { drum:{name:'Echo Clap',emoji:'🏚'}, bass:{name:'Stone Drone',emoji:'🪨'}, melody:{name:'Ghost Bell',emoji:'🔔'}, fx:{name:'Dark Air',emoji:'🌫'} }
+};
+const ZONE_EMOJI = { beach:'🌊', forest:'🌿', city:'🏙', ruins:'🏚' };
+const SLOT_KEYS = ['drum','bass','melody','fx'];
+
+function getSoundBpm(){
+    let b = 88;
+    if(G.happy > 72) b += 22;
+    else if(G.happy < 28) b -= 22;
+    if(G.hunger < 28) b -= 12;
+    if(G.lv >= 4) b += 8;
+    return Math.max(60, Math.min(130, Math.round(b)));
+}
+function getSoundVol(){
+    const hMult = G.hunger < 25 ? 0.55 : 1.0;
+    const hapMult = G.happy > 70 ? 1.15 : 1.0;
+    return 0.14 * hMult * hapMult;
+}
+
+function setActiveZone(zone){
+    activeZone = zone;
+    document.querySelectorAll('.zone-chip').forEach(c => c.classList.remove('active'));
+    const chip = document.getElementById('zone_' + zone);
+    if(chip) chip.classList.add('active');
+    haptic(12);
+}
+
+function renderSoundSlots(){
+    const bpm = getSoundBpm();
+    const bpmEl = document.getElementById('soundBpmVal');
+    if(bpmEl) bpmEl.textContent = bpm;
+
+    let anyFilled = false;
+    SLOT_KEYS.forEach(slotType => {
+        const el = document.getElementById('slot_' + slotType);
+        if(!el) return;
+        const piece = soundSlots[slotType];
+        const contentEl = el.querySelector('.slot-content');
+        el.classList.toggle('filled', !!piece);
+        el.classList.toggle('playing', isTrackPlaying && !!piece);
+        if(piece){
+            anyFilled = true;
+            const def = SOUND_DEF[piece.area]?.[slotType] || {};
+            contentEl.innerHTML = `<span class="slot-emoji">${def.emoji||'🎵'}</span>
+                <div><div class="slot-name">${def.name||piece.name}</div>
+                <div class="slot-area-tag">${piece.area}</div></div>`;
+        } else {
+            const hint = currentLang === 'ja' ? '散歩中に拾えるよ' : 'collect while walking';
+            contentEl.innerHTML = `<span class="slot-empty-hint">${hint}</span>`;
+        }
+    });
+
+    const btn = document.getElementById('soundPlayBtn');
+    if(btn){
+        btn.textContent = isTrackPlaying
+            ? (currentLang === 'ja' ? '⏹ ストップ' : '⏹ Stop')
+            : (currentLang === 'ja' ? '▶ 演奏する' : '▶ Play');
+        btn.classList.toggle('playing', isTrackPlaying);
+        btn.disabled = !anyFilled;
+    }
+}
+
+function clearSlot(slotType){
+    if(isTrackPlaying) return;
+    soundSlots[slotType] = null;
+    saveSoundSlots();
+    renderSoundSlots();
+    haptic(15);
+}
+function clearAllSlots(){
+    if(isTrackPlaying) stopTrack();
+    soundSlots = { drum:null, bass:null, melody:null, fx:null };
+    saveSoundSlots();
+    renderSoundSlots();
+    setMsg(currentLang === 'ja' ? '🎵 スロットをクリアしたよ' : '🎵 Slots cleared');
+}
+function saveSoundSlots(){
+    try{ localStorage.setItem(SOUND_STORAGE_KEY, JSON.stringify(soundSlots)); }catch(e){}
+}
+function loadSoundSlots(){
+    try{
+        const raw = localStorage.getItem(SOUND_STORAGE_KEY);
+        if(raw){ const s = JSON.parse(raw); soundSlots = { drum:s.drum||null, bass:s.bass||null, melody:s.melody||null, fx:s.fx||null }; }
+    }catch(e){}
+}
+
+function sfxSoundPick(){
+    try{
+        const ctx = getAudioCtx(); if(!ctx) return;
+        [600,900,750,1050].forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.11,0.055),i*50));
+    }catch(e){}
+}
+
+function collectSoundPiece(slotType, zone){
+    const def = SOUND_DEF[zone]?.[slotType];
+    if(!def) return;
+    soundSlots[slotType] = { area:zone, ts:Date.now() };
+    saveSoundSlots();
+    renderSoundSlots();
+    const msg = currentLang === 'ja'
+        ? `🎵 ${ZONE_EMOJI[zone]}「${def.name}」を拾った！`
+        : `🎵 Found "${def.name}" (${zone})!`;
+    setMsg(msg);
+    haptic([20,10,30]);
+    sfxSoundPick();
+}
+
+function spawnSoundDrop(){
+    if(!walkState.active) return;
+    if(document.getElementById('mainScreen')?.classList.contains('hidden')) return;
+
+    const slotType = SLOT_KEYS[Math.floor(Math.random() * 4)];
+    const zone = activeZone;
+    const def = SOUND_DEF[zone][slotType];
+
+    const el = document.createElement('div');
+    el.className = 'sound-pick-float';
+    el.innerHTML = `<span class="spf-emoji">${def.emoji}</span><span class="spf-label">${slotType.toUpperCase()}</span>`;
+    const vx = 10 + Math.random() * 72;
+    const vy = 18 + Math.random() * 52;
+    el.style.left = vx + 'vw';
+    el.style.top  = vy + 'vh';
+    el.style.setProperty('--sdx', ((Math.random()-0.5)*70) + 'px');
+    document.body.appendChild(el);
+
+    let picked = false;
+    el.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation();
+        if(picked) return;
+        picked = true;
+        collectSoundPiece(slotType, zone);
+        spawnParticles([def.emoji,'🎵','✨'], e.clientX, e.clientY);
+        el.style.transition = 'all 0.22s'; el.style.transform = 'scale(2.5)'; el.style.opacity = '0';
+        setTimeout(()=>el.remove(), 240);
+    }, { passive:false });
+
+    setTimeout(()=>{
+        if(!picked && el.parentNode){
+            el.style.transition = 'opacity 0.38s'; el.style.opacity = '0';
+            setTimeout(()=>el.remove(), 400);
+        }
+    }, 3600);
+}
+
+// Called from GPS update with total meters
+function checkSoundDrop(totalMeters){
+    if(!walkState.active) return;
+    const drops = Math.floor(totalMeters / SOUND_DROP_EVERY_M);
+    const prev  = Math.floor(soundDropCheckpointM / SOUND_DROP_EVERY_M);
+    soundDropCheckpointM = totalMeters;
+    if(drops > prev && Math.random() < 0.72){
+        setTimeout(spawnSoundDrop, 600 + Math.random() * 1400);
+    }
+}
+
+// ===== Audio synthesis =====
+function _playDrum(ctx, area, t, barDur, bpm, vol){
+    const beatDur = barDur / 4;
+    const hb = beatDur / 2;
+    // Patterns: 8 half-beat slots, value = strength (0=skip, >0=hit)
+    const pats = {
+        beach:  [1,0,0,0.5,0.55,0,0.7,0],
+        forest: [1,0,0,0.35,0.5,0,0,0.2],
+        city:   [1,0.35,0.5,0.35,1,0.35,0.5,0.7],
+        ruins:  [1,0,0,0,0,0.6,0,0]
+    };
+    const pat = pats[area]||pats.beach;
+
+    pat.forEach((str, i)=>{
+        if(!str) return;
+        const bt = t + i * hb;
+        // Kick on beat 1 & 5
+        if(i===0||i===4){
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(160, bt);
+            o.frequency.exponentialRampToValueAtTime(48, bt+0.18);
+            g.gain.setValueAtTime(vol*str*0.85, bt);
+            g.gain.exponentialRampToValueAtTime(0.001, bt+0.28);
+            o.start(bt); o.stop(bt+0.28);
+        }
+        // Snare on beat 5 (i=4) for city/ruins extra snap
+        if(i===4 && (area==='city'||area==='ruins')){
+            const sz = Math.floor(ctx.sampleRate * 0.11);
+            const buf = ctx.createBuffer(1, sz, ctx.sampleRate);
+            const d = buf.getChannelData(0);
+            for(let j=0;j<sz;j++) d[j]=Math.random()*2-1;
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            const flt = ctx.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=2800; flt.Q.value=0.6;
+            const sg = ctx.createGain();
+            src.connect(flt); flt.connect(sg); sg.connect(ctx.destination);
+            sg.gain.setValueAtTime(vol*str*0.32, bt); sg.gain.exponentialRampToValueAtTime(0.001, bt+0.11);
+            src.start(bt); src.stop(bt+0.11);
+        }
+        // Hi-hat (odd slots)
+        if(i%2!==0 && str>0){
+            const hsz = Math.floor(ctx.sampleRate * 0.035);
+            const hbuf = ctx.createBuffer(1, hsz, ctx.sampleRate);
+            const hd = hbuf.getChannelData(0);
+            for(let j=0;j<hsz;j++) hd[j]=Math.random()*2-1;
+            const hs = ctx.createBufferSource(); hs.buffer=hbuf;
+            const hf = ctx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=7500;
+            const hg = ctx.createGain();
+            hs.connect(hf); hf.connect(hg); hg.connect(ctx.destination);
+            hg.gain.setValueAtTime(vol*str*0.16, bt); hg.gain.exponentialRampToValueAtTime(0.001, bt+0.035);
+            hs.start(bt); hs.stop(bt+0.035);
+        }
+    });
+}
+
+const BASS_NOTES_MAP = {
+    beach:  [55,55,82,55],
+    forest: [65,65,87,87],
+    city:   [73,82,73,65],
+    ruins:  [55,55,55,41]
+};
+function _playBass(ctx, area, t, barDur, vol){
+    const notes = BASS_NOTES_MAP[area]||BASS_NOTES_MAP.beach;
+    const nd = barDur / notes.length;
+    notes.forEach((freq, i)=>{
+        const nt = t + i * nd;
+        const o = ctx.createOscillator(), flt = ctx.createBiquadFilter(), g = ctx.createGain();
+        flt.type='lowpass'; flt.frequency.value=320;
+        o.connect(flt); flt.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.setValueAtTime(freq, nt);
+        g.gain.setValueAtTime(0, nt);
+        g.gain.linearRampToValueAtTime(vol*0.65, nt+0.025);
+        g.gain.setValueAtTime(vol*0.65, nt+nd*0.78);
+        g.gain.linearRampToValueAtTime(0, nt+nd*0.96);
+        o.start(nt); o.stop(nt+nd);
+    });
+}
+
+const MEL_SCALES = {
+    beach:  [440,494,554,659,740],
+    forest: [392,440,494,587,659],
+    city:   [440,466,554,622,740],
+    ruins:  [220,247,277,330,370]
+};
+const MEL_PATS = {
+    beach:  [0,2,4,2,1,3,4,3],
+    forest: [0,1,2,3,2,1,0,2],
+    city:   [4,2,1,2,4,3,2,0],
+    ruins:  [-1,0,2,1,0,-1,1,0]  // -1 = rest
+};
+function _playMelody(ctx, area, t, barDur, vol, lv){
+    const scale = MEL_SCALES[area]||MEL_SCALES.beach;
+    const pat   = MEL_PATS[area]||MEL_PATS.beach;
+    const count = lv >= 3 ? 8 : 4;
+    const nd = barDur / count;
+    for(let i=0;i<count;i++){
+        const idx = pat[i % pat.length];
+        if(idx < 0) continue;
+        const freq = scale[idx % scale.length];
+        const nt = t + i * nd;
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = area==='ruins' ? 'sine' : 'triangle';
+        o.frequency.setValueAtTime(freq, nt);
+        g.gain.setValueAtTime(0, nt);
+        g.gain.linearRampToValueAtTime(vol*0.38, nt+0.012);
+        g.gain.setValueAtTime(vol*0.38, nt+nd*0.62);
+        g.gain.linearRampToValueAtTime(0, nt+nd*0.92);
+        o.start(nt); o.stop(nt+nd);
+        // Echo for ruins
+        if(area==='ruins'){
+            const eo = ctx.createOscillator(), eg = ctx.createGain();
+            eo.connect(eg); eg.connect(ctx.destination);
+            eo.type='sine'; eo.frequency.setValueAtTime(freq, nt+0.14);
+            eg.gain.setValueAtTime(0, nt+0.14);
+            eg.gain.linearRampToValueAtTime(vol*0.12, nt+0.16);
+            eg.gain.linearRampToValueAtTime(0, nt+nd);
+            eo.start(nt+0.14); eo.stop(nt+nd+0.14);
+        }
+    }
+}
+
+const FX_DEF = {
+    beach:  { freq:190, type:'sine',     mod:5,   fcut:350 },
+    forest: { freq:330, type:'sine',     mod:2,   fcut:500 },
+    city:   { freq:58,  type:'sawtooth', mod:0.8, fcut:200 },
+    ruins:  { freq:75,  type:'sine',     mod:0.3, fcut:250 }
+};
+function _playFx(ctx, area, t, barDur, vol){
+    const d = FX_DEF[area]||FX_DEF.beach;
+    const o = ctx.createOscillator();
+    const lfo = ctx.createOscillator(), lfoG = ctx.createGain();
+    const flt = ctx.createBiquadFilter(), g = ctx.createGain();
+    flt.type='lowpass'; flt.frequency.value=d.fcut;
+    lfo.frequency.value=d.mod; lfoG.gain.value=14;
+    lfo.connect(lfoG); lfoG.connect(o.frequency);
+    o.connect(flt); flt.connect(g); g.connect(ctx.destination);
+    o.type=d.type; o.frequency.setValueAtTime(d.freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol*0.22, t+0.25);
+    g.gain.setValueAtTime(vol*0.22, t+barDur-0.25);
+    g.gain.linearRampToValueAtTime(0, t+barDur);
+    lfo.start(t); lfo.stop(t+barDur);
+    o.start(t); o.stop(t+barDur);
+}
+
+function _scheduleBar(ctx, barT, barDur, bpm, vol){
+    if(soundSlots.drum)   _playDrum(ctx, soundSlots.drum.area,   barT, barDur, bpm, vol);
+    if(soundSlots.bass)   _playBass(ctx, soundSlots.bass.area,   barT, barDur, vol);
+    if(soundSlots.melody) _playMelody(ctx, soundSlots.melody.area, barT, barDur, vol, G.lv);
+    if(soundSlots.fx)     _playFx(ctx, soundSlots.fx.area,   barT, barDur, vol);
+}
+
+function toggleTrack(){
+    if(isTrackPlaying) stopTrack(); else startTrack();
+}
+
+function startTrack(){
+    const hasAny = SLOT_KEYS.some(k => soundSlots[k] !== null);
+    if(!hasAny){
+        showToast(currentLang==='ja' ? '⚠ まず散歩で音を拾ってね！' : '⚠ Collect sounds while walking first!', true);
+        return;
+    }
+    const ctx = getAudioCtx();
+    if(!ctx){
+        showToast(currentLang==='ja' ? '⚠ 画面をタップして音声を有効に' : '⚠ Tap screen to enable audio', true);
+        return;
+    }
+    isTrackPlaying = true;
+    const bpm = getSoundBpm();
+    const barDur = (60/bpm)*4;
+    soundNextBarTime = ctx.currentTime + 0.05;
+
+    const loop = ()=>{
+        if(!isTrackPlaying) return;
+        const vol = getSoundVol();
+        _scheduleBar(ctx, soundNextBarTime, barDur, bpm, vol);
+        soundNextBarTime += barDur;
+        const wait = (soundNextBarTime - ctx.currentTime - 0.1) * 1000;
+        soundLoopTimer = setTimeout(loop, Math.max(50, wait));
+    };
+    loop();
+    renderSoundSlots();
+    setMsg(currentLang==='ja' ? `🎵 演奏スタート！ BPM ${bpm}` : `🎵 Track playing! BPM ${bpm}`);
+    haptic([20,10,40]);
+}
+
+function stopTrack(){
+    isTrackPlaying = false;
+    if(soundLoopTimer){ clearTimeout(soundLoopTimer); soundLoopTimer=null; }
+    renderSoundSlots();
+    setMsg(currentLang==='ja' ? '🎵 演奏停止' : '🎵 Track stopped');
+}
+
+function saveMemoryTrack(){
+    const hasAny = SLOT_KEYS.some(k => soundSlots[k]!==null);
+    if(!hasAny){
+        showToast(currentLang==='ja' ? '⚠ スロットが空です' : '⚠ No sounds in slots', true);
+        return;
+    }
+    const zones = [...new Set(SLOT_KEYS.filter(k=>soundSlots[k]).map(k=>soundSlots[k].area))];
+    const date = new Date().toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
+    const zEmoji = zones.map(z=>ZONE_EMOJI[z]||'').join('');
+    const name = `${date} ${zEmoji} Mix`;
+    const track = { ts:Date.now(), name, date, zones, slots:{...soundSlots} };
+
+    try{
+        const raw = localStorage.getItem(SOUND_MEMORY_KEY);
+        const mems = raw ? JSON.parse(raw) : [];
+        mems.unshift(track);
+        if(mems.length>10) mems.length=10;
+        localStorage.setItem(SOUND_MEMORY_KEY, JSON.stringify(mems));
+    }catch(e){}
+
+    renderSoundMemory();
+    showToast(currentLang==='ja' ? '💾 思い出トラックを保存したよ！' : '💾 Memory track saved!');
+    haptic([20,10,30]);
+}
+
+// cache for onclick in rendered HTML
+let _soundMemCache = [];
+
+function loadMemoryTrack(idx){
+    const track = _soundMemCache[idx];
+    if(!track) return;
+    if(isTrackPlaying) stopTrack();
+    soundSlots = { drum:track.slots.drum||null, bass:track.slots.bass||null, melody:track.slots.melody||null, fx:track.slots.fx||null };
+    saveSoundSlots();
+    renderSoundSlots();
+    setMsg(currentLang==='ja' ? `📼「${track.name}」をロードしたよ` : `📼 Loaded "${track.name}"`);
+    haptic(20);
+}
+
+function renderSoundMemory(){
+    const list = document.getElementById('soundMemoryList');
+    if(!list) return;
+    let mems = [];
+    try{ const raw=localStorage.getItem(SOUND_MEMORY_KEY); if(raw) mems=JSON.parse(raw); }catch(e){}
+    _soundMemCache = mems.slice(0,6);
+    if(!_soundMemCache.length){
+        list.innerHTML = `<div style="font-size:0.66rem;color:rgba(255,255,255,0.2);text-align:center;padding:5px">${currentLang==='ja'?'思い出トラックはまだないよ':'No memory tracks yet'}</div>`;
+        return;
+    }
+    list.innerHTML = _soundMemCache.map((tr,i)=>{
+        const zEmoji = (tr.zones||[]).map(z=>ZONE_EMOJI[z]||'').join('');
+        return `<div class="sound-memory-item" onclick="loadMemoryTrack(${i})">
+            <span class="smi-date">${tr.date}</span>
+            <span class="smi-name">${tr.name}</span>
+            <span class="smi-zones">${zEmoji}</span>
+            <span class="smi-play">▶</span>
+        </div>`;
+    }).join('');
+}
+
 // ===== HAPTIC =====
 function haptic(ms=20){ try{ if(userGestureReady && navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
@@ -3782,7 +4396,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-04-26-walmate';
+const APP_VERSION = '2026-04-29-soundlab';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -6008,6 +6622,7 @@ function tapPet(){
 function doReset(){
     if(!confirm(currentLang === 'ja' ? '本当にリセットしますか？ 進捗が全て消えます。' : 'Reset everything? All progress will be lost.')) return;
     stopCollectorSpeech();
+    if(isTrackPlaying) stopTrack();
     StateManager.resetGame();
     ['sec1','sec2','sec3'].forEach(id=>document.getElementById(id).classList.remove('show'));
     try{
@@ -8051,6 +8666,7 @@ function startWalk() {
                         const c = getStageCenter();
                         spawnParticles(['👟','✨','💚'], c.x, c.y);
                     }
+                    checkSoundDrop(walkState.totalMeters);
                     saveWalkState();
                     updateWalkUI();
                 }
@@ -8070,6 +8686,7 @@ function startWalk() {
 function stopWalk() {
     walkState.active = false;
     clearWalkState();
+    soundDropCheckpointM = 0;
     if(walkState.watchId !== null) {
         navigator.geolocation.clearWatch(walkState.watchId);
         walkState.watchId = null;
@@ -8200,6 +8817,9 @@ window.addEventListener('load', ()=>{
             startRandomEvents();           // ← ここは変更なし
             renderWalkLogs();
             restoreWalkState();
+            loadSoundSlots();
+            renderSoundSlots();
+            renderSoundMemory();
             if(awayMins>1){
                 const h=Math.floor(awayMins/60), m=awayMins%60;
                 const label = currentLang === 'ja'
@@ -8213,6 +8833,8 @@ window.addEventListener('load', ()=>{
             // ===== ここを修正 =====
             const hatchScreen = document.getElementById('hatchScreen');
             hatchScreen.classList.remove('hidden');
+            renderSoundSlots();
+            renderSoundMemory();
             
             // 画面トランジションが終わるのを待ってから孵化アニメ開始
             setTimeout(() => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walmate-pwa-v2026-04-25-og-card-1';
+const CACHE_NAME = 'walmate-pwa-v2026-04-29-soundlab-1';
 const APP_SHELL = [
   './',
   './index.html',
