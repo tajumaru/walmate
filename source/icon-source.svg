@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Walrus app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06142b"/>
+      <stop offset="55%" stop-color="#0b2861"/>
+      <stop offset="100%" stop-color="#0a1737"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="25%" r="70%">
+      <stop offset="0%" stop-color="#7ec8ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#7ec8ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#63bcff"/>
+      <stop offset="100%" stop-color="#1a6fe0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="144" cy="124" r="84" fill="#00e5b0" opacity="0.16"/>
+  <circle cx="382" cy="134" r="70" fill="#7ec8ff" opacity="0.18"/>
+  <circle cx="256" cy="256" r="166" fill="url(#glow)"/>
+  <ellipse cx="256" cy="340" rx="126" ry="96" fill="url(#body)"/>
+  <ellipse cx="256" cy="208" rx="100" ry="100" fill="url(#body)"/>
+  <ellipse cx="256" cy="324" rx="68" ry="52" fill="#7ec8ff" opacity="0.36"/>
+  <ellipse cx="256" cy="234" rx="52" ry="36" fill="#7ec8ff" opacity="0.34"/>
+  <circle cx="212" cy="230" r="24" fill="#fff"/>
+  <circle cx="300" cy="230" r="24" fill="#fff"/>
+  <circle cx="212" cy="230" r="14" fill="#080e20"/>
+  <circle cx="300" cy="230" r="14" fill="#080e20"/>
+  <circle cx="204" cy="220" r="5" fill="#fff"/>
+  <circle cx="292" cy="220" r="5" fill="#fff"/>
+  <circle cx="240" cy="274" r="12" fill="#10294c" opacity="0.78"/>
+  <circle cx="272" cy="274" r="12" fill="#10294c" opacity="0.78"/>
+  <path d="M232 306 Q256 326 280 306" fill="none" stroke="#173662" stroke-width="7" stroke-linecap="round"/>
+  <line x1="118" y1="248" x2="196" y2="260" stroke="#d4f5ff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="114" y1="266" x2="196" y2="266" stroke="#d4f5ff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="118" y1="284" x2="196" y2="274" stroke="#d4f5ff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="316" y1="260" x2="394" y2="248" stroke="#d4f5ff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="316" y1="266" x2="398" y2="266" stroke="#d4f5ff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="316" y1="274" x2="394" y2="284" stroke="#d4f5ff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <rect x="226" y="294" width="20" height="82" rx="10" fill="#ede5ce" stroke="#c8bb98" stroke-width="2"/>
+  <rect x="266" y="294" width="20" height="82" rx="10" fill="#ede5ce" stroke="#c8bb98" stroke-width="2"/>
+  <ellipse cx="146" cy="354" rx="42" ry="22" fill="#1f83f0" transform="rotate(-25 146 354)"/>
+  <ellipse cx="366" cy="354" rx="42" ry="22" fill="#1f83f0" transform="rotate(25 366 354)"/>
+  <circle cx="392" cy="392" r="34" fill="#00e5b0"/>
+  <path d="M378 392h28M392 378v28" stroke="#03111f" stroke-width="10" stroke-linecap="round"/>
+</svg>
