@@ -3968,6 +3968,20 @@ function playTone(freq, type='sine', dur=0.12, vol=0.08){
         osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
     } catch(e){}
 }
+
+//AudioContextを pagehide で閉じる
+window.addEventListener('pagehide', () => {
+    try {
+        if (audioCtx && audioCtx.state !== 'closed') {
+            audioCtx.close();
+        }
+    } catch(e) {}
+
+    audioCtx = null;
+    masterGain = null;
+}, { passive: true });
+
+
 function sfxFeed()    { playTone(440,'sine',0.1,0.07); setTimeout(()=>playTone(660,'sine',0.08,0.06),80); }
 function sfxPet()     { playTone(520,'sine',0.15,0.06); setTimeout(()=>playTone(780,'sine',0.1,0.05),100); }
 function sfxPlay()    { [330,440,550,660].forEach((f,i)=>setTimeout(()=>playTone(f,'square',0.06,0.04),i*55)); }
@@ -6804,38 +6818,66 @@ function tapPet(){
 }
 
 function doReset(){
-    if(!confirm(currentLang === 'ja' ? '本当にリセットしますか？ 進捗が全て消えます。' : 'Reset everything? All progress will be lost.')) return;
-    stopCollectorSpeech();
-    if(isTrackPlaying) stopTrack();
-    StateManager.resetGame();
-    ['sec1','sec2','sec3'].forEach(id=>document.getElementById(id).classList.remove('show'));
-    try{
-        localStorage.removeItem(GAME_STORAGE_KEY);
-        localStorage.removeItem('walrus_blobid');
-        localStorage.removeItem('legend_cert_blobid');
-        localStorage.removeItem('walrus_diary');
-        localStorage.removeItem('walrus_diary_blobid');
-        localStorage.removeItem('walrus_exchange_history');
-        localStorage.removeItem(PORTFOLIO_ORDER_KEY);
-        localStorage.removeItem(COLLECTOR_BLOB_KEY);
-        localStorage.removeItem(NEWBORN_GUIDE_SEEN_KEY);
-        localStorage.removeItem(WALK_LOG_KEY);
-        localStorage.removeItem(WALK_BLOB_KEY);
-    }catch(e){}
-    document.getElementById('petStage').className = 'pet-stage';
-    document.getElementById('timeAway').textContent='';
-    saveG();
-    socialPopupPending = false;
-    legendCertShareUrl = '';
-    const certModal = document.getElementById('legendCertModal');
-    if(certModal) certModal.style.display = 'none';
-    const socialPopup = document.getElementById('socialPopup');
-    if(socialPopup) socialPopup.style.display = 'none';
-    renderDiaryEntries();
-    renderExchangeHistory();
-    updateUI();
-    setMsg(currentLang === 'ja' ? 'はじめから育てよう！ 🦭' : 'Let us raise a new walrus! 🦭');
-    setTimeout(() => location.reload(), 120);
+    if(!confirm(currentLang === 'ja'
+        ? '本当にリセットしますか？ 進捗が全て消えます。'
+        : 'Reset everything? All progress will be lost.'
+    )) return;
+
+    // まず画面を軽くする
+    document.body.style.pointerEvents = 'none';
+    showToast(currentLang === 'ja' ? 'リセット中…' : 'Resetting...');
+
+    // 重い処理を次フレームに逃がす
+    requestAnimationFrame(() => {
+        try {
+            stopCollectorSpeech();
+            if(isTrackPlaying) stopTrack();
+
+            if(decayInterval) {
+                clearInterval(decayInterval);
+                decayInterval = null;
+            }
+
+            if(eventInterval) {
+                clearInterval(eventInterval);
+                eventInterval = null;
+            }
+
+            if(typeof stopWalk === 'function' && walkState?.active) {
+                stopWalk();
+            }
+
+            StateManager.resetGame();
+
+            [
+                GAME_STORAGE_KEY,
+                'walrus_blobid',
+                'legend_cert_blobid',
+                'walrus_diary',
+                'walrus_diary_blobid',
+                'walrus_exchange_history',
+                PORTFOLIO_ORDER_KEY,
+                COLLECTOR_BLOB_KEY,
+                NEWBORN_GUIDE_SEEN_KEY,
+                WALK_LOG_KEY,
+                WALK_BLOB_KEY
+            ].forEach(key => {
+                try { localStorage.removeItem(key); } catch(e) {}
+            });
+
+            socialPopupPending = false;
+            legendCertShareUrl = '';
+
+            // ✅ renderDiaryEntries / renderExchangeHistory / updateUI は不要
+            // どうせ reload するので描画しない
+
+            location.reload();
+
+        } catch(e) {
+            console.warn('reset failed', e);
+            location.reload();
+        }
+    });
 }
 
 function startDecay(){
@@ -7136,6 +7178,7 @@ function startMiniGame(){
 
     window._miniCleanup=()=>{
         clearInterval(tid);
+        clearTimeout(comboTimer); // ✅ 追加
         if(miniState&&miniState.raf) cancelAnimationFrame(miniState.raf);
         canvas.removeEventListener('pointerdown',handleTap);
         tapFxLayer.innerHTML = '';
@@ -8733,7 +8776,7 @@ let walkState = {
     timerInterval: null,
     lastCoord: null,
     totalMeters: 0,
-    expEarned: 0.,
+    expEarned: 0,
     collected: []
 };
 
@@ -8839,6 +8882,26 @@ function toggleWalk() {
 }
 
 function startWalk() {
+
+    // ✅ 二重起動ガード
+    if (walkState.active) {
+        stopWalk();
+    }
+
+    // ✅ 前回の残骸を確実に掃除
+    if (walkState.watchId !== null) {
+        navigator.geolocation.clearWatch(walkState.watchId);
+        walkState.watchId = null;
+    }
+    if (walkState.timerInterval) {
+        clearInterval(walkState.timerInterval);
+        walkState.timerInterval = null;
+    }
+    if (walkState._visibilityHandler) {
+        document.removeEventListener('visibilitychange', walkState._visibilityHandler);
+        walkState._visibilityHandler = null;
+    }
+
     if(!navigator.geolocation) {
         showToast(currentLang === 'ja' ? '⚠ GPSが使えません' : '⚠ GPS not available', true);
         return;
