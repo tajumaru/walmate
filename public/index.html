@@ -3117,6 +3117,114 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
 0%   { transform: translate(0,0) scale(1); opacity:1; }
 100% { transform: translate(var(--bx), var(--by)) scale(0); opacity:0; }
 }
+/* ===== NAMING OVERLAY ===== */
+.name-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3,12,26,0.82);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+}
+.name-overlay.hidden { opacity: 0; pointer-events: none; transform: scale(0.96); }
+.name-overlay.pop-in { animation: nameCardPop 0.52s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+@keyframes nameCardPop {
+  0%   { opacity: 0; transform: scale(0.84) translateY(24px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.name-card {
+  background: linear-gradient(145deg, rgba(0,229,176,0.07), rgba(77,162,255,0.07));
+  border: 1px solid rgba(0,229,176,0.28);
+  border-radius: 28px;
+  padding: 32px 28px 28px;
+  width: min(340px, 88vw);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.52), 0 0 0 1px rgba(0,229,176,0.08);
+  position: relative; overflow: hidden;
+}
+.name-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,229,176,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.name-walrus-echo {
+  width: 110px; height: 110px;
+  display: flex; align-items: center; justify-content: center;
+  animation: walrusFloat 2.2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 6px 18px rgba(0,229,176,0.38));
+}
+.name-walrus-echo .hatch-baby-svg {
+  width: 100%; height: 100%;
+}
+@keyframes walrusFloat {
+  from { transform: translateY(0) rotate(-4deg) scale(1); }
+  to   { transform: translateY(-8px) rotate(4deg) scale(1.06); }
+}
+.name-sparkle-row {
+  font-size: 1.1rem; letter-spacing: 6px;
+  animation: sparkleFade 1.6s ease-in-out infinite alternate;
+}
+@keyframes sparkleFade { from{opacity:0.4} to{opacity:1} }
+.name-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: clamp(1.3rem, 5vw, 1.65rem);
+  color: var(--teal);
+  text-shadow: 0 0 20px rgba(0,229,176,0.4);
+  letter-spacing: 0.5px;
+}
+.name-sub {
+  font-size: 0.82rem; color: rgba(228,242,248,0.55);
+  font-weight: 600; text-align: center; line-height: 1.5;
+}
+.name-input-wrap {
+  position: relative; width: 100%;
+}
+.name-input {
+  width: 100%; padding: 14px 44px 14px 18px;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(0,229,176,0.38);
+  border-radius: 16px;
+  color: var(--white);
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.3rem; text-align: center;
+  letter-spacing: 1px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  caret-color: var(--teal);
+}
+.name-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(0,229,176,0.16), 0 0 20px rgba(0,229,176,0.1);
+  background: rgba(255,255,255,0.09);
+}
+.name-input::placeholder { color: rgba(228,242,248,0.28); }
+.name-input-count {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  font-size: 0.65rem; font-weight: 800; color: rgba(228,242,248,0.28);
+  letter-spacing: 0.05em; pointer-events: none;
+}
+.name-confirm-btn {
+  width: 100%; padding: 15px;
+  background: linear-gradient(90deg, var(--teal), var(--cyan));
+  border: none; border-radius: 16px;
+  color: #030c1a;
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.1rem; letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: 0 6px 24px rgba(0,229,176,0.3);
+}
+.name-confirm-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(0,229,176,0.42); }
+.name-confirm-btn:active { transform: scale(0.97); }
+.name-confirm-btn.shake {
+  animation: nameShake 0.35s ease-in-out;
+}
+@keyframes nameShake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
 </style>
 </head>
 <body>
@@ -3293,6 +3401,31 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
         </div>
     </div>
     <button class="hatch-tap-btn hidden" id="hatchTapBtn">👆 タップして生まれさせる！</button>
+</div>
+
+<!-- NAMING OVERLAY -->
+<div id="nameOverlay" class="name-overlay hidden" aria-modal="true" role="dialog">
+    <div class="name-card">
+        <div class="name-walrus-echo" id="nameWalrusEcho"></div>
+        <div class="name-sparkle-row">✨ 🦭 ✨</div>
+        <div class="name-title" id="nameOverlayTitle">なまえをつけよう！</div>
+        <div class="name-sub" id="nameOverlaySub">きみだけの Walrus に、特別な名前を！</div>
+        <div class="name-input-wrap">
+            <input
+                class="name-input"
+                id="nameInput"
+                type="text"
+                maxlength="12"
+                autocomplete="off"
+                autocorrect="off"
+                spellcheck="false"
+                placeholder="たじゅまる"
+                value="たじゅまる"
+            />
+            <span class="name-input-count" id="nameInputCount">5/12</span>
+        </div>
+        <button class="name-confirm-btn" id="nameConfirmBtn">✨ この名前にする！</button>
+    </div>
 </div>
 
 <!-- MAIN GAME -->
@@ -6125,6 +6258,7 @@ const DEFAULT_GAME_STATE = Object.freeze({
     sakuraPink: false,
     legendPath: '',
     legendEvolution: false,
+    petName: 'たじゅまる',
     custom: { color: 'gold', accessory: 'none' }
 });
 
@@ -6147,6 +6281,7 @@ function normalizeGameState(state){
     if(!LEGEND_ACCESSORIES.includes(state.custom.accessory)) state.custom.accessory = DEFAULT_GAME_STATE.custom.accessory;
     if(!state.legendPath) state.legendPath = '';
     state.legendEvolution = !!state.legendEvolution;
+    if(!state.petName || typeof state.petName !== 'string') state.petName = DEFAULT_GAME_STATE.petName;
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -6274,7 +6409,8 @@ function updateUI(){
     document.getElementById('cardHa').className = 'stat-card' + (G.happy  < 25 ? ' warning':'');
 
     const badge = document.getElementById('lvBadge');
-    badge.textContent = `✦ Lv.${G.lv} · ${getLvName(G.lv)}`;
+    const displayName = G.petName || 'たじゅまる';
+    badge.textContent = `✦ ${displayName} · Lv.${G.lv} · ${getLvName(G.lv)}`;
     badge.className = 'lv-badge' + (G.lv===4 ? ' legend':'');
 
     const alerts = document.getElementById('statusAlerts');
@@ -8607,6 +8743,63 @@ function setHatchGuideStep(activeStep = 0){
     });
 }
 
+/* ===== NAMING OVERLAY ===== */
+const PET_NAME_KEY = 'walrus_pet_name';
+
+function showNamingOverlay(onConfirm) {
+    const overlay = document.getElementById('nameOverlay');
+    const input   = document.getElementById('nameInput');
+    const confirmBtn = document.getElementById('nameConfirmBtn');
+    const countEl   = document.getElementById('nameInputCount');
+    const titleEl   = document.getElementById('nameOverlayTitle');
+    const subEl     = document.getElementById('nameOverlaySub');
+    const echoEl    = document.getElementById('nameWalrusEcho');
+    if(!overlay || !input || !confirmBtn) { onConfirm('たじゅまる'); return; }
+
+    const isJa = currentLang === 'ja';
+    if(titleEl) titleEl.textContent = isJa ? 'なまえをつけよう！' : 'Name your Walrus!';
+    if(subEl)   subEl.textContent   = isJa
+        ? 'きみだけの Walrus に、特別な名前を！（最大12文字）'
+        : 'Give your Walrus a name! (up to 12 chars)';
+    if(confirmBtn) confirmBtn.textContent = isJa ? '✨ この名前にする！' : '✨ Set this name!';
+    input.placeholder = isJa ? 'たじゅまる' : 'WalKun';
+    input.value = G.petName || (isJa ? 'たじゅまる' : 'WalKun');
+    if(echoEl) echoEl.innerHTML = createHatchBaby();
+
+    const updateCount = () => {
+        if(countEl) countEl.textContent = `${[...input.value].length}/12`;
+    };
+    updateCount();
+    input.addEventListener('input', updateCount);
+
+    overlay.classList.remove('hidden');
+    overlay.classList.add('pop-in');
+    setTimeout(() => input.focus(), 300);
+
+    const doConfirm = () => {
+        const raw = input.value.trim();
+        const name = raw.length > 0 ? [...raw].slice(0, 12).join('') : (isJa ? 'たじゅまる' : 'WalKun');
+        if(raw.length === 0) {
+            confirmBtn.classList.add('shake');
+            setTimeout(() => confirmBtn.classList.remove('shake'), 400);
+            input.value = '';
+            input.focus();
+            return;
+        }
+        G.petName = name;
+        saveG();
+        overlay.classList.add('hidden');
+        overlay.classList.remove('pop-in');
+        if(typeof onConfirm === 'function') onConfirm(name);
+    };
+
+    confirmBtn.onclick = doConfirm;
+    input.onkeydown = (e) => { if(e.key === 'Enter') doConfirm(); };
+}
+
+// helper to get emoji for echo (uses existing createHatchBaby logic if possible)
+function createHatchBabyEmoji() { return '🦭'; }
+
 function showMainAfterHatch(){
     try {
         document.getElementById('hatchScreen')?.classList.add('hidden');
@@ -8719,16 +8912,20 @@ function runHatching(){
                 sfxLevelUp();
                 playHatchSplashCanvas();
                 setTimeout(()=>{
-                    showMainAfterHatch();
-                    setTimeout(()=>{
-                        setMsg(currentLang === 'ja' ? 'クー！ まずは餌やりしてね 🍣' : 'Kuu! Feed me first 🍣');
-                        renderWalkLogs();
-                        try {
-                            if(localStorage.getItem(NEWBORN_GUIDE_SEEN_KEY) !== '1') showNewbornGuide();
-                        } catch(e) {
-                            showNewbornGuide();
-                        }
-                    },700);
+                    showNamingOverlay((confirmedName) => {
+                        showMainAfterHatch();
+                        setTimeout(()=>{
+                            setMsg(currentLang === 'ja'
+                                ? `クー！ ${confirmedName}、よろしくね 🍣`
+                                : `Kuu! Nice to meet you, ${confirmedName} 🍣`);
+                            renderWalkLogs();
+                            try {
+                                if(localStorage.getItem(NEWBORN_GUIDE_SEEN_KEY) !== '1') showNewbornGuide();
+                            } catch(e) {
+                                showNewbornGuide();
+                            }
+                        },700);
+                    });
                 },1800);
             },700);
         });
