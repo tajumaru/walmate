@@ -4019,7 +4019,7 @@ function renderSoundSlots(){
                 <div><div class="slot-name">${def.name||piece.name}</div>
                 <div class="slot-area-tag">${piece.area}</div></div>`;
         } else {
-            const hint = currentLang === 'ja' ? '散歩中に拾えるよ' : 'collect while walking';
+            const hint = currentLang === 'ja' ? '130mごとに集まるよ' : 'collect while walking';
             contentEl.innerHTML = `<span class="slot-empty-hint">${hint}</span>`;
         }
     });
@@ -7422,11 +7422,35 @@ function finishSaveMoment(blobId, ok=true){
     if(moment) moment.classList.toggle('done', ok);
     setStorageText('saveMomentTitle', ok ? (isJa ? '保存された！' : 'Saved!') : (isJa ? 'Walrus保存失敗' : 'Save failed'));
     setStorageText('saveMomentResult', ok ? `BlobId: ${shortBlobId(blobId)}` : (isJa ? 'ローカル保存は残っています' : 'Local save is kept'));
+    //saveMomentHideTimer = setTimeout(() => {
+    //    if(overlay) overlay.classList.remove('show');
+    //    if(moment) moment.classList.remove('done');
+    //    saveMomentHideTimer = null;
+    //}, ok ? 1500 : 1200);
     saveMomentHideTimer = setTimeout(() => {
-        if(overlay) overlay.classList.remove('show');
-        if(moment) moment.classList.remove('done');
+        hideSaveMoment();
         saveMomentHideTimer = null;
     }, ok ? 1500 : 1200);
+}
+
+function hideSaveMoment(){
+    const overlay = document.getElementById('walrusSaveOverlay');
+    const moment = document.getElementById('saveMoment');
+    if(!overlay) return;
+
+    overlay.classList.remove('show');
+
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.style.animation = '';
+        overlay.classList.remove('ios-lite');
+
+        if(moment){
+            moment.classList.remove('done');
+            moment.style.animation = '';
+            moment.style.transform = '';
+        }
+    }, 260);
 }
 
 function syncWalrusLoadPreview(){
