@@ -3913,7 +3913,11 @@ let audioCtx = null;
 let userGestureReady = false;
 window.addEventListener('pointerdown', () => {
     userGestureReady = true;
-    try { if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
+    try {
+        // iOS Safari対策: ジェスチャー内でAudioContextを作成＆resume（同期的に行う必要がある）
+        if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+    } catch(e){}
 }, { passive: true });
 function getAudioCtx(){
     if(!userGestureReady) return null;
@@ -3929,6 +3933,8 @@ function playTone(freq, type='sine', dur=0.12, vol=0.08){
         osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
         gain.gain.setValueAtTime(vol, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        // iOS Safari: ノード停止後に必ずdisconnectしてAudioNodeリークを防ぐ
+        osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(_){} };
         osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
     } catch(e){}
 }
@@ -4292,6 +4298,7 @@ function _playDrum(ctx, area, t, barDur, bpm, vol){
             o.frequency.exponentialRampToValueAtTime(48, bt+0.18);
             g.gain.setValueAtTime(vol*str*0.85, bt);
             g.gain.exponentialRampToValueAtTime(0.001, bt+0.28);
+            o.onended = () => { try { o.disconnect(); g.disconnect(); } catch(_){} };
             o.start(bt); o.stop(bt+0.28);
         }
         // Snare on beat 5 (i=4) for city/ruins extra snap
@@ -4306,6 +4313,7 @@ function _playDrum(ctx, area, t, barDur, bpm, vol){
             const sg = ctx.createGain();
             src.connect(flt); flt.connect(sg); sg.connect(ctx.destination);
             sg.gain.setValueAtTime(vol*str*0.32, bt); sg.gain.exponentialRampToValueAtTime(0.001, bt+0.11);
+            src.onended = () => { try { src.disconnect(); flt.disconnect(); sg.disconnect(); } catch(_){} };
             src.start(bt); src.stop(bt+0.11);
         }
         // Hi-hat (odd slots)
@@ -4319,6 +4327,7 @@ function _playDrum(ctx, area, t, barDur, bpm, vol){
             const hg = ctx.createGain();
             hs.connect(hf); hf.connect(hg); hg.connect(ctx.destination);
             hg.gain.setValueAtTime(vol*str*0.16, bt); hg.gain.exponentialRampToValueAtTime(0.001, bt+0.035);
+            hs.onended = () => { try { hs.disconnect(); hf.disconnect(); hg.disconnect(); } catch(_){} };
             hs.start(bt); hs.stop(bt+0.035);
         }
     });
@@ -4343,6 +4352,7 @@ function _playBass(ctx, area, t, barDur, vol){
         g.gain.linearRampToValueAtTime(vol*0.65, nt+0.025);
         g.gain.setValueAtTime(vol*0.65, nt+nd*0.78);
         g.gain.linearRampToValueAtTime(0, nt+nd*0.96);
+        o.onended = () => { try { o.disconnect(); flt.disconnect(); g.disconnect(); } catch(_){} };
         o.start(nt); o.stop(nt+nd);
     });
 }
@@ -4377,6 +4387,7 @@ function _playMelody(ctx, area, t, barDur, vol, lv){
         g.gain.linearRampToValueAtTime(vol*0.38, nt+0.012);
         g.gain.setValueAtTime(vol*0.38, nt+nd*0.62);
         g.gain.linearRampToValueAtTime(0, nt+nd*0.92);
+        o.onended = () => { try { o.disconnect(); g.disconnect(); } catch(_){} };
         o.start(nt); o.stop(nt+nd);
         // Echo for ruins
         if(area==='ruins'){
@@ -4386,6 +4397,7 @@ function _playMelody(ctx, area, t, barDur, vol, lv){
             eg.gain.setValueAtTime(0, nt+0.14);
             eg.gain.linearRampToValueAtTime(vol*0.12, nt+0.16);
             eg.gain.linearRampToValueAtTime(0, nt+nd);
+            eo.onended = () => { try { eo.disconnect(); eg.disconnect(); } catch(_){} };
             eo.start(nt+0.14); eo.stop(nt+nd+0.14);
         }
     }
@@ -4411,6 +4423,7 @@ function _playFx(ctx, area, t, barDur, vol){
     g.gain.linearRampToValueAtTime(vol*0.22, t+0.25);
     g.gain.setValueAtTime(vol*0.22, t+barDur-0.25);
     g.gain.linearRampToValueAtTime(0, t+barDur);
+    o.onended = () => { try { lfo.disconnect(); lfoG.disconnect(); o.disconnect(); flt.disconnect(); g.disconnect(); } catch(_){} };
     lfo.start(t); lfo.stop(t+barDur);
     o.start(t); o.stop(t+barDur);
 }
