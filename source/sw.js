@@ -12,7 +12,13 @@ const APP_SHELL = [
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(  // ← allSettled に変えて個別に処理
+        APP_SHELL.map(url =>
+          cache.add(url).catch(err => console.warn('Cache miss:', url, err))
+        )
+      )
+    )
   );
   self.skipWaiting();
 });

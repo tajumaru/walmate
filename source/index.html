@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>WalMate</title>
 <meta name="description" content="育てて、遊んで、秘密をアンロックする Sui x Walrus のインタラクティブ育成ゲーム。">
 <meta property="og:type" content="website">
@@ -9013,7 +9010,11 @@ async function saveWalkToWalrus() {
 /* ===== INIT ===== */
 window.addEventListener('load', ()=>{
     registerServiceWorker();
-    if(ensureFreshVersion()) return;
+    
+    if(ensureFreshVersion()) {
+        location.reload();  // 明示的にリロード
+        return;
+    }
     loadG();
     currentLang = detectLanguage();
     currentTheme = detectTheme();
