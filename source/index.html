@@ -4489,26 +4489,43 @@ function startTrack(){
         showToast(currentLang==='ja' ? '⚠ まず散歩で音を拾ってね！' : '⚠ Collect sounds while walking first!', true);
         return;
     }
+
     userGestureReady = true;
+
     const ctx = getAudioCtx();
     if(!ctx){
         showToast(currentLang==='ja' ? '⚠ 画面をタップして音声を有効に' : '⚠ Tap screen to enable audio', true);
         return;
     }
-    isTrackPlaying = true;
-    const bpm = getSoundBpm();
-    const barDur = (60/bpm)*4;
-    soundNextBarTime = ctx.currentTime + 0.05;
 
-    const loop = ()=>{
+    if(ctx.state === 'suspended'){
+        ctx.resume().catch(()=>{});
+    }
+
+    isTrackPlaying = true;
+
+    const bpm = getSoundBpm();
+    const barDur = (60 / bpm) * 4;
+    const lookAhead = 0.12;
+    const scheduleAhead = 0.65;
+
+    soundNextBarTime = ctx.currentTime + 0.08;
+
+    const scheduler = () => {
         if(!isTrackPlaying) return;
+
         const vol = getSoundVol();
-        _scheduleBar(ctx, soundNextBarTime, barDur, bpm, vol);
-        soundNextBarTime += barDur;
-        const wait = (soundNextBarTime - ctx.currentTime - 0.1) * 1000;
-        soundLoopTimer = setTimeout(loop, Math.max(50, wait));
+
+        while(soundNextBarTime < ctx.currentTime + scheduleAhead){
+            _scheduleBar(ctx, soundNextBarTime, barDur, bpm, vol);
+            soundNextBarTime += barDur;
+        }
+
+        soundLoopTimer = setTimeout(scheduler, lookAhead * 1000);
     };
-    loop();
+
+    scheduler();
+
     renderSoundSlots();
     setMsg(currentLang==='ja' ? `🎵 演奏スタート！ BPM ${bpm}` : `🎵 Track playing! BPM ${bpm}`);
     haptic([20,10,40]);
@@ -5204,9 +5221,18 @@ function buildVersionedUrl(){
 function registerServiceWorker(){
     if(!('serviceWorker' in navigator)) return;
     if(window.location.protocol !== 'http:' && window.location.protocol !== 'https:') return;
-    navigator.serviceWorker.register('./sw.js').catch(err => {
-        console.warn('Service worker registration failed:', err);
-    });
+
+    const register = () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+            console.warn('Service worker registration failed:', err);
+        });
+    };
+
+    if('requestIdleCallback' in window){
+        requestIdleCallback(register, { timeout: 2500 });
+    } else {
+        window.addEventListener('load', () => setTimeout(register, 800), { once:true });
+    }
 }
 
 let deferredPwaInstallPrompt = null;
