@@ -168,6 +168,8 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
 .lang-switch { right: 14px; }
 .theme-switch { right: 94px; min-width: 112px; }
 .baby-switch { left: 14px; min-width: 104px; }
+.mute-switch { left: 128px; min-width: 44px; font-size: 1rem; padding: 10px 12px; }
+.mute-switch.muted { background: rgba(255,107,107,0.22); border-color: rgba(255,107,107,0.55); color: #ff6b6b; }
 .baby-switch.active {
   background: linear-gradient(90deg, #ffea00, #20e35a, #2382ff);
   border-color: rgba(255,255,255,0.72);
@@ -2621,6 +2623,7 @@ footer { text-align: center; margin-top: 24px; font-size: clamp(0.65rem,2.8vw,0.
   .theme-switch { top: 12px; right: 12px; min-width: 104px; }
   .lang-switch { top: 56px; right: 12px; }
   .baby-switch { top: 12px; left: 12px; min-width: 96px; }
+  .mute-switch { top: 56px; left: 12px; min-width: 40px; padding: 9px 11px; }
   .main-inner { padding-top: clamp(72px, 15vw, 96px); }
   .tama-device { width: min(300px, 80vw); }
   .pet-stage-wrap { max-height: min(190px, 48vw); }
@@ -3184,6 +3187,7 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
     </div>
 </div>
 <button class="utility-btn baby-switch" id="babyModeSwitch" onclick="toggleBabyMode()" type="button">BABY OFF</button>
+<button class="utility-btn mute-switch" id="muteSwitch" onclick="toggleMute()" type="button" aria-label="消音切替">🔊</button>
 <button class="utility-btn theme-switch" id="themeSwitch" onclick="toggleTheme()" type="button">☀ LAGOON</button>
 <button class="utility-btn lang-switch" id="langSwitch" onclick="toggleLanguage()" type="button">EN</button>
 
@@ -3910,13 +3914,40 @@ let restartBgCanvasLoop = null;
 
 // ===== WEB AUDIO =====
 let audioCtx = null;
-let userGestureReady = false;
+let masterGain = null;
+let isMuted = false;
+const MUTE_STORAGE_KEY = 'walrus_muted';
+
+function getMasterGain(){
+    if(!audioCtx) return null;
+    if(!masterGain){
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = isMuted ? 0 : 1;
+        masterGain.connect(audioCtx.destination);
+    }
+    return masterGain;
+}
+function toggleMute(){
+    isMuted = !isMuted;
+    try { localStorage.setItem(MUTE_STORAGE_KEY, isMuted ? '1' : '0'); } catch(e){}
+    if(masterGain) masterGain.gain.setTargetAtTime(isMuted ? 0 : 1, audioCtx.currentTime, 0.02);
+    const btn = document.getElementById('muteSwitch');
+    if(btn){
+        btn.textContent = isMuted ? '🔇' : '🔊';
+        btn.classList.toggle('muted', isMuted);
+        btn.setAttribute('aria-label', isMuted ? '音をオンにする' : '消音にする');
+    }
+}
+function detectMute(){
+    try { return localStorage.getItem(MUTE_STORAGE_KEY) === '1'; } catch(e){ return false; }
+}
 window.addEventListener('pointerdown', () => {
     userGestureReady = true;
     try {
         // iOS Safari対策: ジェスチャー内でAudioContextを作成＆resume（同期的に行う必要がある）
         if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
         if(audioCtx.state === 'suspended') audioCtx.resume();
+        getMasterGain(); // マスターGainを確実に初期化
     } catch(e){}
 }, { passive: true });
 function getAudioCtx(){
@@ -3927,9 +3958,10 @@ function getAudioCtx(){
 function playTone(freq, type='sine', dur=0.12, vol=0.08){
     try {
         const ctx = getAudioCtx(); if(!ctx) return;
+        const mg = getMasterGain(); if(!mg) return;
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
+        osc.connect(gain); gain.connect(mg);
         osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
         gain.gain.setValueAtTime(vol, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
@@ -4292,7 +4324,7 @@ function _playDrum(ctx, area, t, barDur, bpm, vol){
         // Kick on beat 1 & 5
         if(i===0||i===4){
             const o = ctx.createOscillator(), g = ctx.createGain();
-            o.connect(g); g.connect(ctx.destination);
+            o.connect(g); g.connect(getMasterGain()||ctx.destination);
             o.type = 'sine';
             o.frequency.setValueAtTime(160, bt);
             o.frequency.exponentialRampToValueAtTime(48, bt+0.18);
@@ -4311,7 +4343,7 @@ function _playDrum(ctx, area, t, barDur, bpm, vol){
             src.buffer = buf;
             const flt = ctx.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=2800; flt.Q.value=0.6;
             const sg = ctx.createGain();
-            src.connect(flt); flt.connect(sg); sg.connect(ctx.destination);
+            src.connect(flt); flt.connect(sg); sg.connect(getMasterGain()||ctx.destination);
             sg.gain.setValueAtTime(vol*str*0.32, bt); sg.gain.exponentialRampToValueAtTime(0.001, bt+0.11);
             src.onended = () => { try { src.disconnect(); flt.disconnect(); sg.disconnect(); } catch(_){} };
             src.start(bt); src.stop(bt+0.11);
@@ -4325,7 +4357,7 @@ function _playDrum(ctx, area, t, barDur, bpm, vol){
             const hs = ctx.createBufferSource(); hs.buffer=hbuf;
             const hf = ctx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=7500;
             const hg = ctx.createGain();
-            hs.connect(hf); hf.connect(hg); hg.connect(ctx.destination);
+            hs.connect(hf); hf.connect(hg); hg.connect(getMasterGain()||ctx.destination);
             hg.gain.setValueAtTime(vol*str*0.16, bt); hg.gain.exponentialRampToValueAtTime(0.001, bt+0.035);
             hs.onended = () => { try { hs.disconnect(); hf.disconnect(); hg.disconnect(); } catch(_){} };
             hs.start(bt); hs.stop(bt+0.035);
@@ -4346,7 +4378,7 @@ function _playBass(ctx, area, t, barDur, vol){
         const nt = t + i * nd;
         const o = ctx.createOscillator(), flt = ctx.createBiquadFilter(), g = ctx.createGain();
         flt.type='lowpass'; flt.frequency.value=320;
-        o.connect(flt); flt.connect(g); g.connect(ctx.destination);
+        o.connect(flt); flt.connect(g); g.connect(getMasterGain()||ctx.destination);
         o.type = 'sine'; o.frequency.setValueAtTime(freq, nt);
         g.gain.setValueAtTime(0, nt);
         g.gain.linearRampToValueAtTime(vol*0.65, nt+0.025);
@@ -4380,7 +4412,7 @@ function _playMelody(ctx, area, t, barDur, vol, lv){
         const freq = scale[idx % scale.length];
         const nt = t + i * nd;
         const o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
+        o.connect(g); g.connect(getMasterGain()||ctx.destination);
         o.type = area==='ruins' ? 'sine' : 'triangle';
         o.frequency.setValueAtTime(freq, nt);
         g.gain.setValueAtTime(0, nt);
@@ -4392,7 +4424,7 @@ function _playMelody(ctx, area, t, barDur, vol, lv){
         // Echo for ruins
         if(area==='ruins'){
             const eo = ctx.createOscillator(), eg = ctx.createGain();
-            eo.connect(eg); eg.connect(ctx.destination);
+            eo.connect(eg); eg.connect(getMasterGain()||ctx.destination);
             eo.type='sine'; eo.frequency.setValueAtTime(freq, nt+0.14);
             eg.gain.setValueAtTime(0, nt+0.14);
             eg.gain.linearRampToValueAtTime(vol*0.12, nt+0.16);
@@ -4417,7 +4449,7 @@ function _playFx(ctx, area, t, barDur, vol){
     flt.type='lowpass'; flt.frequency.value=d.fcut;
     lfo.frequency.value=d.mod; lfoG.gain.value=14;
     lfo.connect(lfoG); lfoG.connect(o.frequency);
-    o.connect(flt); flt.connect(g); g.connect(ctx.destination);
+    o.connect(flt); flt.connect(g); g.connect(getMasterGain()||ctx.destination);
     o.type=d.type; o.frequency.setValueAtTime(d.freq, t);
     g.gain.setValueAtTime(0, t);
     g.gain.linearRampToValueAtTime(vol*0.22, t+0.25);
@@ -8986,9 +9018,16 @@ window.addEventListener('load', ()=>{
     currentLang = detectLanguage();
     currentTheme = detectTheme();
     babyModeEnabled = detectBabyMode();
+    isMuted = detectMute();
     applyTheme();
     applyLanguage();
     applyBabyMode();
+    // ミュートボタンの初期状態を反映
+    const muteBtn = document.getElementById('muteSwitch');
+    if(muteBtn){
+        muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        muteBtn.classList.toggle('muted', isMuted);
+    }
     setupBabyTapReactions();
     setupPwaInstallPrompt();
     const hasSave = G.lv>1 || G.exp>0 || Math.round(G.hunger)!==70;
