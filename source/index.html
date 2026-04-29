@@ -136,8 +136,9 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
   background:
     linear-gradient(120deg, transparent 0%, var(--bg-sheen-a) 18%, transparent 38%),
     linear-gradient(300deg, transparent 0%, var(--bg-sheen-b) 20%, transparent 42%);
-  mix-blend-mode: screen;
+  /*mix-blend-mode: screen;*/
   animation: bgSweep 12s ease-in-out infinite alternate;
+  will-change: transform;
 }
 @keyframes bgSweep { from { transform: translate3d(-2%,0,0) scale(1); } to { transform: translate3d(2%,-1%,0) scale(1.04); } }
 .bg-canvas { position: fixed; inset: 0; z-index: 0; width: 100vw; height: 100dvh; pointer-events: none; opacity: var(--bg-canvas-alpha); transition: opacity 0.6s cubic-bezier(0.23,1,0.32,1); }
@@ -8794,7 +8795,7 @@ function restoreWalkState() {
                     walkState.lastCoord = { lat, lon };
                 },
                 (err) => { console.warn('GPS restore error:', err); },
-                { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+                { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
             );
         }
         showToast(currentLang === 'ja' ? '🚶 散歩を再開しました' : '🚶 Walk resumed');
@@ -8887,8 +8888,60 @@ function startWalk() {
                 showToast(currentLang === 'ja' ? '⚠ GPS取得エラー' : '⚠ GPS error', true);
             }
         },
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
     );
+
+     // ✅ 追加: バックグラウンド時にGPSを一時停止
+    walkState._visibilityHandler = () => {
+        if (!walkState.active) return;
+
+        if (document.hidden) {
+            // 画面オフ・他アプリに移ったとき → GPS停止
+            if (walkState.watchId !== null) {
+                navigator.geolocation.clearWatch(walkState.watchId);
+                walkState.watchId = null;
+            }
+        } else {
+            // 画面復帰時 → GPS再開
+            if (walkState.watchId === null) {
+                walkState.watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        const { latitude: lat, longitude: lon, accuracy } = pos.coords;
+                        if(accuracy > 35) return; // ignore low accuracy
+                        if(walkState.lastCoord) {
+                            const d = haversineMeters(walkState.lastCoord.lat, walkState.lastCoord.lon, lat, lon);
+                            if(d > 2 && d < 200) { // filter noise & teleports
+                                walkState.totalMeters += d;
+                                const newExp = Math.floor(walkState.totalMeters / 1000 * WALK_EXP_PER_KM);
+                                const addedExp = newExp - walkState.expEarned;
+                                if(addedExp > 0) {
+                                    walkState.expEarned = newExp;
+                                    G.exp += addedExp;
+                                    G.happy = Math.min(100, G.happy + (addedExp / WALK_EXP_PER_KM) * WALK_HAPPY_PER_KM);
+                                    checkLevelUp();
+                                    updateUI();
+                                    const c = getStageCenter();
+                                    spawnParticles(['👟','✨','💚'], c.x, c.y);
+                                }
+                                checkSoundDrop(walkState.totalMeters);
+                                saveWalkState();
+                                updateWalkUI();
+                            }
+                        }
+                        walkState.lastCoord = { lat, lon };
+                    },
+                    (err) => {
+                        console.warn('GPS error:', err);
+                        if(walkState.active) {
+                            showToast(currentLang === 'ja' ? '⚠ GPS取得エラー' : '⚠ GPS error', true);
+                        }
+                    },
+                    { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
+                );
+            }
+        }
+    };
+    document.addEventListener('visibilitychange', walkState._visibilityHandler);
 }
 
 function stopWalk() {
@@ -8924,6 +8977,12 @@ function stopWalk() {
     }
     updateWalkUI();
     renderWalkLogs();
+
+     // ✅ 追加: visibilitychangeリスナーの解除
+    if (walkState._visibilityHandler) {
+        document.removeEventListener('visibilitychange', walkState._visibilityHandler);
+        walkState._visibilityHandler = null;
+    }
 }
 
 function saveWalkLog(log) {
