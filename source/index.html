@@ -4116,6 +4116,91 @@ function spawnSoundDrop(){
     }, 3600);
 }
 
+// ===== DESKTOP SOUND LAB =====
+let desktopSoundCooldown = false;
+
+function isDesktopSoundMode(){
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+function unlockDesktopAudio(){
+  userGestureReady = true;
+  try {
+    const ctx = getAudioCtx();
+    if(ctx && ctx.state === 'suspended') ctx.resume();
+  } catch(e){}
+}
+
+function spawnDesktopSoundDrop(x, y){
+  if(!isDesktopSoundMode()) return;
+  if(desktopSoundCooldown) return;
+  if(isTrackPlaying) return;
+  if(document.getElementById('mainScreen')?.classList.contains('hidden')) return;
+
+  unlockDesktopAudio();
+
+  desktopSoundCooldown = true;
+  setTimeout(() => desktopSoundCooldown = false, 700);
+
+  const slotType = SLOT_KEYS[Math.floor(Math.random() * SLOT_KEYS.length)];
+  const zone = activeZone;
+  const def = SOUND_DEF[zone]?.[slotType];
+  if(!def) return;
+
+  const el = document.createElement('div');
+  el.className = 'sound-pick-float';
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  el.style.setProperty('--sdx', `${Math.random() * 50 - 25}px`);
+  el.innerHTML = `
+    <span class="spf-emoji">${def.emoji}</span>
+    <span class="spf-label">${def.name}</span>
+  `;
+
+  el.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    unlockDesktopAudio();
+    collectSoundPiece(slotType, zone);
+    el.remove();
+  });
+
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3800);
+}
+
+document.addEventListener('pointerdown', (e) => {
+  if(!isDesktopSoundMode()) return;
+
+  unlockDesktopAudio();
+
+  const blocked = e.target.closest(
+    'button, .sound-lab, .walk-panel, .utility-btn, .sound-pick-float, input, textarea, select, a'
+  );
+  if(blocked) return;
+
+  spawnDesktopSoundDrop(e.clientX, e.clientY);
+});
+
+document.addEventListener('keydown', (e) => {
+  if(!isDesktopSoundMode()) return;
+
+  unlockDesktopAudio();
+
+  if(e.code === 'Space'){
+    e.preventDefault();
+    toggleTrack();
+  }
+
+  if(e.key.toLowerCase() === 'r'){
+    clearAllSlots();
+  }
+});
+
+
+
+
 //SoundPiece
 function collectWalkSoundPiece(){
     if(!walkState.active) return;
@@ -4347,6 +4432,7 @@ function startTrack(){
         showToast(currentLang==='ja' ? '⚠ まず散歩で音を拾ってね！' : '⚠ Collect sounds while walking first!', true);
         return;
     }
+    userGestureReady = true;
     const ctx = getAudioCtx();
     if(!ctx){
         showToast(currentLang==='ja' ? '⚠ 画面をタップして音声を有効に' : '⚠ Tap screen to enable audio', true);
