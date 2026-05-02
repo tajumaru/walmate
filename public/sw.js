@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walmate-pwa-v2026-04-29-perf-2';
+const CACHE_NAME = 'walmate-pwa-v2026-05-02-walk-core-loop';
 
 const APP_SHELL = [
   './',
