@@ -1571,15 +1571,25 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   box-shadow: 0 var(--pw-stroke) 0 rgba(0,0,0,0.08);
 }
 .pixel-walrus .pw-body {
-  left: 15%; top: calc(39% + var(--pw-idle-shift)); width: 70%; height: 36%;
+  left: 14%; top: calc(40% + var(--pw-idle-shift)); width: 72%; height: 35%;
   background: var(--pw-body); border: var(--pw-stroke) solid var(--pw-outline);
   box-shadow: var(--pw-stroke) var(--pw-stroke) 0 var(--pw-shadow), calc(var(--pw-stroke) * -1) calc(var(--pw-stroke) * 2) 0 rgba(0,0,0,0.12);
   z-index: 3;
 }
 .pixel-walrus .pw-head {
-  left: 27%; top: calc(14% + var(--pw-idle-shift)); width: 46%; height: 35%;
+  left: 25%; top: calc(13% + var(--pw-idle-shift)); width: 50%; height: 33%;
   background: var(--pw-head); border: var(--pw-stroke) solid var(--pw-outline);
   box-shadow: 0 var(--pw-stroke) 0 rgba(255,255,255,0.08); z-index: 5;
+}
+.pixel-walrus .pw-muzzle {
+  left: 33%;
+  top: calc(31% + var(--pw-idle-shift));
+  width: 34%;
+  height: 18%;
+  background: color-mix(in srgb, var(--pw-belly) 84%, white);
+  border: var(--pw-stroke) solid color-mix(in srgb, var(--pw-belly) 55%, var(--pw-outline));
+  box-shadow: 0 var(--pw-stroke) 0 rgba(255,255,255,0.08);
+  z-index: 6;
 }
 .pixel-walrus .pw-belly {
   left: 34%; top: calc(49% + var(--pw-idle-shift)); width: 32%; height: 18%;
@@ -1594,36 +1604,62 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .pixel-walrus .pw-flipper-l { left: 6%; transform: rotate(-8deg); }
 .pixel-walrus .pw-flipper-r { right: 6%; transform: rotate(8deg); }
 .pixel-walrus .pw-eye {
-  top: calc(27% + var(--pw-idle-shift)); width: 7%; height: 7%;
+  top: calc(24% + var(--pw-idle-shift)); width: 7%; height: 7%;
   background: var(--pw-nose); z-index: 7;
 }
 .pixel-walrus .pw-eye::after {
   content: ''; position: absolute; right: 12%; top: 12%; width: 28%; height: 28%;
   background: rgba(255,255,255,0.92);
 }
-.pixel-walrus .pw-eye-l { left: 38%; }
-.pixel-walrus .pw-eye-r { right: 38%; }
+.pixel-walrus .pw-eye-l { left: 35%; }
+.pixel-walrus .pw-eye-r { right: 35%; }
 .pixel-walrus .pw-nose {
-  left: 44%; top: calc(36% + var(--pw-idle-shift)); width: 12%; height: 6%;
-  background: var(--pw-nose); z-index: 7;
+  left: 43%;
+  top: calc(35% + var(--pw-idle-shift));
+  width: 14%;
+  height: 7%;
+  background: var(--pw-nose);
+  z-index: 8;
 }
+.pixel-walrus .pw-nose::before,
+.pixel-walrus .pw-nose::after {
+  content: '';
+  position: absolute;
+  top: 18%;
+  width: 18%;
+  height: 45%;
+  background: rgba(255,255,255,0.18);
+}
+.pixel-walrus .pw-nose::before { left: 20%; }
+.pixel-walrus .pw-nose::after { right: 20%; }
 .pixel-walrus .pw-mouth {
-  left: 41%; top: calc(42% + var(--pw-idle-shift)); width: 18%; height: 4%;
-  border-bottom: var(--pw-stroke) solid rgba(0,0,0,0.38); z-index: 7;
+  left: 39%;
+  top: calc(41% + var(--pw-idle-shift));
+  width: 22%;
+  height: 5%;
+  border-bottom: var(--pw-stroke) solid rgba(0,0,0,0.38);
+  z-index: 8;
 }
 .pixel-walrus .pw-tusk {
-  top: calc(43% + var(--pw-idle-shift)); width: 7%; height: 16%;
-  background: var(--pw-tusk); border: calc(var(--pw-stroke) * 0.72) solid var(--pw-tusk-edge); z-index: 6;
+  top: calc(44% + var(--pw-idle-shift));
+  width: 6%;
+  height: 20%;
+  background: var(--pw-tusk);
+  border: calc(var(--pw-stroke) * 0.72) solid var(--pw-tusk-edge);
+  z-index: 7;
 }
-.pixel-walrus .pw-tusk-l { left: 37%; }
-.pixel-walrus .pw-tusk-r { right: 37%; }
+.pixel-walrus .pw-tusk-l { left: 40%; }
+.pixel-walrus .pw-tusk-r { right: 40%; }
 .pixel-walrus .pw-whisker {
-  top: calc(36.5% + var(--pw-idle-shift)); width: 18%; height: 2%;
-  background: rgba(255,255,255,0.52); z-index: 6;
+  top: calc(38% + var(--pw-idle-shift));
+  width: 16%;
+  height: 2%;
+  background: rgba(255,255,255,0.58);
+  z-index: 7;
   box-shadow: 0 calc(var(--pw-stroke) * 0.85) 0 rgba(255,255,255,0.52), 0 calc(var(--pw-stroke) * 1.7) 0 rgba(255,255,255,0.52);
 }
-.pixel-walrus .pw-whisker-l { left: 18%; }
-.pixel-walrus .pw-whisker-r { right: 18%; }
+.pixel-walrus .pw-whisker-l { left: 17%; }
+.pixel-walrus .pw-whisker-r { right: 17%; }
 .pixel-walrus .pw-blush {
   top: calc(38% + var(--pw-idle-shift)); width: 7%; height: 5%;
   background: var(--pw-blush); z-index: 6;
@@ -1687,34 +1723,51 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 }
 .pixel-walrus[data-expression="happy"] .pw-eye,
 .pixel-walrus[data-expression="ecstatic"] .pw-eye {
-  top: calc(28% + var(--pw-idle-shift)); width: 8%; height: 4%;
+  top: calc(25% + var(--pw-idle-shift)); width: 8%; height: 4%;
 }
 .pixel-walrus[data-expression="hungry"] .pw-eye,
 .pixel-walrus[data-expression="sad"] .pw-eye { top: calc(30% + var(--pw-idle-shift)); }
 .pixel-walrus[data-expression="hungry"] .pw-mouth,
 .pixel-walrus[data-expression="sad"] .pw-mouth {
-  top: calc(44% + var(--pw-idle-shift)); border-bottom: none; border-top: var(--pw-stroke) solid rgba(0,0,0,0.35);
+  top: calc(42% + var(--pw-idle-shift)); border-bottom: none; border-top: var(--pw-stroke) solid rgba(0,0,0,0.35);
 }
-.pixel-walrus[data-expression="sleepy"] .pw-eye { top: calc(29% + var(--pw-idle-shift)); width: 8%; height: 3%; }
+.pixel-walrus[data-expression="sleepy"] .pw-eye { top: calc(26% + var(--pw-idle-shift)); width: 8%; height: 3%; }
 .pixel-walrus[data-expression="sleepy"] .pw-eye::after,
 .pixel-walrus[data-expression="happy"] .pw-eye::after,
 .pixel-walrus[data-expression="ecstatic"] .pw-eye::after { display: none; }
 .pixel-walrus[data-expression="sleepy"] .pw-mouth { width: 16%; left: 42%; }
-.pixel-walrus[data-expression="baby"] { --pw-idle-shift: -1%; --pw-blush: rgba(255,150,190,0.42); }
+.pixel-walrus[data-expression="baby"] { --pw-idle-shift: -1%; --pw-blush: rgba(255, 182, 193, 0.4); }
 .pixel-walrus[data-expression="baby"] .pw-eye {
-  top: calc(25% + var(--pw-idle-shift)); width: 9%; height: 9%;
-  background: #ff2b7a; animation: pixelBabySparkle 0.55s steps(2) infinite;
+  top: calc(23% + var(--pw-idle-shift));
+  width: 9%;
+  height: 10%;
+  background: #18374a;
+  animation: pixelBabySparkle 0.9s steps(2) infinite;
 }
 .pixel-walrus[data-expression="baby"] .pw-eye::after {
-  width: 32%; height: 32%; top: 10%; right: 10%; background: #fff44f;
+  width: 40%;
+  height: 40%;
+  top: 8%;
+  right: 8%;
+  background: rgba(255,255,255,0.98);
+  box-shadow: calc(var(--pw-stroke) * -0.45) calc(var(--pw-stroke) * 0.7) 0 rgba(255,255,255,0.7);
 }
 .pixel-walrus[data-expression="baby"] .pw-mouth {
-  left: 41%; top: calc(44% + var(--pw-idle-shift)); width: 18%; height: 8%;
-  border: none; background: rgba(0,0,0,0.34);
+  left: 42%;
+  top: calc(42% + var(--pw-idle-shift));
+  width: 16%;
+  height: 6%;
+  border: none;
+  background: rgba(0,0,0,0.18);
+  box-shadow: 0 calc(var(--pw-stroke) * 0.72) 0 rgba(255,255,255,0.22);
 }
-.pixel-walrus[data-expression="baby"] .pw-blush { width: 9%; height: 6%; }
+.pixel-walrus[data-expression="baby"] .pw-blush { width: 10%; height: 6%; }
 .pixel-walrus[data-expression="baby"] .pw-star {
-  width: 5%; height: 5%; background: #fff44f; z-index: 9; animation: pixelBabySparkle 0.55s steps(2) infinite;
+  width: 4%;
+  height: 4%;
+  background: #fff7c2;
+  z-index: 9;
+  animation: pixelBabySparkle 1.1s steps(2) infinite;
 }
 .pixel-walrus[data-expression="baby"] .pw-star-a { left: 23%; top: 18%; }
 .pixel-walrus[data-expression="baby"] .pw-star-b { right: 23%; top: 12%; animation-delay: 0.18s; }
@@ -6797,6 +6850,7 @@ function makeWalrus(lv, mood='normal', expression = getExpressionState(mood)) {
         <div class="pw-body"></div>
         <div class="pw-belly"></div>
         <div class="pw-head"></div>
+        <div class="pw-muzzle"></div>
         <div class="pw-blush pw-blush-l"></div>
         <div class="pw-blush pw-blush-r"></div>
         <div class="pw-whisker pw-whisker-l"></div>
