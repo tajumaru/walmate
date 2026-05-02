@@ -687,7 +687,8 @@ html.ios-device .ocean-bg::after { mix-blend-mode: normal; animation: none; opac
   70% { opacity: 1; transform: translateY(4px) scale(0.96); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.hatch-baby .hatch-baby-svg {
+.hatch-baby .hatch-baby-svg,
+.hatch-baby .pixel-walrus {
   width: min(180px, 58vw);
   filter: drop-shadow(0 18px 32px rgba(0,229,176,0.22));
   animation: hatchBabyBob 1.2s ease-in-out infinite;
@@ -794,7 +795,8 @@ html.ios-device .ocean-bg::after { mix-blend-mode: normal; animation: none; opac
   .egg-svg,
   .egg-svg.urgent,
   .egg-svg.cracked,
-  .hatch-baby .hatch-baby-svg {
+  .hatch-baby .hatch-baby-svg,
+  .hatch-baby .pixel-walrus {
     filter: none;
   }
   .egg-glow {
@@ -1538,6 +1540,199 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .pet-stage.legend-reveal { animation: legendReveal 1.8s ease-out forwards, petBob 2.6s ease-in-out 1.8s infinite; }
 @keyframes legendReveal { 0%{filter:drop-shadow(0 0 0px rgba(196,152,64,0.0))} 30%{filter:drop-shadow(0 0 60px rgba(245,208,128,1.0)) drop-shadow(0 0 120px rgba(196,152,64,0.8))} 100%{filter:drop-shadow(0 12px 32px rgba(196,152,64,0.45))} }
 
+/* ===== PIXEL WALRUS ===== */
+.pixel-walrus {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 10 / 9;
+  image-rendering: pixelated;
+  transform: translateZ(0);
+  --pw-body: #5A8AA8;
+  --pw-head: #7AAAC8;
+  --pw-belly: #9FD6F0;
+  --pw-outline: #214f68;
+  --pw-shadow: #42718d;
+  --pw-flipper: #4f82a0;
+  --pw-accent: #7EC8FF;
+  --pw-nose: #112b38;
+  --pw-tusk: #fff8df;
+  --pw-tusk-edge: #d8cfae;
+  --pw-blush: rgba(255, 122, 170, 0.34);
+  --pw-stroke: clamp(2px, 0.34vw, 7px);
+  --pw-idle-shift: 0px;
+}
+.pixel-walrus * { position: absolute; box-sizing: border-box; image-rendering: pixelated; }
+.pixel-walrus .pw-shadow {
+  left: 19%; top: 72%; width: 62%; height: 16%;
+  background: rgba(0,0,0,0.18);
+  box-shadow: 0 var(--pw-stroke) 0 rgba(0,0,0,0.08);
+}
+.pixel-walrus .pw-body {
+  left: 15%; top: calc(39% + var(--pw-idle-shift)); width: 70%; height: 36%;
+  background: var(--pw-body); border: var(--pw-stroke) solid var(--pw-outline);
+  box-shadow: var(--pw-stroke) var(--pw-stroke) 0 var(--pw-shadow), calc(var(--pw-stroke) * -1) calc(var(--pw-stroke) * 2) 0 rgba(0,0,0,0.12);
+  z-index: 3;
+}
+.pixel-walrus .pw-head {
+  left: 27%; top: calc(14% + var(--pw-idle-shift)); width: 46%; height: 35%;
+  background: var(--pw-head); border: var(--pw-stroke) solid var(--pw-outline);
+  box-shadow: 0 var(--pw-stroke) 0 rgba(255,255,255,0.08); z-index: 5;
+}
+.pixel-walrus .pw-belly {
+  left: 34%; top: calc(49% + var(--pw-idle-shift)); width: 32%; height: 18%;
+  background: color-mix(in srgb, var(--pw-belly) 78%, white);
+  border: var(--pw-stroke) solid color-mix(in srgb, var(--pw-belly) 65%, var(--pw-outline));
+  z-index: 4;
+}
+.pixel-walrus .pw-flipper {
+  top: calc(60% + var(--pw-idle-shift)); width: 20%; height: 13%;
+  background: var(--pw-flipper); border: var(--pw-stroke) solid var(--pw-outline); z-index: 2;
+}
+.pixel-walrus .pw-flipper-l { left: 6%; transform: rotate(-8deg); }
+.pixel-walrus .pw-flipper-r { right: 6%; transform: rotate(8deg); }
+.pixel-walrus .pw-eye {
+  top: calc(27% + var(--pw-idle-shift)); width: 7%; height: 7%;
+  background: var(--pw-nose); z-index: 7;
+}
+.pixel-walrus .pw-eye::after {
+  content: ''; position: absolute; right: 12%; top: 12%; width: 28%; height: 28%;
+  background: rgba(255,255,255,0.92);
+}
+.pixel-walrus .pw-eye-l { left: 38%; }
+.pixel-walrus .pw-eye-r { right: 38%; }
+.pixel-walrus .pw-nose {
+  left: 44%; top: calc(36% + var(--pw-idle-shift)); width: 12%; height: 6%;
+  background: var(--pw-nose); z-index: 7;
+}
+.pixel-walrus .pw-mouth {
+  left: 41%; top: calc(42% + var(--pw-idle-shift)); width: 18%; height: 4%;
+  border-bottom: var(--pw-stroke) solid rgba(0,0,0,0.38); z-index: 7;
+}
+.pixel-walrus .pw-tusk {
+  top: calc(43% + var(--pw-idle-shift)); width: 7%; height: 16%;
+  background: var(--pw-tusk); border: calc(var(--pw-stroke) * 0.72) solid var(--pw-tusk-edge); z-index: 6;
+}
+.pixel-walrus .pw-tusk-l { left: 37%; }
+.pixel-walrus .pw-tusk-r { right: 37%; }
+.pixel-walrus .pw-whisker {
+  top: calc(36.5% + var(--pw-idle-shift)); width: 18%; height: 2%;
+  background: rgba(255,255,255,0.52); z-index: 6;
+  box-shadow: 0 calc(var(--pw-stroke) * 0.85) 0 rgba(255,255,255,0.52), 0 calc(var(--pw-stroke) * 1.7) 0 rgba(255,255,255,0.52);
+}
+.pixel-walrus .pw-whisker-l { left: 18%; }
+.pixel-walrus .pw-whisker-r { right: 18%; }
+.pixel-walrus .pw-blush {
+  top: calc(38% + var(--pw-idle-shift)); width: 7%; height: 5%;
+  background: var(--pw-blush); z-index: 6;
+}
+.pixel-walrus .pw-blush-l { left: 29%; }
+.pixel-walrus .pw-blush-r { right: 29%; }
+.pixel-walrus .pw-aura {
+  inset: 10% 16% 12%; border: var(--pw-stroke) dashed color-mix(in srgb, var(--pw-accent) 78%, white);
+  opacity: 0.54; z-index: 1; animation: pixelAuraSpin 9s linear infinite;
+}
+.pixel-walrus .pw-halo {
+  left: 31%; top: 2%; width: 38%; height: 8%;
+  border: var(--pw-stroke) solid color-mix(in srgb, var(--pw-accent) 80%, white);
+  opacity: 0.88; z-index: 8;
+}
+.pixel-walrus .pw-scarf {
+  left: 31%; top: calc(43% + var(--pw-idle-shift)); width: 38%; height: 7%;
+  background: #ff7aaa; border: calc(var(--pw-stroke) * 0.7) solid #a43d61; z-index: 8;
+}
+.pixel-walrus .pw-scarf-tail {
+  left: 56%; top: calc(49% + var(--pw-idle-shift)); width: 12%; height: 15%;
+  background: #e4527e; border: calc(var(--pw-stroke) * 0.7) solid #943755; z-index: 5;
+}
+.pixel-walrus .pw-pearl {
+  width: 6%; height: 6%; background: #f6f3df; border: calc(var(--pw-stroke) * 0.68) solid #d4cba8; z-index: 8;
+}
+.pixel-walrus .pw-pearl-a { left: 31%; top: calc(54% + var(--pw-idle-shift)); }
+.pixel-walrus .pw-pearl-b { left: 47%; top: calc(58% + var(--pw-idle-shift)); }
+.pixel-walrus .pw-pearl-c { right: 31%; top: calc(54% + var(--pw-idle-shift)); }
+.pixel-walrus .pw-sunglasses {
+  top: calc(25% + var(--pw-idle-shift)); width: 15%; height: 10%;
+  background: #0a0d12; border: calc(var(--pw-stroke) * 0.7) solid #2e3642; z-index: 8;
+}
+.pixel-walrus .pw-sunglasses-l { left: 31%; }
+.pixel-walrus .pw-sunglasses-r { right: 31%; }
+.pixel-walrus .pw-sunglasses-bridge {
+  left: 46%; top: calc(29% + var(--pw-idle-shift)); width: 8%; height: 2%;
+  background: #2e3642; z-index: 8;
+}
+.pixel-walrus .pw-crown-base {
+  left: 34%; top: 4%; width: 32%; height: 6%;
+  background: var(--pw-accent); border: calc(var(--pw-stroke) * 0.8) solid #73531d; z-index: 9;
+}
+.pixel-walrus .pw-crown-spike {
+  top: -1%; width: 0; height: 0;
+  border-left: calc(var(--pw-stroke) * 1.4) solid transparent;
+  border-right: calc(var(--pw-stroke) * 1.4) solid transparent;
+  border-bottom: calc(var(--pw-stroke) * 3.3) solid var(--pw-accent); z-index: 9;
+}
+.pixel-walrus .pw-crown-spike-a { left: 36%; }
+.pixel-walrus .pw-crown-spike-b { left: 48%; }
+.pixel-walrus .pw-crown-spike-c { right: 36%; }
+.pixel-walrus .pw-crown-gem { width: 4%; height: 4%; background: #E04848; z-index: 10; }
+.pixel-walrus .pw-crown-gem-a { left: 38%; top: 6%; }
+.pixel-walrus .pw-crown-gem-b { left: 48%; top: 2%; }
+.pixel-walrus .pw-crown-gem-c { right: 38%; top: 6%; }
+.pixel-walrus[data-expression="happy"] .pw-mouth,
+.pixel-walrus[data-expression="full"] .pw-mouth,
+.pixel-walrus[data-expression="ecstatic"] .pw-mouth {
+  left: 40%; width: 20%; height: 5%; border-bottom-width: calc(var(--pw-stroke) * 1.08);
+}
+.pixel-walrus[data-expression="happy"] .pw-eye,
+.pixel-walrus[data-expression="ecstatic"] .pw-eye {
+  top: calc(28% + var(--pw-idle-shift)); width: 8%; height: 4%;
+}
+.pixel-walrus[data-expression="hungry"] .pw-eye,
+.pixel-walrus[data-expression="sad"] .pw-eye { top: calc(30% + var(--pw-idle-shift)); }
+.pixel-walrus[data-expression="hungry"] .pw-mouth,
+.pixel-walrus[data-expression="sad"] .pw-mouth {
+  top: calc(44% + var(--pw-idle-shift)); border-bottom: none; border-top: var(--pw-stroke) solid rgba(0,0,0,0.35);
+}
+.pixel-walrus[data-expression="sleepy"] .pw-eye { top: calc(29% + var(--pw-idle-shift)); width: 8%; height: 3%; }
+.pixel-walrus[data-expression="sleepy"] .pw-eye::after,
+.pixel-walrus[data-expression="happy"] .pw-eye::after,
+.pixel-walrus[data-expression="ecstatic"] .pw-eye::after { display: none; }
+.pixel-walrus[data-expression="sleepy"] .pw-mouth { width: 16%; left: 42%; }
+.pixel-walrus[data-expression="baby"] { --pw-idle-shift: -1%; --pw-blush: rgba(255,150,190,0.42); }
+.pixel-walrus[data-expression="baby"] .pw-eye {
+  top: calc(25% + var(--pw-idle-shift)); width: 9%; height: 9%;
+  background: #ff2b7a; animation: pixelBabySparkle 0.55s steps(2) infinite;
+}
+.pixel-walrus[data-expression="baby"] .pw-eye::after {
+  width: 32%; height: 32%; top: 10%; right: 10%; background: #fff44f;
+}
+.pixel-walrus[data-expression="baby"] .pw-mouth {
+  left: 41%; top: calc(44% + var(--pw-idle-shift)); width: 18%; height: 8%;
+  border: none; background: rgba(0,0,0,0.34);
+}
+.pixel-walrus[data-expression="baby"] .pw-blush { width: 9%; height: 6%; }
+.pixel-walrus[data-expression="baby"] .pw-star {
+  width: 5%; height: 5%; background: #fff44f; z-index: 9; animation: pixelBabySparkle 0.55s steps(2) infinite;
+}
+.pixel-walrus[data-expression="baby"] .pw-star-a { left: 23%; top: 18%; }
+.pixel-walrus[data-expression="baby"] .pw-star-b { right: 23%; top: 12%; animation-delay: 0.18s; }
+.pet-stage .pixel-walrus,
+.legend-ascension-walrus .pixel-walrus,
+.visiting-walrus-svg .pixel-walrus,
+.blob-preview-avatar .pixel-walrus,
+.walrus-avatar .pixel-walrus,
+.name-walrus-echo .pixel-walrus,
+.hatch-baby .pixel-walrus { width: 100%; height: 100%; }
+.walrus-avatar .pixel-walrus,
+.visiting-walrus-svg .pixel-walrus,
+.blob-preview-avatar .pixel-walrus,
+.hatch-baby .pixel-walrus { animation: pixelIdle 1.2s steps(2) infinite; }
+@keyframes pixelIdle { 0% { transform: translateY(0); } 100% { transform: translateY(-4px); } }
+@keyframes pixelAuraSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pixelBabySparkle { 0%,100% { transform: scale(1); opacity: 0.88; } 50% { transform: scale(1.18); opacity: 1; } }
+
 /* ===== ZZZ ===== */
 .zzz-wrap { position: absolute; top: -8px; right: -8px; pointer-events: none; display: none; }
 .zzz { position: absolute; font-size: 14px; opacity: 0; }
@@ -1959,7 +2154,7 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   border: 1px solid rgba(0,229,176,0.18);
   overflow: hidden;
 }
-.blob-preview-avatar svg { width: 92px; height: 92px; }
+.blob-preview-avatar svg, .blob-preview-avatar .pixel-walrus { width: 92px; height: 92px; }
 .blob-preview-title {
   color: var(--white);
   font: 900 1.12rem 'Nunito', sans-serif;
@@ -2543,7 +2738,7 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .walrus-about { display: grid; gap: 14px; }
 .walrus-talk { display: grid; grid-template-columns: 78px 1fr; gap: 12px; align-items: end; }
 .walrus-avatar { width: 78px; height: 78px; border-radius: 24px; display: grid; place-items: center; background: radial-gradient(circle at 50% 28%, rgba(126,200,255,0.34), rgba(0,229,176,0.08) 56%, rgba(3,12,26,0.36)); border: 1px solid rgba(126,200,255,0.22); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 14px 28px rgba(0,0,0,0.22); }
-.walrus-avatar svg { width: 70px; height: 70px; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.22)); }
+.walrus-avatar svg, .walrus-avatar .pixel-walrus { width: 70px; height: 70px; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.22)); }
 .walrus-speech { position: relative; min-height: 104px; padding: 14px 15px; border-radius: 18px 18px 18px 6px; background: rgba(228,242,248,0.08); border: 1px solid rgba(126,200,255,0.2); color: rgba(228,242,248,0.86); line-height: 1.7; box-shadow: 0 12px 28px rgba(0,0,0,0.18); transition: border-color 0.2s ease, transform 0.2s ease; }
 .walrus-speech::before { content: ''; position: absolute; left: -9px; bottom: 17px; width: 18px; height: 18px; background: rgba(228,242,248,0.08); border-left: 1px solid rgba(126,200,255,0.2); border-bottom: 1px solid rgba(126,200,255,0.2); transform: rotate(45deg); }
 .walrus-speech.is-speaking { border-color: rgba(0,229,176,0.42); transform: translateY(-1px); }
@@ -2899,7 +3094,7 @@ footer { text-align: center; margin-top: 24px; font-size: clamp(0.65rem,2.8vw,0.
   .tama-btn { width: clamp(40px, 11vw, 46px); height: clamp(40px, 11vw, 46px); }
   .walrus-talk { grid-template-columns: 60px 1fr; gap: 9px; align-items: start; }
   .walrus-avatar { width: 60px; height: 60px; border-radius: 18px; }
-  .walrus-avatar svg { width: 54px; height: 54px; }
+  .walrus-avatar svg, .walrus-avatar .pixel-walrus { width: 54px; height: 54px; }
   .walrus-speech { min-height: 92px; padding: 12px 13px; font-size: 0.8rem; }
   .walrus-projects { grid-template-columns: 1fr; }
   .walrus-project-card { min-height: 108px; }
@@ -3410,7 +3605,8 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
   animation: walrusFloat 2.2s ease-in-out infinite alternate;
   filter: drop-shadow(0 6px 18px rgba(0,229,176,0.38));
 }
-.name-walrus-echo .hatch-baby-svg {
+.name-walrus-echo .hatch-baby-svg,
+.name-walrus-echo .pixel-walrus {
   width: 100%; height: 100%;
 }
 @keyframes walrusFloat {
@@ -6400,6 +6596,78 @@ function getLegendAccessorySvg(look){
     return { back: '', front: '' };
 }
 
+function hexToRgb(hex){
+    const normalized = (hex || '').replace('#', '');
+    if(normalized.length !== 6) return { r: 90, g: 138, b: 168 };
+    return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16)
+    };
+}
+
+function rgbToHex({ r, g, b }){
+    return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+
+function shadeHexColor(hex, amount = 0){
+    const { r, g, b } = hexToRgb(hex);
+    return rgbToHex({ r: r + amount, g: g + amount, b: b + amount });
+}
+
+function mixHexColors(a, b, weight = 0.5){
+    const c1 = hexToRgb(a);
+    const c2 = hexToRgb(b);
+    return rgbToHex({
+        r: c1.r + (c2.r - c1.r) * weight,
+        g: c1.g + (c2.g - c1.g) * weight,
+        b: c1.b + (c2.b - c1.b) * weight
+    });
+}
+
+function getPixelWalrusPalette(lv){
+    const look = getLegendLook(lv);
+    const sakuraLook = getSakuraLook();
+    const body = sakuraLook?.body || look?.body || BODY[lv] || BODY[1];
+    const belly = sakuraLook?.belly || look?.belly || BELLY[lv] || BELLY[1];
+    const accent = sakuraLook?.accent || look?.accent || (lv >= 4 ? '#C49840' : '#7EC8FF');
+    return {
+        body,
+        belly,
+        accent,
+        head: mixHexColors(body, belly, 0.38),
+        outline: shadeHexColor(body, -52),
+        shadow: shadeHexColor(body, -22),
+        flipper: shadeHexColor(body, -10),
+        nose: shadeHexColor(body, -92),
+        tusk: '#fff8df',
+        tuskEdge: '#d8cfae',
+        blush: lv >= 4 ? 'rgba(255, 208, 128, 0.24)' : 'rgba(255, 122, 170, 0.32)'
+    };
+}
+
+function getPixelWalrusAccessoryMarkup(look, crown){
+    const back = [];
+    const front = [];
+    if(look?.evolved) back.push('<div class="pw-aura"></div>');
+    if(look?.accessory === 'halo') back.push('<div class="pw-halo"></div>');
+    if(crown){
+        front.push(
+            '<div class="pw-crown-base"></div>' +
+            '<div class="pw-crown-spike pw-crown-spike-a"></div>' +
+            '<div class="pw-crown-spike pw-crown-spike-b"></div>' +
+            '<div class="pw-crown-spike pw-crown-spike-c"></div>' +
+            '<div class="pw-crown-gem pw-crown-gem-a"></div>' +
+            '<div class="pw-crown-gem pw-crown-gem-b"></div>' +
+            '<div class="pw-crown-gem pw-crown-gem-c"></div>'
+        );
+    }
+    if(look?.accessory === 'pearl') front.push('<div class="pw-pearl pw-pearl-a"></div><div class="pw-pearl pw-pearl-b"></div><div class="pw-pearl pw-pearl-c"></div>');
+    if(look?.accessory === 'scarf') front.push('<div class="pw-scarf"></div><div class="pw-scarf-tail"></div>');
+    if(look?.accessory === 'sunglasses') front.push('<div class="pw-sunglasses pw-sunglasses-l"></div><div class="pw-sunglasses pw-sunglasses-r"></div><div class="pw-sunglasses-bridge"></div>');
+    return { back: back.join(''), front: front.join('') };
+}
+
 function getExpressionState(mood = getMood()){
     if(mood === 'sleepy') return 'sleepy';
     if(G.hunger >= 88 && G.happy >= 82) return 'ecstatic';
@@ -6409,7 +6677,7 @@ function getExpressionState(mood = getMood()){
     return 'normal';
 }
 
-function makeWalrus(lv, mood='normal', expression = getExpressionState(mood)) {
+function makeWalrusSvg(lv, mood='normal', expression = getExpressionState(mood)) {
     const look = getLegendLook(lv);
     const sakuraLook = getSakuraLook();
     const bc=sakuraLook?.body || look?.body || BODY[lv] || BODY[1], bl=sakuraLook?.belly || look?.belly || BELLY[lv] || BELLY[1];
@@ -6509,6 +6777,38 @@ function makeWalrus(lv, mood='normal', expression = getExpressionState(mood)) {
     <ellipse cx="149" cy="160" rx="18" ry="8.5" fill="${bc}" transform="rotate(24 149 160)"/>
     ${lv>=4?`<ellipse cx="100" cy="86" rx="40" ry="40" fill="none" stroke="${look?.accent || '#C49840'}" stroke-width="1.5" stroke-dasharray="5,7" opacity="0.55"/>`:''}
     </svg>`;
+}
+
+function makeWalrus(lv, mood='normal', expression = getExpressionState(mood)) {
+    const look = getLegendLook(lv);
+    const palette = getPixelWalrusPalette(lv);
+    const accessory = getPixelWalrusAccessoryMarkup(look, lv >= 4);
+    const tusks = lv >= 2;
+    const babyStars = expression === 'baby'
+        ? '<div class="pw-star pw-star-a"></div><div class="pw-star pw-star-b"></div>'
+        : '';
+    return `
+    <div class="pixel-walrus" data-level="${lv}" data-expression="${expression}" aria-hidden="true"
+        style="--pw-body:${palette.body};--pw-head:${palette.head};--pw-belly:${palette.belly};--pw-outline:${palette.outline};--pw-shadow:${palette.shadow};--pw-flipper:${palette.flipper};--pw-accent:${palette.accent};--pw-nose:${palette.nose};--pw-tusk:${palette.tusk};--pw-tusk-edge:${palette.tuskEdge};--pw-blush:${palette.blush};">
+        <div class="pw-shadow"></div>
+        ${accessory.back}
+        <div class="pw-flipper pw-flipper-l"></div>
+        <div class="pw-flipper pw-flipper-r"></div>
+        <div class="pw-body"></div>
+        <div class="pw-belly"></div>
+        <div class="pw-head"></div>
+        <div class="pw-blush pw-blush-l"></div>
+        <div class="pw-blush pw-blush-r"></div>
+        <div class="pw-whisker pw-whisker-l"></div>
+        <div class="pw-whisker pw-whisker-r"></div>
+        <div class="pw-eye pw-eye-l"></div>
+        <div class="pw-eye pw-eye-r"></div>
+        <div class="pw-nose"></div>
+        <div class="pw-mouth"></div>
+        ${tusks ? '<div class="pw-tusk pw-tusk-l"></div><div class="pw-tusk pw-tusk-r"></div>' : ''}
+        ${babyStars}
+        ${accessory.front}
+    </div>`;
 }
 
 /* ===== STATE ===== */
@@ -6983,32 +7283,7 @@ function setupBabyTapReactions(){
 }
 
 function createHatchBaby(){
-    return `<svg class="hatch-baby-svg" viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg">
-        <ellipse cx="100" cy="178" rx="48" ry="18" fill="rgba(0,0,0,0.16)"/>
-        <ellipse cx="100" cy="162" rx="44" ry="35" fill="#5A8AA8"/>
-        <circle cx="100" cy="104" r="36" fill="#5A8AA8"/>
-        <ellipse cx="100" cy="115" rx="20" ry="15" fill="#7AAAC8" opacity="0.72"/>
-        <ellipse cx="71" cy="123" rx="12" ry="7" fill="rgba(255,122,170,0.25)"/>
-        <ellipse cx="129" cy="123" rx="12" ry="7" fill="rgba(255,122,170,0.25)"/>
-        <circle cx="84" cy="98" r="10" fill="white"/>
-        <circle cx="116" cy="98" r="10" fill="white"/>
-        <circle cx="84" cy="100" r="5.5" fill="#081022"/>
-        <circle cx="116" cy="100" r="5.5" fill="#081022"/>
-        <circle cx="82" cy="97" r="2" fill="white"/>
-        <circle cx="114" cy="97" r="2" fill="white"/>
-        <circle cx="93" cy="118" r="5" fill="rgba(0,0,0,0.28)"/>
-        <circle cx="107" cy="118" r="5" fill="rgba(0,0,0,0.28)"/>
-        <path d="M89 128 Q100 142 111 128" stroke="rgba(0,0,0,0.35)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <line x1="52" y1="116" x2="78" y2="119" stroke="rgba(255,255,255,0.38)" stroke-width="1.2"/>
-        <line x1="50" y1="122" x2="78" y2="122" stroke="rgba(255,255,255,0.38)" stroke-width="1.2"/>
-        <line x1="122" y1="119" x2="148" y2="116" stroke="rgba(255,255,255,0.38)" stroke-width="1.2"/>
-        <line x1="122" y1="122" x2="150" y2="122" stroke="rgba(255,255,255,0.38)" stroke-width="1.2"/>
-        <rect x="91" y="127" width="7" height="13" rx="3.5" fill="#F0E7D0" stroke="#C8BB98" stroke-width="0.5"/>
-        <rect x="102" y="127" width="7" height="13" rx="3.5" fill="#F0E7D0" stroke="#C8BB98" stroke-width="0.5"/>
-        <ellipse cx="63" cy="166" rx="16" ry="8" fill="#5A8AA8" transform="rotate(-24 63 166)"/>
-        <ellipse cx="137" cy="166" rx="16" ry="8" fill="#5A8AA8" transform="rotate(24 137 166)"/>
-        <text x="100" y="62" text-anchor="middle" font-size="28" font-family="Fredoka One, sans-serif" fill="#ffffff">KUU!</text>
-    </svg>`;
+    return makeWalrus(1, 'happy', 'baby');
 }
 
 function getStageCenter(){
@@ -8197,7 +8472,7 @@ async function loadFromWalrus(blobIdOverride){
 function makeLegendCertificateWalrusSvg(){
     const mood = getMood();
     const expression = getExpressionState(mood);
-    return makeWalrus(G.lv, mood, expression)
+    return makeWalrusSvg(G.lv, mood, expression)
         .replace('<svg ', '<svg x="210" y="122" width="180" height="190" ');
 }
 
