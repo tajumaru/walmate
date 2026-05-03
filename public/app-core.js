@@ -1,0 +1,2875 @@
+﻿// Split from app.js: core systems
+
+// ===== BACKGROUND =====
+let _bgPaused = false;
+function pauseBgCanvas(){ _bgPaused = true; }
+function resumeBgCanvas(){
+    _bgPaused = false;
+    restartBgCanvasLoop?.();
+}
+let refreshBgCssVarCache = null;
+let restartBgCanvasLoop = null;
+(function(){
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas?.getContext('2d');
+    if(!ctx) return;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let W = 0, H = 0, dpr = 1, rafId = null;
+    let cachedRayColor = 'rgba(0,229,176,0.08)';
+    let cachedBubbleBorder = 'rgba(0,229,176,0.25)';
+    let cachedBubbleFill = 'rgba(0,229,176,0.04)';
+    const bgLowPower = isLowPowerMobile();
+    const rays = Array.from({length: bgLowPower ? 4 : 7}, (_, i) => ({
+        x: 0.2 + i * 0.1,
+        rot: (-30 + i * 12) * Math.PI / 180,
+        width: 1 + Math.random(),
+        height: 0.5 + Math.random() * 0.3,
+        speed: 0.00045 + Math.random() * 0.00045,
+        phase: Math.random() * Math.PI * 2
+    }));
+    const bubbles = Array.from({length: bgLowPower ? 10 : 22}, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        size: 6 + Math.random() * 36,
+        speed: 0.000035 + Math.random() * 0.000055,
+        drift: (Math.random() - 0.5) * 0.035,
+        phase: Math.random() * Math.PI * 2,
+        opacity: 0.08 + Math.random() * 0.22
+    }));
+    const nodes = Array.from({length: bgLowPower ? 7 : 15}, () => ({
+        x: 0.1 + Math.random() * 0.8,
+        y: 0.1 + Math.random() * 0.8,
+        size: 5 + Math.random() * 7,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.0012 + Math.random() * 0.001
+    }));
+    const links = nodes.slice(0, -1).map((node, i) => ({ from: node, to: nodes[(i + 3) % nodes.length], phase: Math.random() }));
+
+    function resize(){
+        dpr = Math.min(window.devicePixelRatio || 1, bgLowPower ? 1 : 1.5);
+        W = window.innerWidth;
+        H = window.innerHeight;
+        canvas.width = Math.floor(W * dpr);
+        canvas.height = Math.floor(H * dpr);
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function refreshCssVarCache(){
+        const style = getComputedStyle(document.documentElement);
+        cachedRayColor = style.getPropertyValue('--ray-color').trim() || 'rgba(0,229,176,0.08)';
+        cachedBubbleBorder = style.getPropertyValue('--bubble-border').trim() || 'rgba(0,229,176,0.25)';
+        cachedBubbleFill = style.getPropertyValue('--bubble-fill').trim() || 'rgba(0,229,176,0.04)';
+    }
+
+    function startLoop(){
+        if(rafId || reducedMotion || document.hidden || _bgPaused) return;
+        rafId = requestAnimationFrame(draw);
+    }
+
+    refreshBgCssVarCache = refreshCssVarCache;
+    restartBgCanvasLoop = startLoop;
+
+    function stopLoop(){
+        if(rafId){
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    }
+
+    function draw(now = 0){
+        rafId = null;
+        if(_bgPaused || document.hidden) return;
+        ctx.clearRect(0, 0, W, H);
+        const useCanvasGlow = !isLikelyIOSDevice();
+
+        rays.forEach(ray => {
+            const pulse = 0.35 + Math.sin(now * ray.speed + ray.phase) * 0.28;
+            ctx.save();
+            ctx.translate(W * ray.x, H * 1.15);
+            ctx.rotate(ray.rot);
+            const grad = ctx.createLinearGradient(0, 0, 0, -H * ray.height);
+            grad.addColorStop(0, cachedRayColor);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalAlpha = pulse;
+            ctx.fillStyle = grad;
+            ctx.fillRect(-ray.width / 2, -H * ray.height, ray.width, H * ray.height);
+            ctx.restore();
+        });
+
+        links.forEach(link => {
+            const x1 = link.from.x * W, y1 = link.from.y * H;
+            const x2 = link.to.x * W, y2 = link.to.y * H;
+            ctx.globalAlpha = 0.24;
+            ctx.strokeStyle = 'rgba(126,200,255,0.36)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            const travel = (now * 0.00018 + link.phase) % 1;
+            ctx.globalAlpha = 0.82;
+            ctx.fillStyle = 'rgba(235,250,255,0.9)';
+            if(useCanvasGlow){
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = 'rgba(126,200,255,0.85)';
+            }
+            ctx.beginPath();
+            ctx.arc(x1 + (x2 - x1) * travel, y1 + (y2 - y1) * travel, 2.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        });
+
+        nodes.forEach(node => {
+            const pulse = 0.65 + Math.sin(now * node.speed + node.phase) * 0.35;
+            const r = node.size * pulse;
+            const x = node.x * W, y = node.y * H;
+            const grad = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 0, x, y, r * 1.9);
+            grad.addColorStop(0, 'rgba(255,255,255,0.96)');
+            grad.addColorStop(0.55, 'rgba(126,200,255,0.44)');
+            grad.addColorStop(1, 'rgba(126,200,255,0)');
+            ctx.globalAlpha = 0.58 + pulse * 0.22;
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(x, y, r * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        bubbles.forEach(b => {
+            b.y -= b.speed * (reducedMotion ? 0.25 : 1) * 16.7;
+            if(b.y < -0.12){
+                b.y = 1.08;
+                b.x = Math.random();
+            }
+            const x = (b.x + Math.sin(now * 0.00045 + b.phase) * b.drift) * W;
+            const y = b.y * H;
+            ctx.globalAlpha = b.opacity;
+            ctx.fillStyle = cachedBubbleFill;
+            ctx.strokeStyle = cachedBubbleBorder;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(x, y, b.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+
+        startLoop();
+    }
+
+    resize();
+    refreshCssVarCache();
+    window.addEventListener('resize', resize, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+        if(document.hidden){
+            stopLoop();
+        } else {
+            startLoop();
+            // iOSバックグラウンドからの復帰: ウォーク中ならタイマーを再起動
+            if(walkState.active) {
+                clearInterval(walkState.timerInterval);
+                walkState.timerInterval = setInterval(updateWalkUI, 1000);
+                updateWalkUI();
+            }
+        }
+    }, { passive: true });
+    startLoop();
+    window.addEventListener('beforeunload', stopLoop);
+})();
+
+// ===== WEB AUDIO =====
+let audioCtx = null;
+let masterGain = null;
+let soundAnalyser = null;
+let soundAnalyserData = null;
+let soundVizFrame = 0;
+let ambientStream = null;
+let ambientSource = null;
+let ambientAnalyser = null;
+let ambientAnalyserData = null;
+let ambientMonitorTimer = null;
+
+const AMBIENT_SILENCE_THRESHOLD = 0.018;
+const AMBIENT_SILENCE_GRACE_MS = 7000;
+const AMBIENT_SAMPLE_MS = 1200;
+const AMBIENT_PENALTY_STEP = 0.05;
+let isMuted = false;
+const MUTE_STORAGE_KEY = 'walrus_muted';
+
+function ensureSoundAnalyser(){
+    const ctx = getAudioCtx();
+    if(!ctx) return null;
+    if(soundAnalyser && soundAnalyser.context === ctx) return soundAnalyser;
+    soundAnalyser = ctx.createAnalyser();
+    soundAnalyser.fftSize = 256;
+    soundAnalyser.smoothingTimeConstant = 0.82;
+    soundAnalyser.minDecibels = -88;
+    soundAnalyser.maxDecibels = -18;
+    soundAnalyserData = new Uint8Array(soundAnalyser.frequencyBinCount);
+    soundAnalyser.connect(ctx.destination);
+    return soundAnalyser;
+}
+
+function getMasterGain(){
+    if(!audioCtx) return null;
+    const analyser = ensureSoundAnalyser();
+    if(!masterGain){
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = isMuted ? 0 : 1;
+    }
+    try { masterGain.disconnect(); } catch(e){}
+    masterGain.connect(analyser || audioCtx.destination);
+    return masterGain;
+}
+function toggleMute(){
+    isMuted = !isMuted;
+    try { localStorage.setItem(MUTE_STORAGE_KEY, isMuted ? '1' : '0'); } catch(e){}
+    if(masterGain) masterGain.gain.setTargetAtTime(isMuted ? 0 : 1, audioCtx.currentTime, 0.02);
+    const btn = document.getElementById('muteSwitch');
+    if(btn){
+        btn.textContent = isMuted ? '🔇' : '🔊';
+        btn.classList.toggle('muted', isMuted);
+        btn.setAttribute('aria-label', isMuted ? '音をオンにする' : '消音にする');
+    }
+}
+function detectMute(){
+    try { return localStorage.getItem(MUTE_STORAGE_KEY) === '1'; } catch(e){ return false; }
+}
+window.addEventListener('pointerdown', () => {
+    userGestureReady = true;
+    try {
+        // iOS Safari対策: ジェスチャー内でAudioContextを作成＆resume（同期的に行う必要がある）
+        if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        getMasterGain(); // マスターGainを確実に初期化
+    } catch(e){}
+}, { passive: true });
+function getAudioCtx(){
+    if(!userGestureReady) return null;
+    if(!audioCtx){ try { audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+    return audioCtx;
+}
+function playTone(freq, type='sine', dur=0.12, vol=0.08){
+    try {
+        const ctx = getAudioCtx(); if(!ctx) return;
+        const mg = getMasterGain(); if(!mg) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(mg);
+        osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(vol, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+        // iOS Safari: ノード停止後に必ずdisconnectしてAudioNodeリークを防ぐ
+        osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(_){} };
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+    } catch(e){}
+}
+
+//AudioContextを pagehide で閉じる
+window.addEventListener('pagehide', () => {
+    try {
+        if (audioCtx && audioCtx.state !== 'closed') {
+            audioCtx.close();
+        }
+    } catch(e) {}
+
+    audioCtx = null;
+    masterGain = null;
+    soundAnalyser = null;
+    soundAnalyserData = null;
+    cancelAnimationFrame(soundVizFrame);
+    soundVizFrame = 0;
+    stopAmbientMonitor();
+}, { passive: true });
+
+
+function sfxFeed()    { playTone(440,'sine',0.1,0.07); setTimeout(()=>playTone(660,'sine',0.08,0.06),80); }
+function sfxPet()     { playTone(520,'sine',0.15,0.06); setTimeout(()=>playTone(780,'sine',0.1,0.05),100); }
+function sfxPlay()    { [330,440,550,660].forEach((f,i)=>setTimeout(()=>playTone(f,'square',0.06,0.04),i*55)); }
+function sfxLevelUp() {
+    // iOS Safari対策: AudioContextがsuspendedなら再開してから再生
+    try {
+        const ac = getAudioCtx();
+        const play = () => [440,554,659,880].forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.18,0.08),i*90));
+        if(ac && ac.state === 'suspended'){ ac.resume().then(play).catch(()=>{}); }
+        else { play(); }
+    } catch(e){}
+}
+function sfxBubble(r) { playTone(300+r*6,'sine',0.06,0.05); }
+function sfxExchange(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.2,0.07),i*100)); }
+function sfxBabyPop(){
+    [740,980,1240].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.055,0.075),i*42));
+    setTimeout(()=>playTone(420,'triangle',0.08,0.055),130);
+}
+function sfxKuu(){
+    [620,760,690].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',0.14,0.055),i*95));
+}
+
+// ===== SOUND LAB =====
+const SOUND_STORAGE_KEY = 'walrus_sound_slots';
+const SOUND_MEMORY_KEY  = 'walrus_sound_memory';
+const SOUND_DIET_RECENT_MAX = 8;
+
+let activeZone = 'beach';
+let soundSlots = { drum: null, bass: null, melody: null, fx: null };
+let isTrackPlaying = false;
+let soundLoopTimer = null;
+let soundNextBarTime = 0;
+
+// meters between potential sound drops
+const SOUND_DROP_EVERY_M = 130;
+let soundDropCheckpointM = 0;
+
+const SOUND_DEF = {
+    beach:  { drum:{name:'Wave Beat',emoji:'🌊'}, bass:{name:'Tide Bass',emoji:'🐋'}, melody:{name:'Seagull Cry',emoji:'🐦'}, fx:{name:'Ocean Mist',emoji:'💧'} },
+    forest: { drum:{name:'Bark Knock',emoji:'🌿'}, bass:{name:'Root Hum',emoji:'🌲'}, melody:{name:'Bird Trill',emoji:'🪶'}, fx:{name:'Leaf Breeze',emoji:'🍃'} },
+    city:   { drum:{name:'Street Snap',emoji:'🏙'}, bass:{name:'Metro Low',emoji:'🚇'}, melody:{name:'Neon Ping',emoji:'💡'}, fx:{name:'City Air',emoji:'🔊'} },
+    ruins:  { drum:{name:'Echo Clap',emoji:'🏚'}, bass:{name:'Stone Drone',emoji:'🪨'}, melody:{name:'Ghost Bell',emoji:'🔔'}, fx:{name:'Dark Air',emoji:'🌫'} }
+};
+const ZONE_EMOJI = { beach:'🌊', forest:'🌿', city:'🏙', ruins:'🏚' };
+const SLOT_KEYS = ['drum','bass','melody','fx'];
+
+function createEmptySoundDiet(dateKey = getLocalDateKey()){
+    return {
+        dateKey,
+        total: 0,
+        zones: { beach: 0, forest: 0, city: 0, ruins: 0 },
+        slots: { drum: 0, bass: 0, melody: 0, fx: 0 },
+        recent: []
+    };
+}
+
+function normalizeSoundDiet(diet){
+    const base = createEmptySoundDiet();
+    const next = (diet && typeof diet === 'object') ? diet : {};
+    base.dateKey = typeof next.dateKey === 'string' ? next.dateKey : getLocalDateKey();
+    base.total = Math.max(0, Number(next.total) || 0);
+    Object.keys(base.zones).forEach(key => {
+        base.zones[key] = Math.max(0, Number(next.zones?.[key]) || 0);
+    });
+    Object.keys(base.slots).forEach(key => {
+        base.slots[key] = Math.max(0, Number(next.slots?.[key]) || 0);
+    });
+    base.recent = Array.isArray(next.recent) ? next.recent.slice(0, SOUND_DIET_RECENT_MAX) : [];
+    return base;
+}
+
+function ensureSoundDietFresh(){
+    const today = getLocalDateKey();
+    if(!G.soundDiet || G.soundDiet.dateKey !== today){
+        G.soundDiet = createEmptySoundDiet(today);
+        saveG();
+    }
+    return G.soundDiet;
+}
+
+function pickDominantKey(counts, order){
+    let winner = order[0] || '';
+    let best = -1;
+    order.forEach(key => {
+        const score = Number(counts?.[key]) || 0;
+        if(score > best){
+            best = score;
+            winner = key;
+        }
+    });
+    return winner;
+}
+
+function getSoundFlavorLabel(zone, slotType){
+    const map = {
+        beach: {
+            drum: currentLang === 'ja' ? '波打ちビート' : 'wave beat',
+            bass: currentLang === 'ja' ? '潮の低音' : 'tide bass',
+            melody: currentLang === 'ja' ? '雨音みたいな海風' : 'rainy sea breeze',
+            fx: currentLang === 'ja' ? '雨音っぽいしぶき' : 'rainy ocean mist'
+        },
+        forest: {
+            drum: currentLang === 'ja' ? '木の実ノック' : 'wood knock',
+            bass: currentLang === 'ja' ? '根っこのうなり' : 'root hum',
+            melody: currentLang === 'ja' ? '森のさえずり' : 'forest trill',
+            fx: currentLang === 'ja' ? '葉っぱのささやき' : 'leaf whisper'
+        },
+        city: {
+            drum: currentLang === 'ja' ? 'クラブ音みたいなキック' : 'club kick',
+            bass: currentLang === 'ja' ? 'クラブ音みたいな低音' : 'club bass',
+            melody: currentLang === 'ja' ? 'ネオンのきらめき' : 'neon ping',
+            fx: currentLang === 'ja' ? '街の空気ノイズ' : 'city air noise'
+        },
+        ruins: {
+            drum: currentLang === 'ja' ? '遺跡のこだま' : 'ruin clap',
+            bass: currentLang === 'ja' ? '残響ドローン' : 'echo drone',
+            melody: currentLang === 'ja' ? '幽かなベル' : 'ghost bell',
+            fx: currentLang === 'ja' ? '深い残響ノイズ' : 'deep echo noise'
+        }
+    };
+    return map[zone]?.[slotType] || (currentLang === 'ja' ? 'ふしぎな音' : 'strange sound');
+}
+
+function getSoundDietInsight(){
+    const diet = ensureSoundDietFresh();
+    const favoriteZone = pickDominantKey(diet.zones, ['beach','forest','city','ruins']);
+    const favoriteSlot = pickDominantKey(diet.slots, SLOT_KEYS);
+    const favoriteLabel = getSoundFlavorLabel(favoriteZone, favoriteSlot);
+    let personality;
+    let evolution;
+    if((favoriteZone === 'city') && (favoriteSlot === 'drum' || favoriteSlot === 'bass')){
+        personality = currentLang === 'ja' ? '夜ふかしビート好き' : 'night-owl beat lover';
+        evolution = currentLang === 'ja' ? 'クラブ音で進化しそう' : 'might evolve through club sounds';
+    } else if(favoriteZone === 'beach' && (favoriteSlot === 'fx' || favoriteSlot === 'melody')){
+        personality = currentLang === 'ja' ? 'おだやかな雨音好き' : 'calm rain-sound lover';
+        evolution = currentLang === 'ja' ? '雨音で進化しそう' : 'might evolve through rain sounds';
+    } else if(favoriteZone === 'forest' && (favoriteSlot === 'melody' || favoriteSlot === 'fx')){
+        personality = currentLang === 'ja' ? 'やさしい森音好き' : 'gentle forest-sound lover';
+        evolution = currentLang === 'ja' ? '森の声で進化しそう' : 'might evolve through forest voices';
+    } else if(favoriteZone === 'ruins' && (favoriteSlot === 'bass' || favoriteSlot === 'fx')){
+        personality = currentLang === 'ja' ? 'ミステリアスな残響好き' : 'mysterious echo lover';
+        evolution = currentLang === 'ja' ? '残響で進化しそう' : 'might evolve through echoes';
+    } else {
+        const byZone = {
+            beach: currentLang === 'ja' ? 'のんびり潮風タイプ' : 'easygoing tide type',
+            forest: currentLang === 'ja' ? '静かな森タイプ' : 'quiet forest type',
+            city: currentLang === 'ja' ? 'せっかちシティタイプ' : 'restless city type',
+            ruins: currentLang === 'ja' ? '深海ミステリータイプ' : 'deep-sea mystery type'
+        };
+        personality = byZone[favoriteZone] || (currentLang === 'ja' ? '気まぐれタイプ' : 'moody type');
+        evolution = currentLang === 'ja' ? `${favoriteLabel}で育ちそう` : `seems shaped by ${favoriteLabel}`;
+    }
+    return { diet, favoriteZone, favoriteSlot, favoriteLabel, personality, evolution };
+}
+
+function registerSoundMeal(slotType, zone){
+    const diet = ensureSoundDietFresh();
+    diet.total += 1;
+    if(Object.prototype.hasOwnProperty.call(diet.zones, zone)) diet.zones[zone] += 1;
+    if(Object.prototype.hasOwnProperty.call(diet.slots, slotType)) diet.slots[slotType] += 1;
+    diet.recent.unshift({ slotType, zone, ts: Date.now() });
+    if(diet.recent.length > SOUND_DIET_RECENT_MAX) diet.recent.length = SOUND_DIET_RECENT_MAX;
+    saveG();
+    renderSoundDietCard();
+}
+
+function getSoundBpm(){
+    let b = 88;
+    if(G.happy > 72) b += 22;
+    else if(G.happy < 28) b -= 22;
+    if(G.hunger < 28) b -= 12;
+    if(G.lv >= 4) b += 8;
+    return Math.max(60, Math.min(130, Math.round(b)));
+}
+function getSoundVol(){
+    const hMult = G.hunger < 25 ? 0.55 : 1.0;
+    const hapMult = G.happy > 70 ? 1.15 : 1.0;
+    return 0.14 * hMult * hapMult;
+}
+
+function setActiveZone(zone){
+    activeZone = zone;
+    document.querySelectorAll('.zone-chip').forEach(c => c.classList.remove('active'));
+    const chip = document.getElementById('zone_' + zone);
+    if(chip) chip.classList.add('active');
+    haptic(12);
+}
+
+function renderSoundSlots(){
+    const bpm = getSoundBpm();
+    const bpmEl = document.getElementById('soundBpmVal');
+    if(bpmEl) bpmEl.textContent = bpm;
+
+    let anyFilled = false;
+    SLOT_KEYS.forEach(slotType => {
+        const el = document.getElementById('slot_' + slotType);
+        if(!el) return;
+        const piece = soundSlots[slotType];
+        const contentEl = el.querySelector('.slot-content');
+        el.classList.toggle('filled', !!piece);
+        el.classList.toggle('playing', isTrackPlaying && !!piece);
+        if(piece){
+            anyFilled = true;
+            const def = SOUND_DEF[piece.area]?.[slotType] || {};
+            contentEl.innerHTML = `<span class="slot-emoji">${def.emoji||'🎵'}</span>
+                <div><div class="slot-name">${def.name||piece.name}</div>
+                <div class="slot-area-tag">${piece.area}</div></div>`;
+        } else {
+            const hint = currentLang === 'ja' ? '130mごとに集まるよ' : 'collect while walking';
+            contentEl.innerHTML = `<span class="slot-empty-hint">${hint}</span>`;
+        }
+    });
+
+    const btn = document.getElementById('soundPlayBtn');
+    if(btn){
+        btn.textContent = isTrackPlaying
+            ? (currentLang === 'ja' ? '⏹ おなか休み' : '⏹ Digesting break')
+            : (currentLang === 'ja' ? '▶ 音を食べる' : '▶ Feed sounds');
+        btn.classList.toggle('playing', isTrackPlaying);
+        btn.disabled = !anyFilled;
+    }
+}
+
+function clearSlot(slotType){
+    if(isTrackPlaying) return;
+    soundSlots[slotType] = null;
+    saveSoundSlots();
+    renderSoundSlots();
+    haptic(15);
+}
+function clearAllSlots(){
+    if(isTrackPlaying) stopTrack();
+    soundSlots = { drum:null, bass:null, melody:null, fx:null };
+    saveSoundSlots();
+    renderSoundSlots();
+    setMsg(currentLang === 'ja' ? '🎵 スロットをクリアしたよ' : '🎵 Slots cleared');
+}
+function saveSoundSlots(){
+    try{ localStorage.setItem(SOUND_STORAGE_KEY, JSON.stringify(soundSlots)); }catch(e){}
+}
+function loadSoundSlots(){
+    try{
+        const raw = localStorage.getItem(SOUND_STORAGE_KEY);
+        if(raw){ const s = JSON.parse(raw); soundSlots = { drum:s.drum||null, bass:s.bass||null, melody:s.melody||null, fx:s.fx||null }; }
+    }catch(e){}
+}
+
+function sfxSoundPick(){
+    try{
+        const ctx = getAudioCtx(); if(!ctx) return;
+        [600,900,750,1050].forEach((f,i)=>setTimeout(()=>playTone(f,'triangle',0.11,0.055),i*50));
+    }catch(e){}
+}
+
+function collectSoundPiece(slotType, zone){
+    const def = SOUND_DEF[zone]?.[slotType];
+    if(!def) return;
+    soundSlots[slotType] = { area:zone, ts:Date.now() };
+    saveSoundSlots();
+    renderSoundSlots();
+    registerSoundMeal(slotType, zone);
+    const insight = getSoundDietInsight();
+    const msg = currentLang === 'ja'
+        ? `🦭 ${ZONE_EMOJI[zone]}「${def.name}」をぱくっ。${insight.favoriteLabel}が好きみたい`
+        : `🦭 Ate "${def.name}". Seems to like ${insight.favoriteLabel}.`;
+    setMsg(msg);
+    haptic([20,10,30]);
+    sfxSoundPick();
+}
+
+function spawnSoundDrop(){
+    if(!walkState.active) return;
+    if(document.getElementById('mainScreen')?.classList.contains('hidden')) return;
+
+    const slotType = SLOT_KEYS[Math.floor(Math.random() * 4)];
+    const zone = activeZone;
+    const def = SOUND_DEF[zone][slotType];
+
+    const el = document.createElement('div');
+    el.className = 'sound-pick-float';
+    el.innerHTML = `<span class="spf-emoji">${def.emoji}</span><span class="spf-label">${slotType.toUpperCase()}</span>`;
+    const vx = 10 + Math.random() * 72;
+    const vy = 18 + Math.random() * 52;
+    el.style.left = vx + 'vw';
+    el.style.top  = vy + 'vh';
+    el.style.setProperty('--sdx', ((Math.random()-0.5)*70) + 'px');
+    document.body.appendChild(el);
+
+    let picked = false;
+    el.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation();
+        if(picked) return;
+        picked = true;
+        collectSoundPiece(slotType, zone);
+        spawnParticles([def.emoji,'🎵','✨'], e.clientX, e.clientY);
+        el.style.transition = 'all 0.22s'; el.style.transform = 'scale(2.5)'; el.style.opacity = '0';
+        setTimeout(()=>el.remove(), 240);
+    }, { passive:false });
+
+    setTimeout(()=>{
+        if(!picked && el.parentNode){
+            el.style.transition = 'opacity 0.38s'; el.style.opacity = '0';
+            setTimeout(()=>el.remove(), 400);
+        }
+    }, 3600);
+}
+
+// ===== DESKTOP SOUND LAB =====
+let desktopSoundCooldown = false;
+
+function isDesktopSoundMode(){
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
+function unlockDesktopAudio(){
+  userGestureReady = true;
+  try {
+    const ctx = getAudioCtx();
+    if(ctx && ctx.state === 'suspended') ctx.resume();
+  } catch(e){}
+}
+
+function spawnDesktopSoundDrop(x, y){
+  if(!isDesktopSoundMode()) return;
+  if(desktopSoundCooldown) return;
+  if(isTrackPlaying) return;
+  if(document.getElementById('mainScreen')?.classList.contains('hidden')) return;
+
+  unlockDesktopAudio();
+
+  desktopSoundCooldown = true;
+  setTimeout(() => desktopSoundCooldown = false, 700);
+
+  const slotType = SLOT_KEYS[Math.floor(Math.random() * SLOT_KEYS.length)];
+  const zone = activeZone;
+  const def = SOUND_DEF[zone]?.[slotType];
+  if(!def) return;
+
+  const el = document.createElement('div');
+  el.className = 'sound-pick-float';
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  el.style.setProperty('--sdx', `${Math.random() * 50 - 25}px`);
+  el.innerHTML = `
+    <span class="spf-emoji">${def.emoji}</span>
+    <span class="spf-label">${def.name}</span>
+  `;
+
+  el.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    unlockDesktopAudio();
+    collectSoundPiece(slotType, zone);
+    el.remove();
+  });
+
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3800);
+}
+
+document.addEventListener('pointerdown', (e) => {
+  if(!isDesktopSoundMode()) return;
+
+  unlockDesktopAudio();
+
+  const blocked = e.target.closest(
+    'button, .sound-lab, .walk-panel, .utility-btn, .sound-pick-float, input, textarea, select, a'
+  );
+  if(blocked) return;
+
+  spawnDesktopSoundDrop(e.clientX, e.clientY);
+});
+
+document.addEventListener('keydown', (e) => {
+  if(!isDesktopSoundMode()) return;
+
+  unlockDesktopAudio();
+
+  if(e.code === 'Space'){
+    e.preventDefault();
+    toggleTrack();
+  }
+
+  if(e.key.toLowerCase() === 'r'){
+    clearAllSlots();
+  }
+});
+
+
+
+
+//SoundPiece
+function collectWalkSoundPiece(){
+    if(!walkState.active) return;
+
+    const slotType = SLOT_KEYS[Math.floor(Math.random() * SLOT_KEYS.length)];
+    const zone = activeZone;
+    const def = SOUND_DEF[zone][slotType];
+
+    // BGM用：最大4枠だけ。増やさず上書きする
+    soundSlots[slotType] = {
+        area: zone,
+        type: slotType,
+        name: def.name,
+        emoji: def.emoji,
+        ts: Date.now()
+    };
+
+    saveSoundSlots();
+    renderSoundSlots();
+    registerSoundMeal(slotType, zone);
+
+    // 履歴用：最大20件まで
+    walkState.collected = walkState.collected || [];
+    walkState.collected.unshift({
+        slot: slotType,
+        zone,
+        name: def.name,
+        emoji: def.emoji,
+        meters: Math.floor(walkState.totalMeters),
+        ts: Date.now()
+    });
+
+    if(walkState.collected.length > 20){
+        walkState.collected.length = 20;
+    }
+
+    const chip = document.getElementById('walkBlobChip');
+    if(chip){
+        chip.textContent = currentLang === 'ja'
+            ? `🎵 ${Math.floor(walkState.totalMeters)}m地点：${def.emoji} ${def.name}`
+            : `🎵 ${Math.floor(walkState.totalMeters)}m: ${def.emoji} ${def.name}`;
+        chip.classList.add('saved');
+    }
+
+    showToast(
+        currentLang === 'ja'
+            ? `🦭 ${def.emoji} ${def.name} を食べた！`
+            : `🦭 Ate ${def.emoji} ${def.name}!`
+    );
+}
+
+function renderSoundDietCard(){
+    const card = document.getElementById('soundDietCard');
+    if(!card) return;
+    const { diet, favoriteLabel, personality, evolution } = getSoundDietInsight();
+    if(!diet.total){
+        card.className = 'sound-memory-summary empty';
+        card.innerHTML = currentLang === 'ja'
+            ? `<div class="sound-memory-note">まだ音を味見していません。散歩して、この子の好物を見つけよう。</div>`
+            : `<div class="sound-memory-note">No sound meals yet. Go for a walk and discover this one's taste.</div>`;
+        return;
+    }
+    card.className = 'sound-memory-summary';
+    const totalLabel = currentLang === 'ja'
+        ? `今日 ${diet.total} くち`
+        : `TODAY ${diet.total} BITE${diet.total > 1 ? 'S' : ''}`;
+    const note = currentLang === 'ja'
+        ? `「この子、${favoriteLabel}好きだな」`
+        : `Seems to love ${favoriteLabel}.`;
+    card.innerHTML = `
+        <div class="sound-memory-head">
+            <div class="sound-memory-title">${currentLang === 'ja' ? '今日の音ぐせ' : "Today's sound habit"}</div>
+            <div class="sound-memory-total">${totalLabel}</div>
+        </div>
+        <div class="sound-memory-note">${note}</div>
+        <div class="sound-memory-traits">
+            <span class="sound-memory-chip">${personality}</span>
+            <span class="sound-memory-chip">${evolution}</span>
+        </div>
+    `;
+}
+
+function computeAmbientLevel(data){
+    if(!data?.length) return 0;
+    let sum = 0;
+    for(let i = 0; i < data.length; i += 1){
+        const n = (data[i] - 128) / 128;
+        sum += n * n;
+    }
+    return Math.sqrt(sum / data.length);
+}
+
+function setSoundStarvedUI(active){
+    const main = document.getElementById('mainScreen');
+    if(main) main.classList.toggle('sound-starved', !!active);
+}
+
+function isSoundStarved(now = Date.now()){
+    return !!(walkState.active && walkState.isSilent && walkState.silentSince && (now - walkState.silentSince) >= AMBIENT_SILENCE_GRACE_MS);
+}
+
+function applySilencePenalty(now = Date.now()){
+    if(!isSoundStarved(now)) return;
+    const lastPenalty = walkState.lastSilencePenaltyAt || 0;
+    if(lastPenalty && (now - lastPenalty) < 1000) return;
+    walkState.lastSilencePenaltyAt = now;
+    walkState.silencePenalty = (Number(walkState.silencePenalty) || 0) + AMBIENT_PENALTY_STEP;
+    G.hunger = Math.max(0, G.hunger - AMBIENT_PENALTY_STEP);
+    if(!walkState.lastSilenceWarnAt || (now - walkState.lastSilenceWarnAt) > 9000){
+        walkState.lastSilenceWarnAt = now;
+        setMsg(
+            currentLang === 'ja'
+                ? '静かすぎるよ… もう少し音を食べたいな'
+                : 'It is too quiet... I need a little more sound to eat.',
+            true
+        );
+    }
+    saveG();
+    updateUI();
+    updateWalkUI();
+}
+
+function updateAmbientSilenceState(level){
+    const now = Date.now();
+    walkState.ambientLevel = level;
+    const silent = level < AMBIENT_SILENCE_THRESHOLD;
+    if(silent){
+        if(!walkState.silentSince) walkState.silentSince = now;
+        walkState.isSilent = true;
+    } else {
+        walkState.isSilent = false;
+        walkState.silentSince = 0;
+        walkState.lastSilencePenaltyAt = 0;
+    }
+    setSoundStarvedUI(isSoundStarved(now));
+    applySilencePenalty(now);
+    updateWalkHero();
+}
+
+async function startAmbientMonitor(){
+    if(!walkState.active || ambientMonitorTimer) return;
+    walkState.micState = 'requesting';
+    try{
+        if(!navigator.mediaDevices?.getUserMedia){
+            walkState.micState = 'unsupported';
+            updateWalkHero();
+            return;
+        }
+        ambientStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            }
+        });
+        const ctx = getAudioCtx();
+        if(!ctx){
+            try { ambientStream.getTracks().forEach(track => track.stop()); } catch(e){}
+            ambientStream = null;
+            walkState.micState = 'unavailable';
+            updateWalkHero();
+            return;
+        }
+        ambientSource = ctx.createMediaStreamSource(ambientStream);
+        ambientAnalyser = ctx.createAnalyser();
+        ambientAnalyser.fftSize = 512;
+        ambientAnalyser.smoothingTimeConstant = 0.88;
+        ambientAnalyserData = new Uint8Array(ambientAnalyser.fftSize);
+        ambientSource.connect(ambientAnalyser);
+        walkState.micState = 'active';
+        updateWalkHero();
+        ambientMonitorTimer = setInterval(() => {
+            if(!walkState.active || !ambientAnalyser || !ambientAnalyserData) return;
+            ambientAnalyser.getByteTimeDomainData(ambientAnalyserData);
+            updateAmbientSilenceState(computeAmbientLevel(ambientAnalyserData));
+        }, AMBIENT_SAMPLE_MS);
+    }catch(e){
+        console.warn('Ambient monitor failed:', e);
+        walkState.micState = 'denied';
+        updateWalkHero();
+    }
+}
+
+function stopAmbientMonitor(){
+    if(ambientMonitorTimer){
+        clearInterval(ambientMonitorTimer);
+        ambientMonitorTimer = null;
+    }
+    try { ambientSource?.disconnect(); } catch(e){}
+    if(ambientStream){
+        try { ambientStream.getTracks().forEach(track => track.stop()); } catch(e){}
+    }
+    ambientStream = null;
+    ambientSource = null;
+    ambientAnalyser = null;
+    ambientAnalyserData = null;
+    walkState.ambientLevel = 0;
+    walkState.isSilent = false;
+    walkState.silentSince = 0;
+    walkState.lastSilencePenaltyAt = 0;
+    walkState.micState = 'idle';
+    setSoundStarvedUI(false);
+}
+
+
+// Called from GPS update with total meters
+function checkSoundDrop(totalMeters){
+    if(!walkState.active) return;
+    const drops = Math.floor(totalMeters / SOUND_DROP_EVERY_M);
+    const prev  = Math.floor(soundDropCheckpointM / SOUND_DROP_EVERY_M);
+    soundDropCheckpointM = totalMeters;
+    //if(drops > prev && Math.random() < 0.72){
+    //    setTimeout(spawnSoundDrop, 600 + Math.random() * 1400);
+    //}
+    if (drops > prev) {
+        collectWalkSoundPiece();
+    }
+}
+
+
+// ===== Audio synthesis =====
+function _playDrum(ctx, area, t, barDur, bpm, vol){
+    const beatDur = barDur / 4;
+    const hb = beatDur / 2;
+    // Patterns: 8 half-beat slots, value = strength (0=skip, >0=hit)
+    const pats = {
+        beach:  [1,0,0,0.5,0.55,0,0.7,0],
+        forest: [1,0,0,0.35,0.5,0,0,0.2],
+        city:   [1,0.35,0.5,0.35,1,0.35,0.5,0.7],
+        ruins:  [1,0,0,0,0,0.6,0,0]
+    };
+    const pat = pats[area]||pats.beach;
+
+    pat.forEach((str, i)=>{
+        if(!str) return;
+        const bt = t + i * hb;
+        // Kick on beat 1 & 5
+        if(i===0||i===4){
+            const o = ctx.createOscillator(), g = ctx.createGain();
+            o.connect(g); g.connect(getMasterGain()||ctx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(160, bt);
+            o.frequency.exponentialRampToValueAtTime(48, bt+0.18);
+            g.gain.setValueAtTime(vol*str*0.85, bt);
+            g.gain.exponentialRampToValueAtTime(0.001, bt+0.28);
+            o.onended = () => { try { o.disconnect(); g.disconnect(); } catch(_){} };
+            o.start(bt); o.stop(bt+0.28);
+        }
+        // Snare on beat 5 (i=4) for city/ruins extra snap
+        if(i===4 && (area==='city'||area==='ruins')){
+            const sz = Math.floor(ctx.sampleRate * 0.11);
+            const buf = ctx.createBuffer(1, sz, ctx.sampleRate);
+            const d = buf.getChannelData(0);
+            for(let j=0;j<sz;j++) d[j]=Math.random()*2-1;
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            const flt = ctx.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=2800; flt.Q.value=0.6;
+            const sg = ctx.createGain();
+            src.connect(flt); flt.connect(sg); sg.connect(getMasterGain()||ctx.destination);
+            sg.gain.setValueAtTime(vol*str*0.32, bt); sg.gain.exponentialRampToValueAtTime(0.001, bt+0.11);
+            src.onended = () => { try { src.disconnect(); flt.disconnect(); sg.disconnect(); } catch(_){} };
+            src.start(bt); src.stop(bt+0.11);
+        }
+        // Hi-hat (odd slots)
+        if(i%2!==0 && str>0){
+            const hsz = Math.floor(ctx.sampleRate * 0.035);
+            const hbuf = ctx.createBuffer(1, hsz, ctx.sampleRate);
+            const hd = hbuf.getChannelData(0);
+            for(let j=0;j<hsz;j++) hd[j]=Math.random()*2-1;
+            const hs = ctx.createBufferSource(); hs.buffer=hbuf;
+            const hf = ctx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=7500;
+            const hg = ctx.createGain();
+            hs.connect(hf); hf.connect(hg); hg.connect(getMasterGain()||ctx.destination);
+            hg.gain.setValueAtTime(vol*str*0.16, bt); hg.gain.exponentialRampToValueAtTime(0.001, bt+0.035);
+            hs.onended = () => { try { hs.disconnect(); hf.disconnect(); hg.disconnect(); } catch(_){} };
+            hs.start(bt); hs.stop(bt+0.035);
+        }
+    });
+}
+
+const BASS_NOTES_MAP = {
+    beach:  [55,55,82,55],
+    forest: [65,65,87,87],
+    city:   [73,82,73,65],
+    ruins:  [55,55,55,41]
+};
+function _playBass(ctx, area, t, barDur, vol){
+    const notes = BASS_NOTES_MAP[area]||BASS_NOTES_MAP.beach;
+    const nd = barDur / notes.length;
+    notes.forEach((freq, i)=>{
+        const nt = t + i * nd;
+        const o = ctx.createOscillator(), flt = ctx.createBiquadFilter(), g = ctx.createGain();
+        flt.type='lowpass'; flt.frequency.value=320;
+        o.connect(flt); flt.connect(g); g.connect(getMasterGain()||ctx.destination);
+        o.type = 'sine'; o.frequency.setValueAtTime(freq, nt);
+        g.gain.setValueAtTime(0, nt);
+        g.gain.linearRampToValueAtTime(vol*0.65, nt+0.025);
+        g.gain.setValueAtTime(vol*0.65, nt+nd*0.78);
+        g.gain.linearRampToValueAtTime(0, nt+nd*0.96);
+        o.onended = () => { try { o.disconnect(); flt.disconnect(); g.disconnect(); } catch(_){} };
+        o.start(nt); o.stop(nt+nd);
+    });
+}
+
+const MEL_SCALES = {
+    beach:  [440,494,554,659,740],
+    forest: [392,440,494,587,659],
+    city:   [440,466,554,622,740],
+    ruins:  [220,247,277,330,370]
+};
+const MEL_PATS = {
+    beach:  [0,2,4,2,1,3,4,3],
+    forest: [0,1,2,3,2,1,0,2],
+    city:   [4,2,1,2,4,3,2,0],
+    ruins:  [-1,0,2,1,0,-1,1,0]  // -1 = rest
+};
+function _playMelody(ctx, area, t, barDur, vol, lv){
+    const scale = MEL_SCALES[area]||MEL_SCALES.beach;
+    const pat   = MEL_PATS[area]||MEL_PATS.beach;
+    const count = lv >= 3 ? 8 : 4;
+    const nd = barDur / count;
+    for(let i=0;i<count;i++){
+        const idx = pat[i % pat.length];
+        if(idx < 0) continue;
+        const freq = scale[idx % scale.length];
+        const nt = t + i * nd;
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(getMasterGain()||ctx.destination);
+        o.type = area==='ruins' ? 'sine' : 'triangle';
+        o.frequency.setValueAtTime(freq, nt);
+        g.gain.setValueAtTime(0, nt);
+        g.gain.linearRampToValueAtTime(vol*0.38, nt+0.012);
+        g.gain.setValueAtTime(vol*0.38, nt+nd*0.62);
+        g.gain.linearRampToValueAtTime(0, nt+nd*0.92);
+        o.onended = () => { try { o.disconnect(); g.disconnect(); } catch(_){} };
+        o.start(nt); o.stop(nt+nd);
+        // Echo for ruins
+        if(area==='ruins'){
+            const eo = ctx.createOscillator(), eg = ctx.createGain();
+            eo.connect(eg); eg.connect(getMasterGain()||ctx.destination);
+            eo.type='sine'; eo.frequency.setValueAtTime(freq, nt+0.14);
+            eg.gain.setValueAtTime(0, nt+0.14);
+            eg.gain.linearRampToValueAtTime(vol*0.12, nt+0.16);
+            eg.gain.linearRampToValueAtTime(0, nt+nd);
+            eo.onended = () => { try { eo.disconnect(); eg.disconnect(); } catch(_){} };
+            eo.start(nt+0.14); eo.stop(nt+nd+0.14);
+        }
+    }
+}
+
+const FX_DEF = {
+    beach:  { freq:190, type:'sine',     mod:5,   fcut:350 },
+    forest: { freq:330, type:'sine',     mod:2,   fcut:500 },
+    city:   { freq:58,  type:'sawtooth', mod:0.8, fcut:200 },
+    ruins:  { freq:75,  type:'sine',     mod:0.3, fcut:250 }
+};
+function _playFx(ctx, area, t, barDur, vol){
+    const d = FX_DEF[area]||FX_DEF.beach;
+    const o = ctx.createOscillator();
+    const lfo = ctx.createOscillator(), lfoG = ctx.createGain();
+    const flt = ctx.createBiquadFilter(), g = ctx.createGain();
+    flt.type='lowpass'; flt.frequency.value=d.fcut;
+    lfo.frequency.value=d.mod; lfoG.gain.value=14;
+    lfo.connect(lfoG); lfoG.connect(o.frequency);
+    o.connect(flt); flt.connect(g); g.connect(getMasterGain()||ctx.destination);
+    o.type=d.type; o.frequency.setValueAtTime(d.freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol*0.22, t+0.25);
+    g.gain.setValueAtTime(vol*0.22, t+barDur-0.25);
+    g.gain.linearRampToValueAtTime(0, t+barDur);
+    o.onended = () => { try { lfo.disconnect(); lfoG.disconnect(); o.disconnect(); flt.disconnect(); g.disconnect(); } catch(_){} };
+    lfo.start(t); lfo.stop(t+barDur);
+    o.start(t); o.stop(t+barDur);
+}
+
+function _scheduleBar(ctx, barT, barDur, bpm, vol){
+    if(soundSlots.drum)   _playDrum(ctx, soundSlots.drum.area,   barT, barDur, bpm, vol);
+    if(soundSlots.bass)   _playBass(ctx, soundSlots.bass.area,   barT, barDur, vol);
+    if(soundSlots.melody) _playMelody(ctx, soundSlots.melody.area, barT, barDur, vol, G.lv);
+    if(soundSlots.fx)     _playFx(ctx, soundSlots.fx.area,   barT, barDur, vol);
+}
+
+function sampleBand(data, start, end){
+    const safeStart = Math.max(0, start | 0);
+    const safeEnd = Math.max(safeStart + 1, Math.min(data.length, end | 0));
+    let total = 0;
+    for(let i = safeStart; i < safeEnd; i++) total += data[i];
+    return total / (safeEnd - safeStart);
+}
+
+function normalizeBandEnergy(value, floor = 26, ceil = 170){
+    return clampNumber((value - floor) / (ceil - floor), 0, 1, 0);
+}
+
+function clearSoundReactiveStage(){
+    const stage = document.getElementById('petStage');
+    if(!stage) return;
+    stage.classList.remove('sound-feeding');
+    stage.style.removeProperty('--sound-react');
+    stage.style.removeProperty('--sound-low');
+    stage.style.removeProperty('--sound-mid');
+    stage.style.removeProperty('--sound-high');
+    stage.style.removeProperty('--sound-hue');
+}
+
+function syncSoundReactiveStage(forceIdle = false){
+    const stage = document.getElementById('petStage');
+    if(!stage) return;
+    if(forceIdle || !isTrackPlaying || !soundAnalyser || !soundAnalyserData){
+        clearSoundReactiveStage();
+        return;
+    }
+    const low = normalizeBandEnergy(sampleBand(soundAnalyserData, 1, 6), 28, 172);
+    const mid = normalizeBandEnergy(sampleBand(soundAnalyserData, 6, 22), 24, 164);
+    const high = normalizeBandEnergy(sampleBand(soundAnalyserData, 22, 64), 22, 156);
+    const react = clampNumber(low * 0.96 + mid * 0.28, 0, 1, 0);
+    const hue = Math.round(182 + high * 34 - low * 12 + mid * 8);
+    stage.classList.add('sound-feeding');
+    stage.style.setProperty('--sound-react', react.toFixed(3));
+    stage.style.setProperty('--sound-low', low.toFixed(3));
+    stage.style.setProperty('--sound-mid', mid.toFixed(3));
+    stage.style.setProperty('--sound-high', high.toFixed(3));
+    stage.style.setProperty('--sound-hue', String(hue));
+}
+
+function startSoundReactiveStage(){
+    const analyser = ensureSoundAnalyser();
+    if(!analyser || !soundAnalyserData){
+        clearSoundReactiveStage();
+        return;
+    }
+    cancelAnimationFrame(soundVizFrame);
+    const render = () => {
+        if(!isTrackPlaying || !soundAnalyser || !soundAnalyserData){
+            clearSoundReactiveStage();
+            soundVizFrame = 0;
+            return;
+        }
+        soundAnalyser.getByteFrequencyData(soundAnalyserData);
+        syncSoundReactiveStage();
+        soundVizFrame = requestAnimationFrame(render);
+    };
+    render();
+}
+
+function toggleTrack(){
+    if(isTrackPlaying) stopTrack(); else startTrack();
+}
+
+function startTrack(){
+    const hasAny = SLOT_KEYS.some(k => soundSlots[k] !== null);
+    if(!hasAny){
+        showToast(currentLang==='ja' ? '⚠ まず散歩で音を拾ってね！' : '⚠ Collect sounds while walking first!', true);
+        return;
+    }
+
+    userGestureReady = true;
+
+    const ctx = getAudioCtx();
+    if(!ctx){
+        showToast(currentLang==='ja' ? '⚠ 画面をタップして音声を有効に' : '⚠ Tap screen to enable audio', true);
+        return;
+    }
+
+    if(ctx.state === 'suspended'){
+        ctx.resume().catch(()=>{});
+    }
+
+    getMasterGain();
+
+    isTrackPlaying = true;
+
+    const bpm = getSoundBpm();
+    const barDur = (60 / bpm) * 4;
+    const lookAhead = 0.12;
+    const scheduleAhead = 0.65;
+
+    soundNextBarTime = ctx.currentTime + 0.08;
+
+    const scheduler = () => {
+        if(!isTrackPlaying) return;
+
+        const vol = getSoundVol();
+
+        while(soundNextBarTime < ctx.currentTime + scheduleAhead){
+            _scheduleBar(ctx, soundNextBarTime, barDur, bpm, vol);
+            soundNextBarTime += barDur;
+        }
+
+        soundLoopTimer = setTimeout(scheduler, lookAhead * 1000);
+    };
+
+    scheduler();
+    startSoundReactiveStage();
+
+    renderSoundSlots();
+    setMsg(currentLang==='ja' ? `🎵 演奏スタート！ BPM ${bpm}` : `🎵 Track playing! BPM ${bpm}`);
+    haptic([20,10,40]);
+}
+
+function stopTrack(){
+    isTrackPlaying = false;
+    if(soundLoopTimer){ clearTimeout(soundLoopTimer); soundLoopTimer=null; }
+    cancelAnimationFrame(soundVizFrame);
+    soundVizFrame = 0;
+    clearSoundReactiveStage();
+    renderSoundSlots();
+    setMsg(currentLang==='ja' ? '🎵 演奏停止' : '🎵 Track stopped');
+}
+
+function saveMemoryTrack(){
+    const hasAny = SLOT_KEYS.some(k => soundSlots[k]!==null);
+    if(!hasAny){
+        showToast(currentLang==='ja' ? '⚠ スロットが空です' : '⚠ No sounds in slots', true);
+        return;
+    }
+    const zones = [...new Set(SLOT_KEYS.filter(k=>soundSlots[k]).map(k=>soundSlots[k].area))];
+    const date = new Date().toLocaleDateString('ja-JP',{month:'short',day:'numeric'});
+    const zEmoji = zones.map(z=>ZONE_EMOJI[z]||'').join('');
+    const name = `${date} ${zEmoji} Mix`;
+    const track = { ts:Date.now(), name, date, zones, slots:{...soundSlots} };
+
+    try{
+        const raw = localStorage.getItem(SOUND_MEMORY_KEY);
+        const mems = raw ? JSON.parse(raw) : [];
+        mems.unshift(track);
+        if(mems.length>10) mems.length=10;
+        localStorage.setItem(SOUND_MEMORY_KEY, JSON.stringify(mems));
+    }catch(e){}
+
+    renderSoundMemory();
+    showToast(currentLang==='ja' ? '💾 思い出トラックを保存したよ！' : '💾 Memory track saved!');
+    haptic([20,10,30]);
+}
+
+// cache for onclick in rendered HTML
+let _soundMemCache = [];
+
+function loadMemoryTrack(idx){
+    const track = _soundMemCache[idx];
+    if(!track) return;
+    if(isTrackPlaying) stopTrack();
+    soundSlots = { drum:track.slots.drum||null, bass:track.slots.bass||null, melody:track.slots.melody||null, fx:track.slots.fx||null };
+    saveSoundSlots();
+    renderSoundSlots();
+    setMsg(currentLang==='ja' ? `📼「${track.name}」をロードしたよ` : `📼 Loaded "${track.name}"`);
+    haptic(20);
+}
+
+function renderSoundMemory(){
+    const list = document.getElementById('soundMemoryList');
+    if(!list) return;
+    let mems = [];
+    try{ const raw=localStorage.getItem(SOUND_MEMORY_KEY); if(raw) mems=JSON.parse(raw); }catch(e){}
+    _soundMemCache = mems.slice(0,6);
+    if(!_soundMemCache.length){
+        list.innerHTML = `<div style="font-size:0.66rem;color:rgba(255,255,255,0.2);text-align:center;padding:5px">${currentLang==='ja'?'思い出トラックはまだないよ':'No memory tracks yet'}</div>`;
+        return;
+    }
+    list.innerHTML = _soundMemCache.map((tr,i)=>{
+        const zEmoji = (tr.zones||[]).map(z=>ZONE_EMOJI[z]||'').join('');
+        return `<div class="sound-memory-item" onclick="loadMemoryTrack(${i})">
+            <span class="smi-date">${tr.date}</span>
+            <span class="smi-name">${tr.name}</span>
+            <span class="smi-zones">${zEmoji}</span>
+            <span class="smi-play">▶</span>
+        </div>`;
+    }).join('');
+}
+
+// ===== HAPTIC =====
+function haptic(ms=20){ try{ if(userGestureReady && navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+
+// ===== TOAST =====
+let toastTimer = null;
+function showToast(msg, error=false){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'toast show' + (error?' error':'');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// ===== I18N =====
+const APP_VERSION = '2026-05-04-app-modules';
+const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
+const LANG_STORAGE_KEY = 'walrus_lang';
+const THEME_STORAGE_KEY = 'walrus_theme';
+const BABY_MODE_STORAGE_KEY = 'walrus_baby_mode';
+const PWA_INSTALL_BANNER_KEY = 'walrus_pwa_install_banner_seen';
+const PORTFOLIO_ORDER_KEY = 'walrus_portfolio_order';
+const PORTFOLIO_BLOB_KEY = 'walrus_portfolio_blobs';
+const COLLECTOR_BLOB_KEY = 'walrus_collector_blobs';
+const NEWBORN_GUIDE_SEEN_KEY = 'walrus_newborn_guide_seen';
+const I18N_LEGACY = {
+    ja: {
+        cache_refresh: '更新',
+        cache_refreshing: '更新中…',
+        app_title: 'たじゅまるのWalrus',
+        load_title: 'Walrusを孵化させています…',
+        load_sub: 'たじゅまるの秘密基地へようこそ',
+        hatch_wait: '卵が揺れている…',
+        hatch_hint: 'まもなく孵化します',
+        hatch_step_1: '揺れを見守る',
+        hatch_step_2: 'ヒビを待つ',
+        hatch_step_3: '連打で孵化',
+        newborn_guide_title: 'FIRST STEP',
+        newborn_guide_copy: 'まずは <strong>散歩</strong> に行こう。<strong>満腹50%以上</strong> なら出発できて、歩くと <strong>音</strong> と <strong>経験値</strong> が集まるよ。',
+        main_title: 'たじゅまるのWalrus',
+        main_sub: '散歩して音を集めて、Walrusを進化させよう',
+        sound_lab_title: '🎵 サウンドキッチン',
+        sound_memory_title: '④ 音の記憶',
+        sound_track_title: '📼 思い出トラック',
+        feed: '餌やり',
+        pet: 'なでなで',
+        play: '遊ぶ',
+        bubble_pop: 'バブルポップ',
+        walrus_save: 'Walrus保存',
+        walrus_load: 'Walrus復元',
+        walrus_exchange: 'Walrus交流',
+        walrus_diary: 'Walrus日記',
+        stat_hunger: '🐟 満腹',
+        stat_happy: '💗 ハッピー',
+        stat_exp: '⭐ 経験値',
+        unlock2_tag: 'Lv.2 解禁',
+        unlock2_title: 'たじゅまる 自己紹介',
+        unlock2_body1: "<div class=\"walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span>ぼくの相棒は <strong>たじゅまる（tajumaru.sui）</strong>。Sui と Walrus を触りながら、ゲーム、記事、NFT、オンチェーン実験を少しずつ育てているビルダーだよ。気になるカードを押すと、ぼくが見どころを案内するね。</div></div><div class=\"profile-chips\"><span class=\"profile-chip\">🌊 Walrus沼 住民</span><span class=\"profile-chip\">🛠 Sui Builder</span><span class=\"profile-chip\">🎮 Interactive Pet</span></div></div>",
+        unlock2_body2: "<div class=\"section-caption\">Portfolio Projects - クリックすると Walrus が解説します。</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"この育成ゲームそのものがポートフォリオの入口。育てる、保存する、交流する、日記を書くまでを1画面で遊べるようにしているよ。\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Walrus育成ゲーム</span><span class=\"walrus-project-meta\">Game / PWA / Walrus</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"NoteではSuiやWalrusで試したことを、あとから読み返せるログにしているよ。技術メモと沼トークのあいだくらいの温度感。\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Sui / Walrus Note</span><span class=\"walrus-project-meta\">Writing / Research</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"NFTコレクションはたじゅまるの遊び心の棚。Poopie Face、Tajumarte、SunSun、それぞれ違うノリで見てもらえるよ。\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">NFT Collections</span><span class=\"walrus-project-meta\">Art / Community</span></button></div><div class=\"walrus-about-note\">好きなものは <a href=\"https://walrus.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Walrus Protocol</a>、ちょっと妙なアイデア、そしてオンチェーンで遊ぶ余白。技術ネタもネタ投稿も歓迎です。</div><div class=\"social-pills\"><a class=\"social-pill\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 @tajumaruxxx</a><a class=\"social-pill\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">📝 Note / tajumaru</a></div>",
+        unlock3_tag: 'Lv.3 解禁',
+        unlock3_title: '好きなこと・活動',
+        unlock3_body1: "<div class=\"section-caption\">Lv.3 では Walrus のスクラップブックが開きます。たじゅまるが見つけた Sui / Walrus ネタを、ぼくが『これ好き』『あとで読み返したい』の温度で集めてるモードです。</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-a\"><span class=\"thumb-badge\">NOTE PICK</span><div class=\"thumb-title\">Walrus視点の<br>深海メモ採集</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Collected by Walrus</div><div class=\"showcase-meta\">Sui / Walrus / Field Notes</div><div class=\"showcase-copy\">記事そのものより、『この発見おもしろい』を先に拾っていく感じ。あとで見返すと、深海で拾った小さなログがちゃんと地図になります。</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#Sui</span><span class=\"scrapbook-tag\">#Walrus</span><span class=\"scrapbook-tag\">#Discovery</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">記事を見にいく →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-b\"><span class=\"thumb-badge\">SCRAP LOG</span><div class=\"thumb-title\">今日ひろった<br>Sui / Walrus 小ネタ</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Shelf Memo</div><div class=\"showcase-meta\">Builder Diary / Swamp Dispatch</div><div class=\"showcase-copy\">検証していて気づいたこと、Note に残したい話題、誰かに見せたいリンクの予感。その日の『おっ』を Walrus が棚に並べてるイメージです。</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#NotePick</span><span class=\"scrapbook-tag\">#DevLog</span><span class=\"scrapbook-tag\">#SwampFind</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">@tajumaru をのぞく →</a></div></article></div>",
+        unlock3_body2: "<div class=\"section-caption\">コレクションモードも、ただ並べるだけじゃなくて『Walrus が集めて飾ってる棚』に進化。作品ごとに違うノリをメモ付きで置いてあります。</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-a has-art\"><img class=\"showcase-art\" src=\"./poopie-face-1.webp\" alt=\"Poopie Face thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">COLLECTED</span><div class=\"thumb-title title-chip\">Poopie Face💩</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Collection Log</div><div class=\"showcase-meta\">Chaotic Cute</div><div class=\"showcase-copy\">かわいさと勢いで突然ぶつかってくるタイプ。説明より先に『連れて帰りたくなるか』で判断する、Walrus の即決枠です。</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x56301d99f63ec982086a5d80087e186f4812334eb9dc10f17e77b8a7e5fc99a8?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">TradePortで見る →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-b has-art\"><img class=\"showcase-art\" src=\"./tajumarte-banner.webp\" alt=\"Tajumarte thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">DISPLAY PICK</span><div class=\"thumb-title title-chip\">Tajumarte</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Gallery Shelf</div><div class=\"showcase-meta\">Gallery Mode</div><div class=\"showcase-copy\">少しアート寄りで、深海ギャラリーに飾られてそうなムード。Walrus 的には『静かに強い』枠として確保しておきたい作品です。</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0xaad44f5565ff1b02f50dff6ae9cf671541f819f0fe89646b05bf725664623ab2?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">コレクションを見る →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-c has-art\"><img class=\"showcase-art\" src=\"./sunsun.jpg\" alt=\"SunSun thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">BRIGHT FIND</span><div class=\"thumb-title title-chip\">SunSun</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Warm Light Slot</div><div class=\"showcase-meta\">Bright Energy</div><div class=\"showcase-copy\">深海ムードの棚に差し込む日差し担当。温度差のある一枚を混ぜることで、集めてる感じがぐっと生っぽくなります。</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x5c1a7e0e538823c2829fc692fd8ae08eccf58f59b6be64f2c411901fc6994ae9?tab=mint&bottomTab=trades\" target=\"_blank\" rel=\"noopener noreferrer\">ミントページへ →</a></div></article></div>",
+        unlock4_tag: '✦ Lv.4 — LEGEND!',
+        unlock4_title: 'Legend Walrus 達成おめでとう！',
+        unlock4_body: "<div class=\"legend-cta\"><div class=\"legend-cta-title\">育成完了。ここからは Legend の第2章です。</div><div class=\"legend-cta-copy\">最高レベルに到達したあなたは、もう本物の Walrus 仲間。<br><strong>進化</strong>で Mythic な姿にするか、<strong>カスタマイズ</strong>で色やアクセサリーを選んで、自分だけの Legend Walrus に育てよう。</div><div id=\"legendLab\" class=\"legend-lab\"></div><div class=\"legend-cta-actions\"><a class=\"legend-cta-btn x-btn\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 をフォローする</a><a class=\"legend-cta-btn note-btn\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Note を読みにいく</a></div><div class=\"buddy-tip\">たじゅまると友達になると、Walrus の話題がだいたい 1.7 倍くらい増えます。<br><span style=\"color:rgba(255,255,255,0.34);font-size:0.94em\">Built on Walrus Protocol · Walgo.xyz</span></div></div>",
+        legend_lab_title: 'Legend Lab',
+        legend_lab_idle: '未選択',
+        legend_lab_evolved: 'Mythic進化中',
+        legend_lab_custom: 'カスタム中',
+        legend_evolve: '進化',
+        legend_devolve: '進化解除',
+        legend_evolve_hint: 'Mythic Legend へ進化',
+        legend_devolve_hint: '通常Legendに戻す',
+        legend_customize: 'カスタマイズ',
+        legend_customize_hint: '色・アクセサリーを選ぶ',
+        legend_color: 'Color',
+        legend_accessory: 'Accessory',
+        legend_lab_note: '選んだ姿はこの端末に保存され、次回もそのまま表示されます。',
+        legend_preview_kicker: 'Preview unlocked',
+        legend_preview_copy: 'Evolve / Customize を押す前に、Legend の次章をちょっとだけ先にのぞけます。',
+        legend_preview_mythic: 'Mythic Aura',
+        legend_preview_mythic_hint: '進化すると深海オーラが増し、特別な発光をまといます。',
+        legend_preview_custom_hint: 'Aurora や Coral など、複数カラーを先取りチェック。',
+        legend_preview_accessory: 'Accessory tease',
+        legend_preview_accessory_hint: '光輪や小物で、Legendらしい雰囲気を仕上げよう。',
+        legend_color_gold: 'Gold',
+        legend_color_aurora: 'Aurora',
+        legend_color_coral: 'Coral',
+        legend_color_midnight: 'Midnight',
+        legend_acc_none: 'なし',
+        legend_acc_pearl: '真珠',
+        legend_acc_scarf: 'スカーフ',
+        legend_acc_halo: '光輪',
+        legend_acc_sunglasses: '黒サングラス',
+        legend_evolved_msg: '✦ Mythic Legendへ進化！ 深海のオーラが増したよ',
+        legend_devolved_msg: '✦ 進化を解除したよ。通常Legendに戻った！',
+        legend_custom_msg: '✦ カスタマイズ解禁！ 好きな姿に変えてみよう',
+        legend_color_msg: '色を変更したよ',
+        legend_accessory_msg: 'アクセサリーを変更したよ',
+        social_popup_badge: "🫧 Lv.4 Clear Bonus",
+        social_popup_title: "たじゅまると友達になろう！",
+        social_popup_copy: "育成完了、おめでとう！<br>ここまで来たあなたは、もう立派な Walrus 仲間。<br>X と Note に浮上して、たじゅまるの沼トークをのぞきに行こう。",
+        social_popup_x: "Xで友達になる",
+        social_popup_note: "Noteを読みに行く",
+        social_popup_close: "あとで見る",
+        legend_ascension_kicker: 'Legend Ascension',
+        legend_ascension_title: 'YOU CREATED A LEGEND',
+        legend_ascension_copy: 'Stored on Walrus Network. 育てた相棒は、深海の伝説として刻まれました。',
+        legend_ascension_footer: 'Stored Eternally',
+        legend_ascension_chip_1: 'Lv.4 Legend Walrus',
+        legend_ascension_chip_2: 'Built on Walrus Network',
+        legend_ascension_cta_primary: '証明書を開く',
+        legend_ascension_cta_secondary: 'スクショできた',
+        reset: '🔄 リセット',
+        footer: 'Built with ❤️ for Walrus Protocol · たじゅまる.sui',
+        game_score: 'スコア',
+        game_remain: '残り',
+        game_end: '⬅ やめる',
+        game_clear: '🎉 クリア！',
+        game_perfect: 'PERFECT!!',
+        game_perfect_bonus: 'Perfect報酬：経験値 1.5倍',
+        back_to_main: '本編に戻る 🦭',
+        legend_cert_title: '🦭 Legend Certificate',
+        share_x: 'Xでシェア ✨',
+        copy_link: 'リンクをコピー',
+        close: '閉じる',
+        exchange_modal_title: '🤝 Walrus交流',
+        my_code: '📤 マイコード',
+        friend_exchange: '🦭 友達と交流',
+        exchange_history: '📋 交流履歴',
+        my_code_hint: 'このコードを友達に送ろう！<br>友達がコードを入力すると、あなたのWalrusが遊びに行くよ 🦭',
+        gen_share_code: '<span>🌐</span> シェアコードを発行・更新',
+        copy_code: '📋 コードをコピー',
+        friend_hint: '友達のシェアコードを入力して交流しよう！<br>お互いのWalrusがハッピーになるよ 💚',
+        friend_placeholder: '友達のシェアコード（blobId）を貼り付けてね…',
+        exchange_now: '<span>🤝</span> 交流する！',
+        exchange_note: '選んだ交換あそびで報酬が変わるよ<br>日記に自動記録されるよ 📔',
+        history_hint: '最近交流したWalrusたちの記録です 🦭',
+        your_walrus: 'あなたのWalrus',
+        friend_walrus: '友達のWalrus',
+        visiting_happy: '💗 ハッピー +15',
+        visiting_exp: '⭐ 経験値 +10',
+        visiting_done: 'やったー！ 🦭',
+        diary_title: '📔 今日の日記',
+        diary_placeholder: '今日の思い出を書いてね… 🦭',
+        diary_save: '💾 保存する',
+        diary_update: '✏️ 上書き保存',
+        diary_view: '📖 日記帳を見る',
+        diary_book: '📔 Walrus日記帳',
+        diary_save_walrus: '🌐 Walrusに保存',
+        diary_load_walrus: '📥 Walrusから復元',
+        exchange_sub_no_code: 'コードを発行して繋がろう！',
+        exchange_sub_ready: '友達と繋がろう！',
+        walrus_load_modal_title: '📥 Walrusから復元',
+        walrus_load_hint: '読み込みたい BlobId を入力してね。<br>前回保存した ID もそのまま呼び出せるよ 🦭',
+        walrus_load_saved_label: 'LAST SAVE',
+        walrus_load_saved_empty: 'まだ保存がありません',
+        walrus_load_input_label: '読み込む BlobId',
+        walrus_load_placeholder: 'BlobId を貼り付けてね…',
+        walrus_load_preview_empty: 'BlobId を入力するとここに表示されます',
+        walrus_load_confirm: '<span>📥</span> この BlobId で復元する',
+        walrus_load_use_saved: '🫧 前回保存した BlobId を使う',
+        diary_sub_write: '今日の思い出を書く',
+        theme_toggle_deep: '🌙 深海',
+        theme_toggle_lagoon: '☀ 海中ラグーン',
+        theme_toggle_ukiyo: '🎏 和モード',
+        portfolio_discovery_drag: 'ドラッグで並べ替え',
+        portfolio_discovery_tap: 'タップでWalrus解説',
+        rating_title: 'Walrus Rating',
+        rating_fun: 'Fun',
+        rating_tech: 'Tech',
+        collector_listen: '🗣 要約を読む',
+        collector_stop: '⏹ 読み上げ停止',
+        collector_save_blob: '🌐 Blob保存',
+        collector_update_blob: '♻ Blob更新',
+        collector_blob_saving: 'Walrus保存中…',
+        collector_copy_blob: '📋 Blobリンクをコピー',
+        collector_blob_ready: '保存済みBlob',
+        collector_blob_none: 'まだWalrus Blobは未保存です。',
+        collector_speaking: 'Walrusが要約を読み上げ中…',
+        collector_saved: 'CollectorカードをWalrus Blobに保存したよ！',
+        collector_copied: 'Blobリンクをコピーしたよ！',
+        collector_speech_unsupported: 'このブラウザでは音声読み上げに未対応です',
+        collector_blob_missing: '先にBlob保存してね',
+        portfolio_save_blob: '🌐 配布Blob化',
+        portfolio_update_blob: '♻ Blob更新',
+        portfolio_copy_blob: '📋 BlobIdコピー',
+        portfolio_blob_ready: '配布Blob準備OK',
+        portfolio_blob_none: 'このカードはまだWalrus配布前です。',
+        portfolio_blob_saving: 'Blob化中…',
+        portfolio_saved: 'ポートフォリオカードをWalrusで配布できるようにしたよ！',
+        portfolio_copied: 'Portfolio BlobIdをコピーしたよ！',
+        portfolio_blob_missing: '先に配布Blob化してね',
+        action_feed_title: '餌やり',
+        action_pet_title: 'なでなで',
+        action_play_title: '遊ぶ'
+    },
+    en: {
+        cache_refresh: 'Refresh',
+        cache_refreshing: 'Refreshing...',
+        app_title: "Tajumaru's Walrus",
+        load_title: 'Hatching your Walrus...',
+        load_sub: "Welcome to Tajumaru's secret base",
+        hatch_wait: 'The egg is shaking...',
+        hatch_hint: 'Hatching soon',
+        hatch_step_1: 'Watch it shake',
+        hatch_step_2: 'Wait for cracks',
+        hatch_step_3: 'Tap to hatch',
+        newborn_guide_title: 'FIRST STEP',
+        newborn_guide_copy: 'Start with a <strong>walk</strong>. You can leave only when <strong>hunger is 50%+</strong>, and walking collects <strong>sounds</strong> plus <strong>EXP</strong>.',
+        main_title: "Tajumaru's Walrus",
+        main_sub: 'Walk, collect sounds, and evolve your Walrus',
+        sound_lab_title: '🎵 Sound Kitchen',
+        sound_memory_title: '④ Sound Memory',
+        sound_track_title: '📼 Memory Tracks',
+        feed: 'Feed',
+        pet: 'Pet',
+        play: 'Play',
+        bubble_pop: 'Bubble Pop',
+        walrus_save: 'Save to Walrus',
+        walrus_load: 'Load from Walrus',
+        walrus_exchange: 'Walrus Exchange',
+        walrus_diary: 'Walrus Diary',
+        stat_hunger: '🐟 Hunger',
+        stat_happy: '💗 Happy',
+        stat_exp: '⭐ EXP',
+        unlock2_tag: 'Lv.2 Unlock',
+        unlock2_title: 'About Tajumaru',
+        unlock2_body1: "<div class=\"walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span>My buddy is <strong>Tajumaru (tajumaru.sui)</strong>, a builder growing games, writing, NFTs, and on-chain experiments around Sui and Walrus. Tap a project card and I will introduce the good part.</div></div><div class=\"profile-chips\"><span class=\"profile-chip\">🌊 Walrus Swamp Resident</span><span class=\"profile-chip\">🛠 Sui Builder</span><span class=\"profile-chip\">🎮 Interactive Pet</span></div></div>",
+        unlock2_body2: "<div class=\"section-caption\">Portfolio Projects - tap a card and the Walrus will explain it.</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"This pet game is the portfolio entrance: raising, saving, exchanging, and diary writing all live in one playful screen.\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Walrus Pet Game</span><span class=\"walrus-project-meta\">Game / PWA / Walrus</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"On Note, Tajumaru keeps Sui and Walrus experiments readable as field notes: part technical memo, part swamp dispatch.\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Sui / Walrus Notes</span><span class=\"walrus-project-meta\">Writing / Research</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"The NFT collections are Tajumaru's playful display shelf. Poopie Face, Tajumarte, and SunSun each carry a different mood.\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">NFT Collections</span><span class=\"walrus-project-meta\">Art / Community</span></button></div><div class=\"walrus-about-note\">Favorite things: <a href=\"https://walrus.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Walrus Protocol</a>, strange ideas, and the open space where on-chain experiments become playful. Tech talk and odd discoveries are welcome.</div><div class=\"social-pills\"><a class=\"social-pill\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 @tajumaruxxx</a><a class=\"social-pill\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">📝 Note / tajumaru</a></div>",
+        unlock3_tag: 'Lv.3 Unlock',
+        unlock3_title: 'Things I Like / Activities',
+        unlock3_body1: "<div class=\"section-caption\">Lv.3 opens the Walrus scrapbook. This is where I collect Sui / Walrus finds with a very specific energy: not just articles, but little things worth saving for later.</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-a\"><span class=\"thumb-badge\">NOTE PICK</span><div class=\"thumb-title\">Deep Sea Notes<br>from the Walrus View</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Collected by Walrus</div><div class=\"showcase-meta\">Sui / Walrus / Field Notes</div><div class=\"showcase-copy\">Less like a formal archive, more like keeping the best “wait, this is interesting” moments in one place until they turn into a map.</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#Sui</span><span class=\"scrapbook-tag\">#Walrus</span><span class=\"scrapbook-tag\">#Discovery</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Read on Note →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-b\"><span class=\"thumb-badge\">SCRAP LOG</span><div class=\"thumb-title\">Today’s Tiny<br>Sui / Walrus Finds</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Shelf Memo</div><div class=\"showcase-meta\">Builder Diary / Swamp Dispatch</div><div class=\"showcase-copy\">Experiments, loose thoughts, future article seeds, and links that feel too good to lose. It is a shelf of “oh, keep that one.”</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#NotePick</span><span class=\"scrapbook-tag\">#DevLog</span><span class=\"scrapbook-tag\">#SwampFind</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Visit @tajumaru →</a></div></article></div>",
+        unlock3_body2: "<div class=\"section-caption\">Collection Mode also levels up here. Instead of a plain list, the shelf now feels like a Walrus-curated display with little notes attached to each find.</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-a has-art\"><img class=\"showcase-art\" src=\"./poopie-face-1.webp\" alt=\"Poopie Face thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">COLLECTED</span><div class=\"thumb-title title-chip\">Poopie Face💩</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Collection Log</div><div class=\"showcase-meta\">Chaotic Cute</div><div class=\"showcase-copy\">The kind of piece that wins immediately on energy. Less explanation, more instinctive “yes, this belongs on the shelf.”</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x56301d99f63ec982086a5d80087e186f4812334eb9dc10f17e77b8a7e5fc99a8?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">View on TradePort →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-b has-art\"><img class=\"showcase-art\" src=\"./tajumarte-banner.webp\" alt=\"Tajumarte thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">DISPLAY PICK</span><div class=\"thumb-title title-chip\">Tajumarte</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Gallery Shelf</div><div class=\"showcase-meta\">Gallery Mode</div><div class=\"showcase-copy\">A quieter, art-leaning piece that gives the display shelf room to breathe while still feeling unmistakably Tajumaru.</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0xaad44f5565ff1b02f50dff6ae9cf671541f819f0fe89646b05bf725664623ab2?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">See collection →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-c has-art\"><img class=\"showcase-art\" src=\"./sunsun.jpg\" alt=\"SunSun thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">BRIGHT FIND</span><div class=\"thumb-title title-chip\">SunSun</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Warm Light Slot</div><div class=\"showcase-meta\">Bright Energy</div><div class=\"showcase-copy\">The shelf needs contrast too. This one feels like sunlight cutting into the deep sea and waking the whole row up.</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x5c1a7e0e538823c2829fc692fd8ae08eccf58f59b6be64f2c411901fc6994ae9?tab=mint&bottomTab=trades\" target=\"_blank\" rel=\"noopener noreferrer\">Open mint page →</a></div></article></div>",
+        unlock4_tag: '✦ Lv.4 — LEGEND!',
+        unlock4_title: 'Congrats on reaching Legend Walrus!',
+        unlock4_body: "<div class=\"legend-cta\"><div class=\"legend-cta-title\">Raise complete. Now begins Legend chapter two.</div><div class=\"legend-cta-copy\">You reached the top level, which means you’re officially a Walrus companion now.<br>Choose <strong>Evolve</strong> for a Mythic form, or <strong>Customize</strong> colors and accessories to make your Legend Walrus feel like yours.</div><div id=\"legendLab\" class=\"legend-lab\"></div><div class=\"legend-cta-actions\"><a class=\"legend-cta-btn x-btn\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">Follow on 𝕏</a><a class=\"legend-cta-btn note-btn\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Read the Note posts</a></div><div class=\"buddy-tip\">Becoming Tajumaru’s friend increases the odds of unexpected Walrus talk by about 1.7x.<br><span style=\"color:rgba(255,255,255,0.34);font-size:0.94em\">Built on Walrus Protocol · Walgo.xyz</span></div></div>",
+        legend_lab_title: 'Legend Lab',
+        legend_lab_idle: 'Not chosen',
+        legend_lab_evolved: 'Mythic evolved',
+        legend_lab_custom: 'Custom mode',
+        legend_evolve: 'Evolve',
+        legend_devolve: 'Undo evolve',
+        legend_evolve_hint: 'Become Mythic Legend',
+        legend_devolve_hint: 'Return to normal Legend',
+        legend_customize: 'Customize',
+        legend_customize_hint: 'Pick color and accessory',
+        legend_color: 'Color',
+        legend_accessory: 'Accessory',
+        legend_lab_note: 'Your look is saved on this device and stays after reload.',
+        legend_preview_kicker: 'Preview unlocked',
+        legend_preview_copy: 'Get a quick glimpse of Legend chapter two before you even tap Evolve or Customize.',
+        legend_preview_mythic: 'Mythic Aura',
+        legend_preview_mythic_hint: 'Evolution adds a deeper sea glow and a more special presence.',
+        legend_preview_custom_hint: 'Sneak a look at colors like Aurora and Coral before choosing.',
+        legend_preview_accessory: 'Accessory tease',
+        legend_preview_accessory_hint: 'Halos and extras help push the Legend mood even further.',
+        legend_color_gold: 'Gold',
+        legend_color_aurora: 'Aurora',
+        legend_color_coral: 'Coral',
+        legend_color_midnight: 'Midnight',
+        legend_acc_none: 'None',
+        legend_acc_pearl: 'Pearl',
+        legend_acc_scarf: 'Scarf',
+        legend_acc_halo: 'Halo',
+        legend_acc_sunglasses: 'Black shades',
+        legend_evolved_msg: '✦ Evolved into Mythic Legend! The deep-sea aura grew stronger',
+        legend_devolved_msg: '✦ Evolution undone. Back to normal Legend!',
+        legend_custom_msg: '✦ Customizing unlocked! Try a look you like',
+        legend_color_msg: 'Color changed',
+        legend_accessory_msg: 'Accessory changed',
+        social_popup_badge: "🫧 Lv.4 Clear Bonus",
+        social_popup_title: "Let’s be friends with Tajumaru!",
+        social_popup_copy: "Congrats on finishing the raise!<br>You are officially part of the Walrus crew now.<br>Surface on X and Note and peek into Tajumaru’s favorite swamp conversations.",
+        social_popup_x: "Be friends on X",
+        social_popup_note: "Read on Note",
+        social_popup_close: "Maybe later",
+        legend_ascension_kicker: 'Legend Ascension',
+        legend_ascension_title: 'YOU CREATED A LEGEND',
+        legend_ascension_copy: 'Stored on Walrus Network. Your companion has been etched into the deep as a legend.',
+        legend_ascension_footer: 'Stored Eternally',
+        legend_ascension_chip_1: 'Lv.4 Legend Walrus',
+        legend_ascension_chip_2: 'Built on Walrus Network',
+        legend_ascension_cta_primary: 'Open certificate',
+        legend_ascension_cta_secondary: 'Screenshot done',
+        reset: '🔄 Reset',
+        footer: 'Built with ❤️ for Walrus Protocol · tajumaru.sui',
+        game_score: 'Score',
+        game_remain: 'Left',
+        game_end: '⬅ End',
+        game_clear: '🎉 Clear!',
+        game_perfect: 'PERFECT!!',
+        game_perfect_bonus: 'Perfect bonus: EXP x1.5',
+        back_to_main: 'Back to game 🦭',
+        legend_cert_title: '🦭 Legend Certificate',
+        share_x: 'Share on X ✨',
+        copy_link: 'Copy link',
+        close: 'Close',
+        exchange_modal_title: '🤝 Walrus Exchange',
+        my_code: '📤 My Code',
+        friend_exchange: '🦭 Exchange',
+        exchange_history: '📋 History',
+        my_code_hint: 'Send this code to a friend!<br>When they enter it, your Walrus goes to visit them 🦭',
+        gen_share_code: '<span>🌐</span> Generate / Update Share Code',
+        copy_code: '📋 Copy Code',
+        friend_hint: 'Paste your friend’s share code and connect!<br>Both Walruses become happier 💚',
+        friend_placeholder: "Paste your friend's share code (blobId)...",
+        exchange_now: '<span>🤝</span> Connect!',
+        exchange_note: 'Rewards change depending on the exchange play<br>It is also auto-saved to your diary 📔',
+        history_hint: 'Recent Walrus visits and exchanges 🦭',
+        your_walrus: 'Your Walrus',
+        friend_walrus: "Friend's Walrus",
+        visiting_happy: '💗 Happy +15',
+        visiting_exp: '⭐ EXP +10',
+        visiting_done: 'Yay! 🦭',
+        diary_title: "📔 Today's Diary",
+        diary_placeholder: 'Write down today’s memory... 🦭',
+        diary_save: '💾 Save',
+        diary_update: '✏️ Update',
+        diary_view: '📖 Open Diary',
+        diary_book: '📔 Walrus Diary',
+        diary_save_walrus: '🌐 Save to Walrus',
+        diary_load_walrus: '📥 Load from Walrus',
+        exchange_sub_no_code: 'Generate a code and connect!',
+        exchange_sub_ready: 'Connect with friends!',
+        walrus_load_modal_title: '📥 Load from Walrus',
+        walrus_load_hint: 'Enter the BlobId you want to restore.<br>You can also pull in your last saved ID instantly 🦭',
+        walrus_load_saved_label: 'LAST SAVE',
+        walrus_load_saved_empty: 'No Walrus save yet',
+        walrus_load_input_label: 'BlobId to Load',
+        walrus_load_placeholder: 'Paste a BlobId...',
+        walrus_load_preview_empty: 'The BlobId preview appears here',
+        walrus_load_confirm: '<span>📥</span> Restore from this BlobId',
+        walrus_load_use_saved: '🫧 Use the last saved BlobId',
+        diary_sub_write: "Write today's memory",
+        theme_toggle_deep: '🌙 DEEP',
+        theme_toggle_lagoon: '☀ LAGOON',
+        theme_toggle_ukiyo: '🎏 UKIYO',
+        portfolio_discovery_drag: 'Drag to reorder',
+        portfolio_discovery_tap: 'Tap for Walrus commentary',
+        rating_title: 'Walrus Rating',
+        rating_fun: 'Fun',
+        rating_tech: 'Tech',
+        collector_listen: '🗣 Read summary',
+        collector_stop: '⏹ Stop voice',
+        collector_save_blob: '🌐 Save Blob',
+        collector_update_blob: '♻ Update Blob',
+        collector_blob_saving: 'Saving to Walrus...',
+        collector_copy_blob: '📋 Copy Blob link',
+        collector_blob_ready: 'Saved Blob',
+        collector_blob_none: 'This card is not saved to Walrus Blob yet.',
+        collector_speaking: 'Walrus is reading the summary...',
+        collector_saved: 'Collector card saved to Walrus Blob!',
+        collector_copied: 'Blob link copied!',
+        collector_speech_unsupported: 'Speech synthesis is not supported in this browser',
+        collector_blob_missing: 'Save the Blob first',
+        portfolio_save_blob: '🌐 Publish Blob',
+        portfolio_update_blob: '♻ Update Blob',
+        portfolio_copy_blob: '📋 Copy BlobId',
+        portfolio_blob_ready: 'Distribution Blob ready',
+        portfolio_blob_none: 'This card is not published to Walrus yet.',
+        portfolio_blob_saving: 'Publishing...',
+        portfolio_saved: 'Portfolio card is now distributable via Walrus!',
+        portfolio_copied: 'Portfolio BlobId copied!',
+        portfolio_blob_missing: 'Publish this card first',
+        action_feed_title: 'Feed',
+        action_pet_title: 'Pet',
+        action_play_title: 'Play'
+    }
+};
+
+function setNestedValue(target, path, value){
+    const parts = path.split('.');
+    let cursor = target;
+    for(let i=0; i<parts.length-1; i++){
+        cursor[parts[i]] = cursor[parts[i]] || {};
+        cursor = cursor[parts[i]];
+    }
+    cursor[parts[parts.length-1]] = value;
+}
+
+function getNestedValue(target, path){
+    return path.split('.').reduce((cursor, part) => (
+        cursor && Object.prototype.hasOwnProperty.call(cursor, part) ? cursor[part] : undefined
+    ), target);
+}
+
+function i18nPathForKey(key){
+    const direct = {
+        app_title: 'app.title',
+        footer: 'app.footer',
+        reset: 'common.reset',
+        close: 'common.close',
+        share_x: 'common.shareX',
+        copy_link: 'common.copyLink',
+        feed: 'actions.feed',
+        pet: 'actions.pet',
+        play: 'actions.play',
+        bubble_pop: 'actions.bubblePop',
+        my_code: 'exchange.tabs.myCode',
+        friend_exchange: 'exchange.tabs.friend',
+        exchange_history: 'exchange.tabs.history',
+        your_walrus: 'visiting.yourWalrus',
+        friend_walrus: 'visiting.friendWalrus'
+    };
+    if(direct[key]) return direct[key];
+    if(key.startsWith('cache_')) return `system.cache.${key.replace('cache_', '')}`;
+    if(key.startsWith('load_')) return `screens.load.${key.replace('load_', '')}`;
+    if(key.startsWith('hatch_')) return `screens.hatch.${key.replace('hatch_', '')}`;
+    if(key.startsWith('main_')) return `screens.main.${key.replace('main_', '')}`;
+    if(key.startsWith('stat_')) return `stats.${key.replace('stat_', '')}`;
+    if(key.startsWith('walrus_')) return `actions.walrus.${key.replace('walrus_', '')}`;
+    if(/^unlock[234]_/.test(key)) return key.replace(/^unlock([234])_(.+)$/, (_, lv, name) => `unlocks.lv${lv}.${name}`);
+    if(key.startsWith('legend_')) return `legend.${key.replace('legend_', '')}`;
+    if(key.startsWith('social_popup_')) return `socialPopup.${key.replace('social_popup_', '')}`;
+    if(key.startsWith('game_')) return `game.${key.replace('game_', '')}`;
+    if(key.startsWith('exchange_sub_')) return `exchange.sub.${key.replace('exchange_sub_', '')}`;
+    if(key.startsWith('exchange_')) return `exchange.${key.replace('exchange_', '')}`;
+    if(key.startsWith('friend_')) return `exchange.friend.${key.replace('friend_', '')}`;
+    if(key.startsWith('history_')) return `exchange.history.${key.replace('history_', '')}`;
+    if(key.startsWith('visiting_')) return `visiting.${key.replace('visiting_', '')}`;
+    if(key.startsWith('diary_sub_')) return `diary.sub.${key.replace('diary_sub_', '')}`;
+    if(key.startsWith('diary_')) return `diary.${key.replace('diary_', '')}`;
+    if(key.startsWith('theme_toggle_')) return `theme.toggle.${key.replace('theme_toggle_', '')}`;
+    if(key.startsWith('action_')) return `tama.actionTitles.${key.replace(/^action_(.+)_title$/, '$1')}`;
+    return `misc.${key}`;
+}
+
+function buildStructuredI18n(localeTable){
+    const structured = { flat: localeTable };
+    Object.entries(localeTable).forEach(([key, value]) => {
+        setNestedValue(structured, i18nPathForKey(key), value);
+    });
+    return structured;
+}
+
+const I18N = {
+    ja: buildStructuredI18n(I18N_LEGACY.ja),
+    en: buildStructuredI18n(I18N_LEGACY.en)
+};
+let currentLang = 'ja';
+let currentTheme = 'deep';
+let babyModeEnabled = false;
+let socialPopupPending = false;
+let activeCollectorSpeechId = '';
+let portfolioDragState = null;
+let legendAscensionTimers = [];
+
+function readI18n(localeTable, key){
+    if(!localeTable) return undefined;
+    if(key.includes('.')){
+        const nested = getNestedValue(localeTable, key);
+        if(nested !== undefined) return nested;
+    }
+    if(localeTable.flat && Object.prototype.hasOwnProperty.call(localeTable.flat, key)){
+        return localeTable.flat[key];
+    }
+    return getNestedValue(localeTable, i18nPathForKey(key));
+}
+
+function t(key, vars = {}){
+    const table = I18N[currentLang] || I18N.ja;
+    const fallback = readI18n(I18N.ja, key) ?? key;
+    const raw = readI18n(table, key) ?? fallback;
+    return String(raw).replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? '');
+}
+
+function detectLanguage(){
+    try {
+        const saved = localStorage.getItem(LANG_STORAGE_KEY);
+        if(saved === 'ja' || saved === 'en') return saved;
+    } catch(e){}
+    return navigator.language && navigator.language.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+}
+
+function detectTheme(){
+    try {
+        const saved = localStorage.getItem(THEME_STORAGE_KEY);
+        if(saved === 'deep' || saved === 'lagoon' || saved === 'ukiyo') return saved;
+    } catch(e){}
+    return 'deep';
+}
+
+function detectBabyMode(){
+    try { return localStorage.getItem(BABY_MODE_STORAGE_KEY) === '1'; } catch(e){}
+    return false;
+}
+
+function getLvName(lv){
+    if(lv >= 4 && G && G.legendEvolution) return 'Mythic Legend Walrus';
+    return ['','Baby Walrus','Child Walrus','Adult Walrus','Legend Walrus'][lv] || '';
+}
+
+function localeCode(){
+    return currentLang === 'ja' ? 'ja-JP' : 'en-US';
+}
+
+function getPortfolioConfig(){
+    return [
+        { id: 'pet-game', fun: 5, tech: 5 },
+        { id: 'note-lab', fun: 4, tech: 4 },
+        { id: 'nft-collections', fun: 5, tech: 3 }
+    ];
+}
+
+function getCollectorStorage(){
+    try {
+        return JSON.parse(localStorage.getItem(COLLECTOR_BLOB_KEY) || '{}') || {};
+    } catch(e){
+        return {};
+    }
+}
+
+function setCollectorStorage(map){
+    try { localStorage.setItem(COLLECTOR_BLOB_KEY, JSON.stringify(map)); } catch(e){}
+}
+
+function getPortfolioBlobStorage(){
+    try {
+        return JSON.parse(localStorage.getItem(PORTFOLIO_BLOB_KEY) || '{}') || {};
+    } catch(e){
+        return {};
+    }
+}
+
+function setPortfolioBlobStorage(map){
+    try { localStorage.setItem(PORTFOLIO_BLOB_KEY, JSON.stringify(map)); } catch(e){}
+}
+
+function getPortfolioOrder(){
+    try {
+        const saved = JSON.parse(localStorage.getItem(PORTFOLIO_ORDER_KEY) || '[]');
+        return Array.isArray(saved) ? saved : [];
+    } catch(e){
+        return [];
+    }
+}
+
+function setPortfolioOrder(ids){
+    try { localStorage.setItem(PORTFOLIO_ORDER_KEY, JSON.stringify(ids)); } catch(e){}
+}
+
+function renderWalrusStars(value){
+    const clamped = Math.max(0, Math.min(5, Number(value) || 0));
+    return Array.from({ length: 5 }, (_, i) => `<span class="${i < clamped ? 'filled' : ''}">★</span>`).join('');
+}
+
+function setLanguage(lang){
+    currentLang = lang === 'en' ? 'en' : 'ja';
+    try { localStorage.setItem(LANG_STORAGE_KEY, currentLang); } catch(e){}
+    applyLanguage();
+}
+
+function applyTheme(){
+    document.documentElement.dataset.theme = currentTheme;
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    const themeColor = getComputedStyle(document.documentElement).getPropertyValue('--meta-theme').trim() || '#030c1a';
+    if(metaTheme) metaTheme.setAttribute('content', themeColor);
+    const themeSwitch = document.getElementById('themeSwitch');
+    if(themeSwitch){
+        const nextThemeKey = currentTheme === 'deep'
+            ? 'theme_toggle_lagoon'
+            : currentTheme === 'lagoon'
+                ? 'theme_toggle_ukiyo'
+                : 'theme_toggle_deep';
+        themeSwitch.textContent = t(nextThemeKey);
+    }
+}
+
+function setTheme(theme){
+    currentTheme = theme === 'lagoon' || theme === 'ukiyo' ? theme : 'deep';
+    try { localStorage.setItem(THEME_STORAGE_KEY, currentTheme); } catch(e){}
+    applyTheme();
+    refreshBgCssVarCache?.();
+    restartBgCanvasLoop?.();
+}
+
+function toggleLanguage(){
+    setLanguage(currentLang === 'ja' ? 'en' : 'ja');
+}
+
+function toggleTheme(){
+    const nextTheme = currentTheme === 'deep'
+        ? 'lagoon'
+        : currentTheme === 'lagoon'
+            ? 'ukiyo'
+            : 'deep';
+    setTheme(nextTheme);
+}
+
+function applyBabyMode(){
+    const btn = document.getElementById('babyModeSwitch');
+    if(!btn) return;
+    btn.classList.toggle('active', babyModeEnabled);
+    btn.textContent = currentLang === 'ja'
+        ? (babyModeEnabled ? 'BABY ON' : 'BABY OFF')
+        : (babyModeEnabled ? 'BABY ON' : 'BABY OFF');
+    btn.setAttribute('aria-pressed', babyModeEnabled ? 'true' : 'false');
+    btn.title = currentLang === 'ja'
+        ? (babyModeEnabled ? '赤ちゃんモード中：タップで派手に反応' : '赤ちゃんモードOFF：通常の反応')
+        : (babyModeEnabled ? 'Baby mode on: taps trigger big reactions' : 'Baby mode off: normal reactions');
+}
+
+function setBabyMode(enabled){
+    babyModeEnabled = !!enabled;
+    try { localStorage.setItem(BABY_MODE_STORAGE_KEY, babyModeEnabled ? '1' : '0'); } catch(e){}
+    applyBabyMode();
+    if(!babyModeEnabled){
+        const stage = document.getElementById('petStage');
+        if(stage && stage.classList.contains('baby-delight')) updateUI();
+    }
+}
+
+function toggleBabyMode(){
+    setBabyMode(!babyModeEnabled);
+    setMsg(currentLang === 'ja'
+        ? (babyModeEnabled ? '赤ちゃんモード ON！ 画面をタップしてね' : '赤ちゃんモード OFF。通常モードだよ')
+        : (babyModeEnabled ? 'Baby mode ON! Tap the screen' : 'Baby mode OFF. Back to normal'));
+}
+
+function buildVersionedUrl(){
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', APP_VERSION);
+    url.searchParams.set('ts', Date.now().toString());
+    return url.toString();
+}
+
+function registerServiceWorker(){
+    if(!('serviceWorker' in navigator)) return;
+    if(window.location.protocol !== 'http:' && window.location.protocol !== 'https:') return;
+
+    const register = () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+            console.warn('Service worker registration failed:', err);
+        });
+    };
+
+    if('requestIdleCallback' in window){
+        requestIdleCallback(register, { timeout: 2500 });
+    } else {
+        window.addEventListener('load', () => setTimeout(register, 800), { once:true });
+    }
+}
+
+let deferredPwaInstallPrompt = null;
+let pwaInstallSetupDone = false;
+
+function isPwaStandalone(){
+    return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function isIosDevice(){
+    return /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+}
+
+function isLowPowerMobile(){
+    return isIosDevice() || window.innerWidth < 520 || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+}
+
+function hasSeenPwaInstallBanner(){
+    try{ return localStorage.getItem(PWA_INSTALL_BANNER_KEY) === '1'; }catch(e){ return false; }
+}
+
+function markPwaInstallBannerSeen(){
+    try{ localStorage.setItem(PWA_INSTALL_BANNER_KEY, '1'); }catch(e){}
+}
+
+function updatePwaInstallBannerCopy(){
+    const title = document.getElementById('pwaInstallTitle');
+    const text = document.getElementById('pwaInstallText');
+    const btn = document.getElementById('pwaInstallBtn');
+    if(!title || !text || !btn) return;
+    const ios = isIosDevice() && !deferredPwaInstallPrompt;
+    if(currentLang === 'ja'){
+        title.textContent = 'Walrusをホーム画面に追加';
+        text.textContent = ios ? '共有ボタンから「ホーム画面に追加」を選ぶと、すぐ遊びに戻れます。' : 'すぐ戻れるように、アプリとして追加できます。';
+        btn.textContent = ios ? '手順を見る' : '追加';
+    } else {
+        title.textContent = 'Add Walrus to Home Screen';
+        text.textContent = ios ? 'Use Share, then Add to Home Screen to jump back anytime.' : 'Install it as an app so you can jump back anytime.';
+        btn.textContent = ios ? 'Show steps' : 'Install';
+    }
+}
+
+function shouldShowPwaInstallBanner(){
+    return !isPwaStandalone() && !hasSeenPwaInstallBanner();
+}
+
+function showPwaInstallBanner(){
+    if(!shouldShowPwaInstallBanner()) return;
+    const banner = document.getElementById('pwaInstallBanner');
+    if(!banner) return;
+    updatePwaInstallBannerCopy();
+    banner.classList.add('show');
+}
+
+function closePwaInstallBanner(remember = true){
+    const banner = document.getElementById('pwaInstallBanner');
+    if(banner) banner.classList.remove('show');
+    if(remember) markPwaInstallBannerSeen();
+}
+
+async function installPwaFromBanner(){
+    if(deferredPwaInstallPrompt){
+        const promptEvent = deferredPwaInstallPrompt;
+        deferredPwaInstallPrompt = null;
+        promptEvent.prompt();
+        try{ await promptEvent.userChoice; }catch(e){}
+        closePwaInstallBanner(true);
+        return;
+    }
+    const msg = currentLang === 'ja'
+        ? 'iPhone/iPadは共有ボタン →「ホーム画面に追加」から追加できます'
+        : 'On iPhone/iPad, use Share → Add to Home Screen';
+    showToast(msg);
+}
+
+function setupPwaInstallPrompt(){
+    if(pwaInstallSetupDone) return;
+    pwaInstallSetupDone = true;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPwaInstallPrompt = e;
+        setTimeout(showPwaInstallBanner, 900);
+    });
+    window.addEventListener('appinstalled', () => {
+        deferredPwaInstallPrompt = null;
+        closePwaInstallBanner(true);
+    });
+    setTimeout(showPwaInstallBanner, 4200);
+}
+
+async function clearCacheAndReload(){
+    const btn = document.getElementById('cacheResetBtn');
+    if(btn){
+        btn.disabled = true;
+        btn.textContent = t('cache_refreshing');
+    }
+    try {
+        if('serviceWorker' in navigator){
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(reg => reg.unregister()));
+        }
+        if('caches' in window){
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+        }
+    } catch(e){
+        console.warn('Cache clear failed:', e);
+    }
+    window.location.replace(buildVersionedUrl());
+}
+
+function ensureFreshVersion(){
+    try{
+        const savedVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
+        // バージョンが変わったときだけリダイレクト。
+        // 旧: URLの ?v= パラメータも毎回チェックしていたため
+        //     ホーム画面起動のたびに不要なリダイレクトが発生していた。
+        if(savedVersion !== APP_VERSION){
+            localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_VERSION);
+            window.location.replace(buildVersionedUrl());
+            return true;
+        }
+    } catch(e){
+        console.warn('Version sync failed:', e);
+    }
+    return false;
+}
+
+function setButtonHTML(id, html){
+    const el = document.getElementById(id);
+    if(el && !el.disabled) el.innerHTML = html;
+}
+
+function applyLanguage(){
+    document.documentElement.lang = currentLang;
+    document.title = t('app_title');
+    const setText = (node, value) => { if(node) node.textContent = value; };
+    const setHtml = (node, value) => { if(node) node.innerHTML = value; };
+    const langSwitch = document.getElementById('langSwitch');
+    if(langSwitch) langSwitch.textContent = currentLang === 'ja' ? 'EN' : 'JP';
+    const themeSwitch = document.getElementById('themeSwitch');
+    if(themeSwitch){
+        const nextThemeKey = currentTheme === 'deep'
+            ? 'theme_toggle_lagoon'
+            : currentTheme === 'lagoon'
+                ? 'theme_toggle_ukiyo'
+                : 'theme_toggle_deep';
+        themeSwitch.textContent = t(nextThemeKey);
+    }
+    const cacheResetBtn = document.getElementById('cacheResetBtn');
+    if(cacheResetBtn){
+        cacheResetBtn.textContent = t('cache_refresh');
+        cacheResetBtn.disabled = false;
+    }
+
+    const q = (selector) => document.querySelector(selector);
+    if(q('#loadScreen .load-title')) q('#loadScreen .load-title').textContent = t('load_title');
+    if(q('#loadScreen .load-sub')) q('#loadScreen .load-sub').textContent = t('load_sub');
+    if(document.getElementById('hatchMsg')) document.getElementById('hatchMsg').textContent = t('hatch_wait');
+    if(document.getElementById('hatchHint')) document.getElementById('hatchHint').textContent = t('hatch_hint');
+    if(document.getElementById('hatchStep0Label')) document.getElementById('hatchStep0Label').textContent = t('hatch_step_1');
+    if(document.getElementById('hatchStep1Label')) document.getElementById('hatchStep1Label').textContent = t('hatch_step_2');
+    if(document.getElementById('hatchStep2Label')) document.getElementById('hatchStep2Label').textContent = t('hatch_step_3');
+    if(document.getElementById('newbornGuideTitle')) document.getElementById('newbornGuideTitle').textContent = t('newborn_guide_title');
+    if(document.getElementById('newbornGuideCopy')) document.getElementById('newbornGuideCopy').innerHTML = t('newborn_guide_copy');
+    if(q('#mainScreen .main-title')) q('#mainScreen .main-title').textContent = t('main_title');
+    if(q('#mainScreen .main-sub')) q('#mainScreen .main-sub').textContent = t('main_sub');
+    if(document.getElementById('soundLabTitle')) document.getElementById('soundLabTitle').textContent = t('sound_lab_title');
+    if(document.getElementById('soundDietLabel')) document.getElementById('soundDietLabel').textContent = t('sound_memory_title');
+    if(document.getElementById('soundTrackLabel')) document.getElementById('soundTrackLabel').textContent = t('sound_track_title');
+    if(document.getElementById('btnFeedLabel')) document.getElementById('btnFeedLabel').textContent = t('feed');
+    if(document.getElementById('btnPetLabel')) document.getElementById('btnPetLabel').textContent = t('pet');
+    if(document.getElementById('btnPlayLabel')) document.getElementById('btnPlayLabel').textContent = t('play');
+    setButtonHTML('btnMiniGame', `<span class="act-icon">🫧</span>${t('bubble_pop')}`);
+    setButtonHTML('btnSave', `<span class="act-icon">🌐</span>${t('walrus_save')}`);
+    setButtonHTML('btnLoad', `<span class="act-icon">📥</span>${t('walrus_load')}`);
+    if(document.getElementById('btnExchangeOpenLabel')) document.getElementById('btnExchangeOpenLabel').textContent = t('walrus_exchange');
+    if(document.getElementById('btnDiaryLabel')) document.getElementById('btnDiaryLabel').textContent = t('walrus_diary');
+    const statNames = document.querySelectorAll('.stat-name');
+    if(statNames[0]) statNames[0].textContent = t('stat_hunger');
+    if(statNames[1]) statNames[1].textContent = t('stat_happy');
+    if(statNames[2]) statNames[2].textContent = t('stat_exp');
+
+    const sec1 = document.getElementById('sec1');
+    if(sec1){
+        sec1.classList.add('rich-card');
+        const sec1Bodies = sec1.querySelectorAll('.ubody');
+        setText(sec1.querySelector('.utag'), t('unlock2_tag'));
+        setText(sec1.querySelector('.utitle'), t('unlock2_title'));
+        setHtml(sec1Bodies[0], t('unlock2_body1'));
+        setHtml(sec1Bodies[1], t('unlock2_body2'));
+        initPortfolioCards();
+    }
+    const sec2 = document.getElementById('sec2');
+    if(sec2){
+        sec2.classList.add('rich-card');
+        const sec2Bodies = sec2.querySelectorAll('.ubody');
+        setText(sec2.querySelector('.utag'), t('unlock3_tag'));
+        setText(sec2.querySelector('.utitle'), t('unlock3_title'));
+        setHtml(sec2Bodies[0], t('unlock3_body1'));
+        setHtml(sec2Bodies[1], t('unlock3_body2'));
+        initCollectorModeCards();
+    }
+    const sec3 = document.getElementById('sec3');
+    if(sec3){
+        sec3.classList.add('rich-card', 'legend-panel');
+        setText(sec3.querySelector('.utag'), t('unlock4_tag'));
+        setText(sec3.querySelector('.utitle'), t('unlock4_title'));
+        setHtml(sec3.querySelector('.ubody'), t('unlock4_body'));
+        renderLegendLab();
+    }
+
+    if(document.getElementById('resetBtn')) document.getElementById('resetBtn').textContent = t('reset');
+    if(document.getElementById('socialPopupBadge')) document.getElementById('socialPopupBadge').textContent = t('social_popup_badge');
+    if(document.getElementById('socialPopupTitle')) document.getElementById('socialPopupTitle').textContent = t('social_popup_title');
+    if(document.getElementById('socialPopupCopy')) document.getElementById('socialPopupCopy').innerHTML = t('social_popup_copy');
+    if(document.getElementById('socialPopupX')) document.getElementById('socialPopupX').textContent = t('social_popup_x');
+    if(document.getElementById('socialPopupNote')) document.getElementById('socialPopupNote').textContent = t('social_popup_note');
+    if(document.getElementById('socialPopupClose')) document.getElementById('socialPopupClose').textContent = t('social_popup_close');
+    if(document.getElementById('legendAscensionKicker')) document.getElementById('legendAscensionKicker').textContent = t('legend_ascension_kicker');
+    if(document.getElementById('legendAscensionTitle')) document.getElementById('legendAscensionTitle').innerHTML = t('legend_ascension_title').replace(' A LEGEND', '<br>A LEGEND');
+    if(document.getElementById('legendAscensionCopy')) document.getElementById('legendAscensionCopy').innerHTML = t('legend_ascension_copy');
+    if(document.getElementById('legendAscensionFooter')) document.getElementById('legendAscensionFooter').textContent = t('legend_ascension_footer');
+    if(document.getElementById('legendAscensionChip1')) document.getElementById('legendAscensionChip1').textContent = t('legend_ascension_chip_1');
+    if(document.getElementById('legendAscensionChip2')) document.getElementById('legendAscensionChip2').textContent = t('legend_ascension_chip_2');
+    if(document.getElementById('legendAscensionPrimary')) document.getElementById('legendAscensionPrimary').textContent = t('legend_ascension_cta_primary');
+    if(document.getElementById('legendAscensionSecondary')) document.getElementById('legendAscensionSecondary').textContent = t('legend_ascension_cta_secondary');
+    if(document.getElementById('mainFooter')) document.getElementById('mainFooter').textContent = t('footer');
+    if(document.getElementById('miniGameHeader')) document.getElementById('miniGameHeader').textContent = '🫧 Bubble Pop 🫧';
+    const miniScoreLabel = document.querySelector('#miniGameScreen .game-ui div:first-child');
+    const miniRemainLabel = document.querySelector('#miniGameScreen .game-ui div:last-child');
+    if(miniScoreLabel?.childNodes?.[0]) miniScoreLabel.childNodes[0].textContent = `${t('game_score')} `;
+    if(miniRemainLabel?.childNodes?.[0]) miniRemainLabel.childNodes[0].textContent = `${t('game_remain')} `;
+    if(document.getElementById('miniGameEndBtn')) document.getElementById('miniGameEndBtn').textContent = t('game_end');
+    setText(document.querySelector('#miniResult .mini-result-inner div'), t('game_clear'));
+    if(document.getElementById('miniResultCloseBtn')) document.getElementById('miniResultCloseBtn').textContent = t('back_to_main');
+
+    if(document.getElementById('legendCertTitle')) document.getElementById('legendCertTitle').textContent = t('legend_cert_title');
+    if(document.getElementById('legendShareBtn')) document.getElementById('legendShareBtn').textContent = t('share_x');
+    if(document.getElementById('legendCopyBtn')) document.getElementById('legendCopyBtn').textContent = t('copy_link');
+    if(document.getElementById('legendCloseBtn')) document.getElementById('legendCloseBtn').textContent = t('close');
+
+    if(document.getElementById('diaryModalTitle')) document.getElementById('diaryModalTitle').textContent = t('diary_title');
+    if(document.getElementById('diaryInput')) document.getElementById('diaryInput').placeholder = t('diary_placeholder');
+    const diaryBtns = document.querySelectorAll('#diaryModal .diary-btn-row button');
+    if(diaryBtns[0]) diaryBtns[0].textContent = t('diary_save');
+    if(diaryBtns[1]) diaryBtns[1].textContent = t('diary_view');
+    if(document.getElementById('diaryViewTitle')) document.getElementById('diaryViewTitle').textContent = t('diary_book');
+    if(document.getElementById('btnDiarySave') && !document.getElementById('btnDiarySave').disabled) document.getElementById('btnDiarySave').textContent = t('diary_save_walrus');
+    if(document.getElementById('btnDiaryLoad') && !document.getElementById('btnDiaryLoad').disabled) document.getElementById('btnDiaryLoad').textContent = t('diary_load_walrus');
+
+    if(document.getElementById('exchangeModalTitle')) document.getElementById('exchangeModalTitle').textContent = t('exchange_modal_title');
+    if(document.getElementById('tabMyCode')) document.getElementById('tabMyCode').textContent = t('my_code');
+    if(document.getElementById('tabFriend')) document.getElementById('tabFriend').textContent = t('friend_exchange');
+    if(document.getElementById('tabHistory')) document.getElementById('tabHistory').textContent = t('exchange_history');
+    const panels = document.querySelectorAll('#exchangeModal .exchange-panel');
+    if(panels[0]){
+        setHtml(panels[0].querySelector('.exchange-hint'), t('my_code_hint'));
+        if(document.getElementById('btnGenCode') && !document.getElementById('btnGenCode').disabled) document.getElementById('btnGenCode').innerHTML = t('gen_share_code');
+        const subBtn = panels[0].querySelector('.exchange-sub-btn');
+        if(subBtn) subBtn.textContent = t('copy_code');
+    }
+    if(panels[1]){
+        setHtml(panels[1].querySelector('.exchange-hint'), t('friend_hint'));
+        if(document.getElementById('friendCodeInput')) document.getElementById('friendCodeInput').placeholder = t('friend_placeholder');
+        if(document.getElementById('btnExchange') && !document.getElementById('btnExchange').disabled) document.getElementById('btnExchange').innerHTML = t('exchange_now');
+        const note = panels[1].querySelector('div[style*="font-size:0.7rem"]');
+        if(note) note.innerHTML = t('exchange_note');
+    }
+    if(panels[2]){
+        setHtml(panels[2].querySelector('.exchange-hint'), t('history_hint'));
+    }
+    updateExchangePlayUI();
+
+    if(document.getElementById('walrusLoadModalTitle')) document.getElementById('walrusLoadModalTitle').textContent = t('walrus_load_modal_title');
+    if(document.getElementById('blobPreviewTitle')) document.getElementById('blobPreviewTitle').textContent = currentLang === 'ja' ? '🌊 Blobプレビュー' : '🌊 Blob Preview';
+    if(document.getElementById('walrusLoadHint')) document.getElementById('walrusLoadHint').innerHTML = t('walrus_load_hint');
+    if(document.getElementById('walrusLoadSavedLabel')) document.getElementById('walrusLoadSavedLabel').textContent = t('walrus_load_saved_label');
+    if(document.getElementById('walrusLoadInputLabel')) document.getElementById('walrusLoadInputLabel').textContent = t('walrus_load_input_label');
+    if(document.getElementById('walrusLoadBlobInput')) document.getElementById('walrusLoadBlobInput').placeholder = t('walrus_load_placeholder');
+    if(document.getElementById('btnWalrusLoadConfirm') && !document.getElementById('btnWalrusLoadConfirm').disabled) document.getElementById('btnWalrusLoadConfirm').innerHTML = t('walrus_load_confirm');
+    if(document.getElementById('btnWalrusLoadUseSaved')) document.getElementById('btnWalrusLoadUseSaved').textContent = t('walrus_load_use_saved');
+    syncWalrusLoadPreview();
+
+    const visitingLabels = document.querySelectorAll('.visiting-walrus-label');
+    if(visitingLabels[0]) visitingLabels[0].textContent = t('your_walrus');
+    if(!document.getElementById('visitFriendLabel')?.dataset.dynamic && visitingLabels[1]) visitingLabels[1].textContent = t('friend_walrus');
+    const rewardChips = document.querySelectorAll('.visiting-reward-chip');
+    if(rewardChips[0]) rewardChips[0].textContent = t('visiting_happy');
+    if(rewardChips[1]) rewardChips[1].textContent = t('visiting_exp');
+    if(document.getElementById('visitingCloseBtn')) document.getElementById('visitingCloseBtn').textContent = t('visiting_done');
+
+    const feedBtn = document.querySelector('.tama-btn-a');
+    const petBtn = document.querySelector('.tama-btn-b');
+    const playBtn = document.querySelector('.tama-btn-c');
+    if(feedBtn) feedBtn.title = t('action_feed_title');
+    if(petBtn) petBtn.title = t('action_pet_title');
+    if(playBtn) playBtn.title = t('action_play_title');
+
+    updatePwaInstallBannerCopy();
+    initAboutWalrusNarrator();
+    applyBabyMode();
+    applyWalkLanguage();
+    updateUI();
+}
+
+function initAboutWalrusNarrator(){
+    const avatar = document.getElementById('aboutWalrusAvatar');
+    renderWalrusMarkup(avatar, G?.lv || 1, 'happy', 'happy', true);
+}
+
+function initPortfolioCards(){
+    const container = document.querySelector('#sec1 .walrus-projects');
+    if(!container) return;
+    const cards = Array.from(container.querySelectorAll('.walrus-project-card'));
+    if(!cards.length) return;
+    const config = getPortfolioConfig();
+    cards.forEach((card, index) => {
+        const item = config[index] || config[0];
+        card.dataset.projectId = item.id;
+        if(!card.querySelector('.walrus-project-head')){
+            const icon = card.querySelector('.walrus-project-icon');
+            if(icon){
+                const head = document.createElement('div');
+                head.className = 'walrus-project-head';
+                icon.parentNode.insertBefore(head, icon);
+                head.appendChild(icon);
+                const handle = document.createElement('span');
+                handle.className = 'walrus-drag-handle';
+                handle.textContent = '⋮⋮';
+                handle.setAttribute('aria-label', t('portfolio_discovery_drag'));
+                handle.setAttribute('title', t('portfolio_discovery_drag'));
+                head.appendChild(handle);
+            }
+        }
+        const handle = card.querySelector('.walrus-drag-handle');
+        if(handle){
+            handle.onpointerdown = startPortfolioDrag;
+            handle.setAttribute('title', t('portfolio_discovery_drag'));
+            handle.setAttribute('aria-label', t('portfolio_discovery_drag'));
+        }
+        const ratingWrap = card.querySelector('.walrus-rating-wrap') || document.createElement('div');
+        ratingWrap.className = 'walrus-rating-wrap';
+        ratingWrap.innerHTML = `
+            <div class="walrus-rating-title">${t('rating_title')}</div>
+            <div class="walrus-rating-row"><span class="walrus-rating-label">${t('rating_fun')}</span><span class="walrus-rating-stars">${renderWalrusStars(item.fun)}</span></div>
+            <div class="walrus-rating-row"><span class="walrus-rating-label">${t('rating_tech')}</span><span class="walrus-rating-stars">${renderWalrusStars(item.tech)}</span></div>`;
+        if(!ratingWrap.parentNode) card.appendChild(ratingWrap);
+        card.querySelector('.portfolio-blob-controls')?.remove();
+    });
+    let discovery = container.previousElementSibling;
+    if(!discovery || !discovery.classList.contains('walrus-project-discovery')){
+        discovery = document.createElement('div');
+        discovery.className = 'walrus-project-discovery';
+        container.parentNode.insertBefore(discovery, container);
+    }
+    discovery.innerHTML = `
+        <span class="walrus-discovery-pill">↕ ${t('portfolio_discovery_drag')}</span>
+        <span class="walrus-discovery-pill">🦭 ${t('portfolio_discovery_tap')}</span>`;
+    applyPortfolioOrder(container);
+}
+
+function applyPortfolioOrder(container = document.querySelector('#sec1 .walrus-projects')){
+    if(!container) return;
+    const order = getPortfolioOrder();
+    if(!order.length) return;
+    const cards = Array.from(container.querySelectorAll('.walrus-project-card'));
+    const byId = new Map(cards.map(card => [card.dataset.projectId, card]));
+    order.forEach(id => {
+        const card = byId.get(id);
+        if(card) container.appendChild(card);
+    });
+}
+
+function startPortfolioDrag(event){
+    const handle = event.currentTarget;
+    const card = handle?.closest('.walrus-project-card');
+    const container = card?.parentElement;
+    if(!card || !container) return;
+    event.preventDefault();
+    portfolioDragState = { card, container, pointerId: event.pointerId };
+    card.classList.add('dragging');
+    handle.setPointerCapture?.(event.pointerId);
+    window.addEventListener('pointermove', onPortfolioDragMove);
+    window.addEventListener('pointerup', endPortfolioDrag);
+    window.addEventListener('pointercancel', endPortfolioDrag);
+}
+
+function onPortfolioDragMove(event){
+    if(!portfolioDragState) return;
+    event.preventDefault();
+    const { card, container } = portfolioDragState;
+    const cards = Array.from(container.querySelectorAll('.walrus-project-card:not(.dragging)'));
+    let targetCard = null;
+    for(const item of cards){
+        const rect = item.getBoundingClientRect();
+        if(event.clientY >= rect.top && event.clientY <= rect.bottom && event.clientX >= rect.left && event.clientX <= rect.right){
+            targetCard = item;
+            break;
+        }
+    }
+    container.querySelectorAll('.walrus-project-card').forEach(item => item.classList.remove('drag-target'));
+    if(!targetCard) return;
+    targetCard.classList.add('drag-target');
+    const rect = targetCard.getBoundingClientRect();
+    if(event.clientY < rect.top + rect.height / 2){
+        container.insertBefore(card, targetCard);
+    } else {
+        container.insertBefore(card, targetCard.nextSibling);
+    }
+}
+
+function endPortfolioDrag(){
+    if(!portfolioDragState) return;
+    const { card, container } = portfolioDragState;
+    card.classList.remove('dragging');
+    container.querySelectorAll('.walrus-project-card').forEach(item => item.classList.remove('drag-target'));
+    setPortfolioOrder(Array.from(container.querySelectorAll('.walrus-project-card')).map(item => item.dataset.projectId));
+    portfolioDragState = null;
+    window.removeEventListener('pointermove', onPortfolioDragMove);
+    window.removeEventListener('pointerup', endPortfolioDrag);
+    window.removeEventListener('pointercancel', endPortfolioDrag);
+}
+
+function initCollectorModeCards(){
+    const body = document.querySelectorAll('#sec2 .ubody')[0];
+    if(!body) return;
+    const cards = Array.from(body.querySelectorAll('.showcase-card'));
+    const blobMap = getCollectorStorage();
+    cards.forEach((card, index) => {
+        const id = index === 0 ? 'note-pick' : 'dev-log';
+        const title = card.querySelector('.thumb-title')?.textContent?.replace(/\s+/g, ' ').trim() || `collector-${index + 1}`;
+        const summary = card.querySelector('.showcase-copy')?.textContent?.trim() || '';
+        const noteLink = card.querySelector('.showcase-link')?.href || 'https://note.com/tajumaru';
+        card.dataset.collectorId = id;
+        card.dataset.collectorTitle = title;
+        card.dataset.collectorSummary = summary;
+        card.dataset.collectorLink = noteLink;
+        const savedBlobId = blobMap[id];
+        const controls = card.querySelector('.collector-controls') || document.createElement('div');
+        controls.className = 'collector-controls';
+        controls.innerHTML = `
+            <div class="collector-actions">
+                <button class="collector-btn primary" type="button" onclick="toggleCollectorSpeech('${id}')">${activeCollectorSpeechId === id ? t('collector_stop') : t('collector_listen')}</button>
+                <button class="collector-btn" id="collectorSaveBtn-${id}" type="button" onclick="saveCollectorBlob('${id}')">${savedBlobId ? t('collector_update_blob') : t('collector_save_blob')}</button>
+                <button class="collector-btn alt" type="button" onclick="copyCollectorBlobLink('${id}')">${t('collector_copy_blob')}</button>
+            </div>
+            <div class="collector-status">${savedBlobId
+                ? `${t('collector_blob_ready')}：<a href="${AGGREGATOR}/v1/blobs/${savedBlobId}" target="_blank" rel="noopener noreferrer">${savedBlobId.slice(0, 24)}…</a>`
+                : t('collector_blob_none')}</div>`;
+        if(!controls.parentNode) card.querySelector('.showcase-body')?.appendChild(controls);
+        card.classList.toggle('is-speaking', activeCollectorSpeechId === id);
+    });
+}
+
+function stopCollectorSpeech(){
+    activeCollectorSpeechId = '';
+    if('speechSynthesis' in window) window.speechSynthesis.cancel();
+    initCollectorModeCards();
+}
+
+function toggleCollectorSpeech(id){
+    const card = document.querySelector(`[data-collector-id="${id}"]`);
+    if(!card) return;
+    if(!('speechSynthesis' in window)){
+        showToast(t('collector_speech_unsupported'), true);
+        return;
+    }
+    if(activeCollectorSpeechId === id){
+        stopCollectorSpeech();
+        return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(card.dataset.collectorSummary || '');
+    utterance.lang = localeCode();
+    utterance.rate = currentLang === 'ja' ? 1 : 0.98;
+    utterance.pitch = 1.03;
+    utterance.onend = () => {
+        if(activeCollectorSpeechId === id){
+            activeCollectorSpeechId = '';
+            initCollectorModeCards();
+        }
+    };
+    utterance.onerror = () => {
+        activeCollectorSpeechId = '';
+        initCollectorModeCards();
+    };
+    activeCollectorSpeechId = id;
+    card.classList.add('is-speaking');
+    setMsg(t('collector_speaking'));
+    window.speechSynthesis.speak(utterance);
+    initCollectorModeCards();
+}
+
+async function savePortfolioBlob(id){
+    const card = document.querySelector(`.walrus-project-card[data-project-id="${id}"]`);
+    if(!card) return;
+    pulseActionButtons(`#portfolioSaveBtn-${id}`);
+    animPet('bounce');
+    setMsg(currentLang === 'ja' ? '🌐 ポートフォリオカードをWalrus配布用Blobにしています…' : '🌐 Publishing this portfolio card as a Walrus Blob...');
+    setBtnLoading(`portfolioSaveBtn-${id}`, true, t('portfolio_blob_saving'));
+    const portfolioItem = getPortfolioConfig().find(item => item.id === id) || {};
+    const payload = {
+        type: 'portfolio-card',
+        version: 1,
+        id,
+        title: card.querySelector('.walrus-project-title')?.textContent?.trim() || '',
+        meta: card.querySelector('.walrus-project-meta')?.textContent?.trim() || '',
+        summary: card.dataset.speech || '',
+        fun: portfolioItem.fun || null,
+        tech: portfolioItem.tech || null,
+        owner: 'tajumaru.sui',
+        lang: currentLang,
+        savedAt: new Date().toISOString()
+    };
+    const blobId = await uploadToWalrus(JSON.stringify(payload, null, 2), `${id}-portfolio-card.json`);
+    if(!blobId){
+        setBtnLoading(`portfolioSaveBtn-${id}`, false, '');
+        initPortfolioCards();
+        showToast(currentLang === 'ja' ? '⚠ Blob化に失敗しました' : '⚠ Publishing failed', true);
+        return;
+    }
+    const map = getPortfolioBlobStorage();
+    map[id] = blobId;
+    setPortfolioBlobStorage(map);
+    showToast(`✅ ${t('portfolio_saved')}`);
+    setMsg(currentLang === 'ja' ? '🌐 このカードはWalrus Blobで配布OK！' : '🌐 This card is ready to distribute as a Walrus Blob!');
+    setBtnLoading(`portfolioSaveBtn-${id}`, false, '');
+    initPortfolioCards();
+}
+
+async function copyPortfolioBlobId(id){
+    const blobId = getPortfolioBlobStorage()[id];
+    if(!blobId){
+        showToast(t('portfolio_blob_missing'), true);
+        return;
+    }
+    const ok = await copyText(blobId);
+    showToast(ok ? `✅ ${t('portfolio_copied')}` : (currentLang === 'ja' ? 'コピーに失敗しました' : 'Copy failed'), !ok);
+}
+
+async function saveCollectorBlob(id){
+    const card = document.querySelector(`[data-collector-id="${id}"]`);
+    if(!card) return;
+    pulseActionButtons(`#collectorSaveBtn-${id}`);
+    animPet('bounce');
+    setMsg(currentLang === 'ja' ? '🌐 CollectorカードをWalrusに保存中…' : '🌐 Saving collector card to Walrus...');
+    setBtnLoading(`collectorSaveBtn-${id}`, true, t('collector_blob_saving'));
+    const payload = {
+        type: 'collector-note',
+        id,
+        title: card.dataset.collectorTitle || '',
+        summary: card.dataset.collectorSummary || '',
+        noteUrl: card.dataset.collectorLink || '',
+        lang: currentLang,
+        savedAt: new Date().toISOString()
+    };
+    const blobId = await uploadToWalrus(JSON.stringify(payload, null, 2), `${id}.json`);
+    if(!blobId){
+        setBtnLoading(`collectorSaveBtn-${id}`, false, '');
+        initCollectorModeCards();
+        return;
+    }
+    const map = getCollectorStorage();
+    map[id] = blobId;
+    setCollectorStorage(map);
+    showToast(`✅ ${t('collector_saved')}`);
+    setMsg(currentLang === 'ja' ? '🌐 CollectorカードをWalrusに永久保存したよ！' : '🌐 Collector card saved permanently on Walrus!');
+    setBtnLoading(`collectorSaveBtn-${id}`, false, '');
+    initCollectorModeCards();
+}
+
+function copyCollectorBlobLink(id){
+    const blobId = getCollectorStorage()[id];
+    if(!blobId){
+        showToast(t('collector_blob_missing'), true);
+        return;
+    }
+    navigator.clipboard.writeText(`${AGGREGATOR}/v1/blobs/${blobId}`)
+        .then(() => showToast(`✅ ${t('collector_copied')}`))
+        .catch(() => showToast(t('collector_copied')));
+}
+
+function showAboutProject(card){
+    const speech = document.getElementById('aboutWalrusSpeech');
+    const cards = document.querySelectorAll('.walrus-project-card');
+    if(!speech || !cards.length) return;
+    cards.forEach(item => item.classList.toggle('active', item === card));
+    speech.classList.add('is-speaking');
+    speech.innerHTML = `<span class="walrus-speech-kicker">WALRUS COMMENTARY</span>${card.dataset.speech || ''}`;
+    window.setTimeout(() => speech.classList.remove('is-speaking'), 280);
+}
+
+// ===== LEGEND GROWTH =====
+const LEGEND_COLORS = {
+    gold:     { body:'#B89035', belly:'#D4B055', dot:'#C49840' },
+    aurora:   { body:'#36A9B6', belly:'#8BE7D2', dot:'#63f2de' },
+    coral:    { body:'#C96F8D', belly:'#FFB0A6', dot:'#ff8f6b' },
+    midnight: { body:'#5355A8', belly:'#8BA7FF', dot:'#7fd4ff' }
+};
+const LEGEND_ACCESSORIES = ['none', 'pearl', 'scarf', 'halo', 'sunglasses'];
+
+function ensureLegendState(){
+    if(!G.custom || typeof G.custom !== 'object') G.custom = {};
+    if(!LEGEND_COLORS[G.custom.color]) G.custom.color = 'gold';
+    if(!LEGEND_ACCESSORIES.includes(G.custom.accessory)) G.custom.accessory = 'none';
+    if(!G.legendPath) G.legendPath = '';
+    G.legendEvolution = !!G.legendEvolution;
+}
+
+function getLegendStatusText(){
+    ensureLegendState();
+    if(G.legendEvolution) return t('legend_lab_evolved');
+    if(G.legendPath === 'custom') return t('legend_lab_custom');
+    return t('legend_lab_idle');
+}
+
+function renderLegendPreview(){
+    const previewColors = ['gold', 'aurora', 'coral'].map(key => {
+        const opt = LEGEND_COLORS[key];
+        return `<span class="legend-preview-swatch" style="background:${opt.dot}" title="${t('legend_color_' + key)}"></span>`;
+    }).join('');
+    return `
+        <div class="legend-preview">
+            <div class="legend-preview-kicker">${t('legend_preview_kicker')}</div>
+            <div class="legend-preview-copy">${t('legend_preview_copy')}</div>
+            <div class="legend-preview-rail">
+                <div class="legend-preview-card mythic">
+                    <div class="legend-preview-glow mythic"></div>
+                    <div class="legend-preview-card-title">${t('legend_preview_mythic')}</div>
+                    <div class="legend-preview-card-note">${t('legend_preview_mythic_hint')}</div>
+                </div>
+                <div class="legend-preview-card custom">
+                    <div class="legend-preview-swatches">${previewColors}</div>
+                    <div class="legend-preview-card-title">${t('legend_customize')}</div>
+                    <div class="legend-preview-card-note">${t('legend_preview_custom_hint')}</div>
+                </div>
+                <div class="legend-preview-card halo">
+                    <div class="legend-preview-halo" aria-hidden="true"></div>
+                    <div class="legend-preview-card-title">${t('legend_preview_accessory')}</div>
+                    <div class="legend-preview-card-note">${t('legend_preview_accessory_hint')}</div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderLegendLab(){
+    const lab = document.getElementById('legendLab');
+    if(!lab || G.lv < 4) return;
+    ensureLegendState();
+    const colorBtns = Object.keys(LEGEND_COLORS).map(key => {
+        const opt = LEGEND_COLORS[key];
+        return `<button class="swatch-btn ${G.custom.color === key ? 'active':''}" onclick="selectLegendColor('${key}')" type="button"><span class="swatch-dot" style="background:${opt.dot}"></span>${t('legend_color_' + key)}</button>`;
+    }).join('');
+    const accessoryBtns = LEGEND_ACCESSORIES.map(key => (
+        `<button class="accessory-btn ${G.custom.accessory === key ? 'active':''}" onclick="selectLegendAccessory('${key}')" type="button">${t('legend_acc_' + key)}</button>`
+    )).join('');
+    lab.innerHTML = `
+        <div class="legend-lab-head">
+            <div class="legend-lab-title">${t('legend_lab_title')}</div>
+            <div class="legend-lab-status">${getLegendStatusText()}</div>
+        </div>
+        ${renderLegendPreview()}
+        <div class="legend-choice-row">
+            <button class="legend-choice-btn ${G.legendEvolution ? 'active':''}" onclick="chooseLegendPath('evolution')" type="button">${G.legendEvolution ? t('legend_devolve') : t('legend_evolve')}<span>${G.legendEvolution ? t('legend_devolve_hint') : t('legend_evolve_hint')}</span></button>
+            <button class="legend-choice-btn ${G.legendPath === 'custom' ? 'active':''}" onclick="chooseLegendPath('custom')" type="button">${t('legend_customize')}<span>${t('legend_customize_hint')}</span></button>
+        </div>
+        <div class="customize-panel ${G.legendPath === 'custom' ? '' : 'hidden'}" id="customizePanel">
+            <div>
+                <div class="customize-label">${t('legend_color')}</div>
+                <div class="swatch-row">${colorBtns}</div>
+            </div>
+            <div>
+                <div class="customize-label">${t('legend_accessory')}</div>
+                <div class="accessory-row">${accessoryBtns}</div>
+            </div>
+            <div class="legend-lab-note">${t('legend_lab_note')}</div>
+        </div>`;
+}
+
+function chooseLegendPath(path){
+    if(G.lv < 4) return;
+    ensureLegendState();
+    if(path === 'evolution'){
+        if(G.legendEvolution){
+            G.legendEvolution = false;
+            G.legendPath = G.custom?.accessory !== 'none' || G.custom?.color !== 'gold' ? 'custom' : '';
+            setMsg(t('legend_devolved_msg'));
+            animPet('bounce');
+            saveG();
+            updateUI();
+            return;
+        }
+        G.legendPath = 'evolution';
+        G.legendEvolution = true;
+        if(G.custom.color === 'gold') G.custom.color = 'aurora';
+        setMsg(t('legend_evolved_msg'));
+        animPet('legend-reveal');
+        const c = getStageCenter();
+        spawnParticles(['✦','💎','✨','🫧','✦'], c.x, c.y);
+    } else {
+        G.legendPath = 'custom';
+        setMsg(t('legend_custom_msg'));
+    }
+    saveG();
+    updateUI();
+}
+
+function selectLegendColor(color){
+    if(G.lv < 4 || !LEGEND_COLORS[color]) return;
+    ensureLegendState();
+    G.legendPath = 'custom';
+    G.legendEvolution = false;
+    G.custom.color = color;
+    saveG();
+    updateUI();
+    setMsg(`${t('legend_color_msg')} · ${t('legend_color_' + color)}`);
+}
+
+function selectLegendAccessory(accessory){
+    if(G.lv < 4 || !LEGEND_ACCESSORIES.includes(accessory)) return;
+    ensureLegendState();
+    G.legendPath = 'custom';
+    G.legendEvolution = false;
+    G.custom.accessory = accessory;
+    saveG();
+    updateUI();
+    setMsg(`${t('legend_accessory_msg')} · ${t('legend_acc_' + accessory)}`);
+}
+
+// ===== WALRUS SVG =====
+const BODY  = ['','#5A8AA8','#7A78B8','#3A8FA8','#B89035'];
+const BELLY = ['','#7AAAC8','#9898C8','#55AFCA','#D4B055'];
+
+function getLegendLook(lv){
+    if(lv < 4) return null;
+    ensureLegendState();
+    const colors = LEGEND_COLORS[G.custom.color] || LEGEND_COLORS.gold;
+    return {
+        body: colors.body,
+        belly: colors.belly,
+        accent: G.legendEvolution ? '#8BE7D2' : '#C49840',
+        accessory: G.custom.accessory,
+        evolved: G.legendEvolution
+    };
+}
+
+function getSakuraLook(){
+    if(!G?.sakuraPink) return null;
+    return {
+        body: '#F08AAE',
+        belly: '#FFD1DE',
+        accent: '#FFB7D1'
+    };
+}
+
+function getLegendAccessorySvg(look){
+    if(!look) return { back: '', front: '' };
+    const pearl = `<g opacity="0.98"><circle cx="63" cy="128" r="5" fill="#f6f3df" stroke="#d4cba8" stroke-width="1"/><circle cx="137" cy="128" r="5" fill="#f6f3df" stroke="#d4cba8" stroke-width="1"/><circle cx="100" cy="137" r="6" fill="#fff7d8" stroke="#d4cba8" stroke-width="1"/></g>`;
+    const scarf = `<g><path d="M66 121 Q100 139 134 121 L132 134 Q100 150 68 134 Z" fill="#ff7aaa" opacity="0.92"/><path d="M116 133 L137 160 L123 163 L107 139 Z" fill="#e4527e" opacity="0.95"/><path d="M67 121 Q100 132 133 121" fill="none" stroke="rgba(255,255,255,0.34)" stroke-width="1.6" stroke-linecap="round"/></g>`;
+    const halo = `<ellipse cx="100" cy="36" rx="31" ry="8" fill="none" stroke="${look.accent}" stroke-width="3" opacity="0.8"><animate attributeName="opacity" values="0.45;0.95;0.45" dur="2.4s" repeatCount="indefinite"/></ellipse>`;
+    const sunglasses = `<g opacity="0.98"><path d="M68 72 Q82 66 96 72 L96 84 Q82 90 68 84 Z" fill="#0a0d12" stroke="#2e3642" stroke-width="2"/><path d="M104 72 Q118 66 132 72 L132 84 Q118 90 104 84 Z" fill="#0a0d12" stroke="#2e3642" stroke-width="2"/><path d="M96 76 L104 76" stroke="#1f2732" stroke-width="2.4" stroke-linecap="round"/><path d="M62 75 L68 77" stroke="#2e3642" stroke-width="2.2" stroke-linecap="round"/><path d="M132 77 L138 75" stroke="#2e3642" stroke-width="2.2" stroke-linecap="round"/><path d="M71 74 Q82 70 93 74" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="1.4" stroke-linecap="round"/><path d="M107 74 Q118 70 129 74" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="1.4" stroke-linecap="round"/></g>`;
+    if(look.accessory === 'halo') return { back: halo, front: '' };
+    if(look.accessory === 'pearl') return { back: '', front: pearl };
+    if(look.accessory === 'scarf') return { back: '', front: scarf };
+    if(look.accessory === 'sunglasses') return { back: '', front: sunglasses };
+    return { back: '', front: '' };
+}
+
+function hexToRgb(hex){
+    const normalized = (hex || '').replace('#', '');
+    if(normalized.length !== 6) return { r: 90, g: 138, b: 168 };
+    return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16)
+    };
+}
+
+function rgbToHex({ r, g, b }){
+    return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+
+function shadeHexColor(hex, amount = 0){
+    const { r, g, b } = hexToRgb(hex);
+    return rgbToHex({ r: r + amount, g: g + amount, b: b + amount });
+}
+
+function mixHexColors(a, b, weight = 0.5){
+    const c1 = hexToRgb(a);
+    const c2 = hexToRgb(b);
+    return rgbToHex({
+        r: c1.r + (c2.r - c1.r) * weight,
+        g: c1.g + (c2.g - c1.g) * weight,
+        b: c1.b + (c2.b - c1.b) * weight
+    });
+}
+
+function getPixelWalrusPalette(lv){
+    const look = getLegendLook(lv);
+    const sakuraLook = getSakuraLook();
+    const body = sakuraLook?.body || look?.body || BODY[lv] || BODY[1];
+    const belly = sakuraLook?.belly || look?.belly || BELLY[lv] || BELLY[1];
+    const accent = sakuraLook?.accent || look?.accent || (lv >= 4 ? '#C49840' : '#7EC8FF');
+    return {
+        body,
+        belly,
+        accent,
+        head: mixHexColors(body, belly, 0.38),
+        outline: shadeHexColor(body, -52),
+        shadow: shadeHexColor(body, -22),
+        flipper: shadeHexColor(body, -10),
+        nose: shadeHexColor(body, -92),
+        tusk: '#fff8df',
+        tuskEdge: '#d8cfae',
+        blush: lv >= 4 ? 'rgba(255, 208, 128, 0.24)' : 'rgba(255, 122, 170, 0.32)'
+    };
+}
+
+function getPixelWalrusAccessoryMarkup(look, crown){
+    const back = [];
+    const front = [];
+    if(look?.evolved) back.push('<div class="pw-aura"></div>');
+    if(look?.accessory === 'halo') back.push('<div class="pw-halo"></div>');
+    if(crown){
+        front.push(
+            '<div class="pw-crown-base"></div>' +
+            '<div class="pw-crown-spike pw-crown-spike-a"></div>' +
+            '<div class="pw-crown-spike pw-crown-spike-b"></div>' +
+            '<div class="pw-crown-spike pw-crown-spike-c"></div>' +
+            '<div class="pw-crown-gem pw-crown-gem-a"></div>' +
+            '<div class="pw-crown-gem pw-crown-gem-b"></div>' +
+            '<div class="pw-crown-gem pw-crown-gem-c"></div>'
+        );
+    }
+    if(look?.accessory === 'pearl') front.push('<div class="pw-pearl pw-pearl-a"></div><div class="pw-pearl pw-pearl-b"></div><div class="pw-pearl pw-pearl-c"></div>');
+    if(look?.accessory === 'scarf') front.push('<div class="pw-scarf"></div><div class="pw-scarf-tail"></div>');
+    if(look?.accessory === 'sunglasses') front.push('<div class="pw-sunglasses pw-sunglasses-l"></div><div class="pw-sunglasses pw-sunglasses-r"></div><div class="pw-sunglasses-bridge"></div>');
+    return { back: back.join(''), front: front.join('') };
+}
+
+function getExpressionState(mood = getMood()){
+    if(mood === 'sleepy') return 'sleepy';
+    if(G.hunger >= 88 && G.happy >= 82) return 'ecstatic';
+    if(G.hunger >= 82) return 'full';
+    if(mood === 'happy') return 'happy';
+    if(mood === 'sad') return G.hunger < 26 ? 'hungry' : 'sad';
+    return 'normal';
+}
+
+function makeWalrusSvg(lv, mood='normal', expression = getExpressionState(mood)) {
+    const look = getLegendLook(lv);
+    const sakuraLook = getSakuraLook();
+    const bc=sakuraLook?.body || look?.body || BODY[lv] || BODY[1], bl=sakuraLook?.belly || look?.belly || BELLY[lv] || BELLY[1];
+    const tusks=lv>=2, tl=lv===2?15:lv===3?25:30, crown=lv>=4;
+    const accessory = getLegendAccessorySvg(look);
+
+    let leftEye='', rightEye='', eyeWhiteL='', eyeWhiteR='', blush='', mouth='';
+    if(expression==='baby'){
+        eyeWhiteL=`<path d="M82 67 C72 57 62 69 69 80 C73 87 82 93 82 93 C82 93 91 87 95 80 C102 69 92 57 82 67 Z" fill="#ff2b7a"><animate attributeName="opacity" values="0.86;1;0.86" dur="0.42s" repeatCount="indefinite"/></path>`;
+        eyeWhiteR=`<path d="M118 67 C108 57 98 69 105 80 C109 87 118 93 118 93 C118 93 127 87 131 80 C138 69 128 57 118 67 Z" fill="#ff2b7a"><animate attributeName="opacity" values="1;0.86;1" dur="0.42s" repeatCount="indefinite"/></path>`;
+        leftEye=`<circle cx="78" cy="73" r="3" fill="#fff44f"/><circle cx="86" cy="82" r="2.5" fill="white"/>`;
+        rightEye=`<circle cx="114" cy="73" r="3" fill="#fff44f"/><circle cx="122" cy="82" r="2.5" fill="white"/>`;
+        mouth=`<ellipse cx="100" cy="112" rx="11" ry="5.5" fill="rgba(0,0,0,0.38)"><animate attributeName="ry" values="3.2;9;3.2" dur="0.28s" repeatCount="indefinite"/></ellipse><ellipse cx="100" cy="116" rx="5" ry="2.4" fill="rgba(255,122,170,0.72)"><animate attributeName="ry" values="1.2;3.6;1.2" dur="0.28s" repeatCount="indefinite"/></ellipse>`;
+        blush=`<ellipse cx="66" cy="102" rx="10" ry="5.8" fill="rgba(255,0,0,0.42)"/><ellipse cx="134" cy="102" rx="10" ry="5.8" fill="rgba(0,210,40,0.34)"/>
+        <g fill="#fff44f" opacity="0.95"><path d="M61 69 L64 76 L71 79 L64 82 L61 89 L58 82 L51 79 L58 76 Z"><animateTransform attributeName="transform" type="scale" values="0.8;1.28;0.8" dur="0.55s" repeatCount="indefinite"/></path><path d="M137 60 L140 67 L147 70 L140 73 L137 80 L134 73 L127 70 L134 67 Z"><animateTransform attributeName="transform" type="scale" values="1.18;0.82;1.18" dur="0.48s" repeatCount="indefinite"/></path></g>`;
+    } else if(expression==='ecstatic'){
+        eyeWhiteL=`<ellipse cx="82" cy="75" rx="10" ry="9" fill="white"/>`;
+        eyeWhiteR=`<ellipse cx="118" cy="75" rx="10" ry="9" fill="white"/>`;
+        leftEye=`<path d="M74,76 Q82,62 90,76" stroke="#080e20" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+        rightEye=`<path d="M110,76 Q118,62 126,76" stroke="#080e20" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+        mouth=`<path d="M87,107 Q100,126 113,107" stroke="rgba(0,0,0,0.4)" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+        blush=`<ellipse cx="66" cy="102" rx="9" ry="5.2" fill="rgba(255,122,170,0.35)"/><ellipse cx="134" cy="102" rx="9" ry="5.2" fill="rgba(255,122,170,0.35)"/>`;
+    } else if(expression==='full'){
+        eyeWhiteL=`<circle cx="82" cy="76" r="10" fill="white"/>`;
+        eyeWhiteR=`<circle cx="118" cy="76" r="10" fill="white"/>`;
+        leftEye=`<circle cx="82" cy="77" r="4.6" fill="#080e20"/><circle cx="80" cy="75" r="1.8" fill="white"/>`;
+        rightEye=`<circle cx="118" cy="77" r="4.6" fill="#080e20"/><circle cx="116" cy="75" r="1.8" fill="white"/>`;
+        mouth=`<path d="M88,110 Q100,120 112,110" stroke="rgba(0,0,0,0.35)" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="100" cy="114" rx="5" ry="2.5" fill="rgba(255,255,255,0.18)"/>`;
+    } else if(expression==='happy'){
+        eyeWhiteL=`<circle cx="82" cy="76" r="9.5" fill="white"/>`;
+        eyeWhiteR=`<circle cx="118" cy="76" r="9.5" fill="white"/>`;
+        leftEye=`<path d="M78,76 Q82,70 86,76" stroke="#080e20" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+        rightEye=`<path d="M114,76 Q118,70 122,76" stroke="#080e20" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+        mouth=`<path d="M90,109 Q100,118 110,109" stroke="rgba(0,0,0,0.35)" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+        blush=`<ellipse cx="68" cy="102" rx="7" ry="4.3" fill="rgba(255,122,170,0.22)"/><ellipse cx="132" cy="102" rx="7" ry="4.3" fill="rgba(255,122,170,0.22)"/>`;
+    } else if(expression==='hungry'){
+        eyeWhiteL=`<circle cx="82" cy="77" r="9.5" fill="white"/>`;
+        eyeWhiteR=`<circle cx="118" cy="77" r="9.5" fill="white"/>`;
+        leftEye=`<circle cx="82" cy="79" r="5.7" fill="#080e20"/><circle cx="80" cy="77" r="2" fill="white"/>`;
+        rightEye=`<circle cx="118" cy="79" r="5.7" fill="#080e20"/><circle cx="116" cy="77" r="2" fill="white"/>`;
+        mouth=`<path d="M90,115 Q100,104 110,115" stroke="rgba(0,0,0,0.35)" stroke-width="2.1" fill="none" stroke-linecap="round"/>`;
+    } else if(expression==='sad'){
+        eyeWhiteL=`<circle cx="82" cy="76" r="9.5" fill="white"/>`;
+        eyeWhiteR=`<circle cx="118" cy="76" r="9.5" fill="white"/>`;
+        leftEye=`<circle cx="82" cy="78" r="5.5" fill="#080e20"/><circle cx="80" cy="76" r="2" fill="white"/>`;
+        rightEye=`<circle cx="118" cy="78" r="5.5" fill="#080e20"/><circle cx="116" cy="76" r="2" fill="white"/>`;
+        mouth=`<path d="M90,113 Q100,107 110,113" stroke="rgba(0,0,0,0.35)" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+    } else if(expression==='sleepy'){
+        leftEye=`<path d="M77,76 Q82,80 87,76" stroke="#080e20" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+        rightEye=`<path d="M113,76 Q118,80 123,76" stroke="#080e20" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+        mouth=`<path d="M92,111 Q100,117 108,111" stroke="rgba(0,0,0,0.22)" stroke-width="1.4" fill="none" stroke-linecap="round"/>`;
+    } else {
+        eyeWhiteL=`<circle cx="82" cy="76" r="9.5" fill="white"/>`;
+        eyeWhiteR=`<circle cx="118" cy="76" r="9.5" fill="white"/>`;
+        leftEye=`<circle cx="82" cy="76" r="5.5" fill="#080e20"/><circle cx="80" cy="74" r="2" fill="white"/>`;
+        rightEye=`<circle cx="118" cy="76" r="5.5" fill="#080e20"/><circle cx="116" cy="74" r="2" fill="white"/>`;
+        mouth=`<path d="M90,111 Q100,116 110,111" stroke="rgba(0,0,0,0.25)" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    }
+
+    return `<svg viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+    <defs>
+        <radialGradient id="walrusGlow" cx="50%" cy="35%" r="80%">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+    </defs>
+    ${look?.evolved?`<ellipse cx="100" cy="116" rx="63" ry="72" fill="none" stroke="${look.accent}" stroke-width="1.8" stroke-dasharray="4,9" opacity="0.52">
+        <animateTransform attributeName="transform" type="rotate" values="0 100 116;360 100 116" dur="8s" repeatCount="indefinite"/>
+    </ellipse>`:''}
+    ${crown?`<polygon points="100,6 85,28 100,23 115,28" fill="${look?.accent || '#C49840'}"/><circle cx="100" cy="6" r="5" fill="#E04848"/><circle cx="85" cy="28" r="3.5" fill="#E04848"/><circle cx="115" cy="28" r="3.5" fill="#E04848"/><line x1="85" y1="28" x2="115" y2="28" stroke="${look?.accent || '#C49840'}" stroke-width="2"/>
+    <animateTransform attributeName="transform" type="rotate" values="-2 100 18;2 100 18;-2 100 18" dur="2s" repeatCount="indefinite"/>`:''}
+    ${accessory.back}
+    <ellipse cx="100" cy="162" rx="56" ry="46" fill="rgba(0,0,0,0.18)"/>
+    <ellipse cx="100" cy="154" rx="52" ry="42" fill="${bc}"/>
+    <ellipse cx="100" cy="148" rx="40" ry="30" fill="url(#walrusGlow)" opacity="0.28"/>
+    <circle cx="100" cy="90" r="43" fill="rgba(0,0,0,0.14)"/>
+    <circle cx="100" cy="86" r="40" fill="${bc}"/>
+    <ellipse cx="100" cy="156" rx="28" ry="22" fill="${bl}" opacity="0.5"/>
+    <ellipse cx="100" cy="98" rx="21" ry="15" fill="${bl}" opacity="0.55"/>
+    ${blush}
+    ${eyeWhiteL}${eyeWhiteR}
+    ${leftEye}${rightEye}
+    <circle cx="93" cy="99" r="5" fill="rgba(0,0,0,0.28)"/>
+    <circle cx="107" cy="99" r="5" fill="rgba(0,0,0,0.28)"/>
+    ${mouth}
+    <line x1="52" y1="91" x2="79" y2="95" stroke="rgba(255,255,255,0.38)" stroke-width="1.3"/>
+    <line x1="50" y1="97" x2="79" y2="97" stroke="rgba(255,255,255,0.38)" stroke-width="1.3"/>
+    <line x1="52" y1="103" x2="79" y2="100" stroke="rgba(255,255,255,0.38)" stroke-width="1.3"/>
+    <line x1="121" y1="95" x2="148" y2="91" stroke="rgba(255,255,255,0.38)" stroke-width="1.3"/>
+    <line x1="121" y1="97" x2="150" y2="97" stroke="rgba(255,255,255,0.38)" stroke-width="1.3"/>
+    <line x1="121" y1="100" x2="148" y2="103" stroke="rgba(255,255,255,0.38)" stroke-width="1.3"/>
+    ${accessory.front}
+    ${tusks?`<rect x="87" y="108" width="9" height="${tl}" rx="4.5" fill="#EDE5CE" stroke="#C8BB98" stroke-width="0.5"/><rect x="104" y="108" width="9" height="${tl}" rx="4.5" fill="#EDE5CE" stroke="#C8BB98" stroke-width="0.5"/>`:''}
+    <ellipse cx="51" cy="162" rx="19" ry="9" fill="rgba(0,0,0,0.2)" transform="rotate(-24 51 162)"/>
+    <ellipse cx="51" cy="160" rx="18" ry="8.5" fill="${bc}" transform="rotate(-24 51 160)"/>
+    <ellipse cx="149" cy="162" rx="19" ry="9" fill="rgba(0,0,0,0.2)" transform="rotate(24 149 162)"/>
+    <ellipse cx="149" cy="160" rx="18" ry="8.5" fill="${bc}" transform="rotate(24 149 160)"/>
+    ${lv>=4?`<ellipse cx="100" cy="86" rx="40" ry="40" fill="none" stroke="${look?.accent || '#C49840'}" stroke-width="1.5" stroke-dasharray="5,7" opacity="0.55"/>`:''}
+    </svg>`;
+}
+
+function makeWalrus(lv, mood='normal', expression = getExpressionState(mood)) {
+    const look = getLegendLook(lv);
+    const palette = getPixelWalrusPalette(lv);
+    const accessory = getPixelWalrusAccessoryMarkup(look, lv >= 4);
+    const tusks = lv >= 2;
+    const babyStars = expression === 'baby'
+        ? '<div class="pw-star pw-star-a"></div><div class="pw-star pw-star-b"></div>'
+        : '';
+    return `
+    <div class="pixel-walrus" data-level="${lv}" data-expression="${expression}" aria-hidden="true"
+        style="--pw-body:${palette.body};--pw-head:${palette.head};--pw-belly:${palette.belly};--pw-outline:${palette.outline};--pw-shadow:${palette.shadow};--pw-flipper:${palette.flipper};--pw-accent:${palette.accent};--pw-nose:${palette.nose};--pw-tusk:${palette.tusk};--pw-tusk-edge:${palette.tuskEdge};--pw-blush:${palette.blush};">
+        <div class="pw-shadow"></div>
+        ${accessory.back}
+        <div class="pw-flipper pw-flipper-l"></div>
+        <div class="pw-flipper pw-flipper-r"></div>
+        <div class="pw-body"></div>
+        <div class="pw-belly"></div>
+        <div class="pw-head"></div>
+        <div class="pw-muzzle"></div>
+        <div class="pw-blush pw-blush-l"></div>
+        <div class="pw-blush pw-blush-r"></div>
+        <div class="pw-whisker pw-whisker-l"></div>
+        <div class="pw-whisker pw-whisker-r"></div>
+        <div class="pw-eye pw-eye-l"></div>
+        <div class="pw-eye pw-eye-r"></div>
+        <div class="pw-nose"></div>
+        <div class="pw-mouth"></div>
+        ${tusks ? '<div class="pw-tusk pw-tusk-l"></div><div class="pw-tusk pw-tusk-r"></div>' : ''}
+        ${babyStars}
+        ${accessory.front}
+    </div>`;
+}
+

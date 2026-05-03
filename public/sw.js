@@ -1,8 +1,14 @@
-const CACHE_NAME = 'walmate-pwa-v2026-05-04-silence-penalty';
+const CACHE_NAME = 'walmate-pwa-v2026-05-04-release-singlefile';
 
 const APP_SHELL = [
   './',
   './index.html',
+  './styles.css',
+  './app-core.js',
+  './app-gameplay.js',
+  './app-integrations.js',
+  './app-walk.js',
+  './app-init.js',
   './manifest.json',
   './og-image.png',
   './icons/icon-192.png',
