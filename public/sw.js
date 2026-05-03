@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walmate-pwa-v2026-05-04-profile-deck';
+const CACHE_NAME = 'walmate-pwa-v2026-05-04-sound-collection';
 
 const APP_SHELL = [
   './',

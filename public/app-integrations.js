@@ -138,6 +138,48 @@ function getBlobQrUrl(blobId){
     return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(getWalrusBlobUrl(blobId))}`;
 }
 
+async function saveSoundCollectionToWalrus(){
+    let collections = [];
+    try{
+        const raw = localStorage.getItem(SOUND_MEMORY_KEY);
+        collections = raw ? JSON.parse(raw) : [];
+    }catch(e){}
+    if(!collections.length){
+        showToast(currentLang === 'ja' ? '⚠ まだ音コレクションがありません' : '⚠ No sound collectibles yet', true);
+        return;
+    }
+
+    const buttons = Array.from(document.querySelectorAll('.sound-sm-btn'));
+    const walrusBtn = buttons.find(btn => (btn.textContent || '').includes('🌐'));
+    if(walrusBtn){
+        walrusBtn.disabled = true;
+        walrusBtn.textContent = currentLang === 'ja' ? '保存中…' : 'Saving...';
+    }
+
+    const payload = {
+        type: 'walrus-sound-collection',
+        petName: G.petName || '',
+        userIntro: G.userIntro || '',
+        savedAt: new Date().toISOString(),
+        total: collections.length,
+        collections
+    };
+    const blobId = await uploadToWalrus(JSON.stringify(payload, null, 2), 'walrus-sound-collection.json');
+
+    if(blobId){
+        try { localStorage.setItem(SOUND_COLLECTION_BLOB_KEY, blobId); } catch(e){}
+        showToast(currentLang === 'ja' ? '🌐 音コレクションをWalrusに保存したよ！' : '🌐 Sound collectibles saved to Walrus!');
+        setMsg(currentLang === 'ja' ? `🌐 音のコレクションをWalrusに刻んだよ · ${shortBlobId(blobId)}` : `🌐 Sound collection etched to Walrus · ${shortBlobId(blobId)}`);
+    } else {
+        showToast(currentLang === 'ja' ? '⚠ 音コレクションのWalrus保存に失敗しました' : '⚠ Failed to save sound collection to Walrus', true);
+    }
+
+    if(walrusBtn){
+        walrusBtn.disabled = false;
+        walrusBtn.textContent = '🌐';
+    }
+}
+
 function parseWalrusBlobText(text){
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}');
@@ -534,11 +576,13 @@ async function saveUserIntroToWalrus(){
 
 async function saveProfileDeckToWalrus(){
     const copy = getProfileEditorCopy();
+    const modalOpen = document.getElementById('profileDeckModal')?.style.display === 'flex';
+    G.userIntro = (document.getElementById('introInput')?.value || '').trim().slice(0, 420);
+    G.userIntroSavedAt = Date.now();
     G.profileDeck = collectProfileDeckDraft();
     G.profileDeckSavedAt = Date.now();
     saveG();
-    syncProfileDeckDraft();
-    renderProfileDeckStatus();
+    renderProfileDeckSurface();
 
     const btn = document.getElementById('profileDeckWalrusBtn');
     if(btn){
@@ -557,10 +601,15 @@ async function saveProfileDeckToWalrus(){
     const blobId = await uploadToWalrus(JSON.stringify(payload, null, 2), 'walrus-profile-deck.json');
 
     if(blobId){
+        G.userIntroBlobId = blobId;
+        G.userIntroSavedAt = Date.now();
         G.profileDeckBlobId = blobId;
         G.profileDeckSavedAt = Date.now();
         saveG();
-        renderProfileDeckStatus();
+        renderProfileDeckSurface();
+        if(modalOpen){
+            closeProfileDeckModal();
+        }
         setMsg(copy.savedWalrus);
         showToast(copy.savedWalrus);
     } else {
