@@ -19,6 +19,9 @@ const DEFAULT_GAME_STATE = Object.freeze({
     userIntro: '',
     userIntroBlobId: '',
     userIntroSavedAt: 0,
+    profileDeck: null,
+    profileDeckBlobId: '',
+    profileDeckSavedAt: 0,
     custom: { color: 'gold', accessory: 'none' },
     soundDiet: createEmptySoundDiet('1970-01-01')
 });
@@ -47,6 +50,9 @@ function normalizeGameState(state){
     state.userIntro = typeof state.userIntro === 'string' ? state.userIntro.slice(0, 420) : '';
     state.userIntroBlobId = typeof state.userIntroBlobId === 'string' ? state.userIntroBlobId : '';
     state.userIntroSavedAt = Number(state.userIntroSavedAt) || 0;
+    state.profileDeck = normalizeProfileDeckState(state.profileDeck);
+    state.profileDeckBlobId = typeof state.profileDeckBlobId === 'string' ? state.profileDeckBlobId : '';
+    state.profileDeckSavedAt = Number(state.profileDeckSavedAt) || 0;
     state.soundDiet = normalizeSoundDiet(state.soundDiet);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
@@ -663,7 +669,7 @@ function checkLevelUp(){
         setMsg(G.lv===4
             ? (currentLang === 'ja' ? '✦ Legend到達。Walrus の伝説が刻まれた！' : 'Legend reached. Your Walrus has been etched into legend!')
             : (G.lv===2
-                ? (currentLang === 'ja' ? '✨ Lv.2解放！ きみの自己紹介を教えてね。' : '✨ Lv.2 unlocked! Tell your Walrus about yourself.')
+                ? (currentLang === 'ja' ? '✨ Lv.2解放！ 自己紹介とプロフィールカードを教えてね。' : '✨ Lv.2 unlocked! Set your intro and profile cards.')
                 : (currentLang === 'ja' ? `✨ レベルアップ！ Lv.${G.lv} · ${getLvName(G.lv)} になったよ！` : `Level up! Lv.${G.lv} ${getLvName(G.lv)}`)));
         if(G.lv===4){
             socialPopupPending = false;
@@ -677,13 +683,35 @@ function checkLevelUp(){
         scrollToUnlockedSection(G.lv);
         if(G.lv === 2){
             setTimeout(() => {
-                showToast(currentLang === 'ja' ? 'Lv.2で自己紹介が書けるようになったよ' : 'Lv.2 unlocked your intro card');
+                showToast(currentLang === 'ja' ? 'Lv.2で自己紹介とプロフィール編集が開いたよ' : 'Lv.2 unlocked intro and profile editing');
                 hydrateUserIntroEditor();
+                hydrateProfileDeckEditor();
             }, 700);
         }
         return true;
     }
     return false;
+}
+
+function normalizeProfileDeckState(profileDeck){
+    const source = profileDeck && typeof profileDeck === 'object' ? profileDeck : {};
+    const cards = Array.isArray(source.cards) ? source.cards.slice(0, 3) : [];
+    return {
+        about: typeof source.about === 'string' ? source.about.slice(0, 280) : '',
+        socials: {
+            x: typeof source?.socials?.x === 'string' ? source.socials.x.slice(0, 220) : '',
+            instagram: typeof source?.socials?.instagram === 'string' ? source.socials.instagram.slice(0, 220) : '',
+            note: typeof source?.socials?.note === 'string' ? source.socials.note.slice(0, 220) : ''
+        },
+        cards: [0, 1, 2].map(index => {
+            const card = cards[index] && typeof cards[index] === 'object' ? cards[index] : {};
+            return {
+                title: typeof card.title === 'string' ? card.title.slice(0, 60) : '',
+                meta: typeof card.meta === 'string' ? card.meta.slice(0, 60) : '',
+                speech: typeof card.speech === 'string' ? card.speech.slice(0, 220) : ''
+            };
+        })
+    };
 }
 
 /* ===== ACTIONS ===== */

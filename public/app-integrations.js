@@ -532,6 +532,47 @@ async function saveUserIntroToWalrus(){
     }
 }
 
+async function saveProfileDeckToWalrus(){
+    const copy = getProfileEditorCopy();
+    G.profileDeck = collectProfileDeckDraft();
+    G.profileDeckSavedAt = Date.now();
+    saveG();
+    syncProfileDeckDraft();
+    renderProfileDeckStatus();
+
+    const btn = document.getElementById('profileDeckWalrusBtn');
+    if(btn){
+        btn.disabled = true;
+        btn.innerHTML = copy.savingWalrus;
+    }
+
+    const payload = {
+        type: 'walrus-profile-deck',
+        petName: G.petName || '',
+        intro: G.userIntro || '',
+        profileDeck: getProfileDeckData(G.profileDeck),
+        savedAt: new Date().toISOString(),
+        level: G.lv
+    };
+    const blobId = await uploadToWalrus(JSON.stringify(payload, null, 2), 'walrus-profile-deck.json');
+
+    if(blobId){
+        G.profileDeckBlobId = blobId;
+        G.profileDeckSavedAt = Date.now();
+        saveG();
+        renderProfileDeckStatus();
+        setMsg(copy.savedWalrus);
+        showToast(copy.savedWalrus);
+    } else {
+        showToast(currentLang === 'ja' ? '⚠ プロフィールのWalrus保存に失敗しました' : '⚠ Failed to save profile to Walrus', true);
+    }
+
+    if(btn){
+        btn.disabled = false;
+        btn.innerHTML = copy.saveWalrus;
+    }
+}
+
 async function loadFromWalrus(blobIdOverride){
     const savedId = localStorage.getItem('walrus_blobid');
     const blobId = (blobIdOverride || '').trim() || savedId;

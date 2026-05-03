@@ -2893,6 +2893,8 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   .save-orb { width: 90px; height: 90px; font-size: 0.58rem; }
   .save-orb strong { font-size: 1.22rem; }
   .save-proof { grid-template-columns: 1fr; }
+  .profile-inline-grid { grid-template-columns: 1fr; }
+  .profile-inline-grid.ratings { grid-template-columns: 1fr 1fr; }
   @keyframes savePacket { to { transform: translateX(190px); } }
 }
 
@@ -2991,6 +2993,16 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   font: 700 0.88rem/1.7 'Nunito', sans-serif;
 }
 .intro-textarea::placeholder { color: rgba(228,242,248,0.28); }
+.intro-input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(3,12,26,0.55);
+  color: var(--white);
+  padding: 12px 13px;
+  font: 700 0.84rem/1.5 'Nunito', sans-serif;
+}
+.intro-input::placeholder { color: rgba(228,242,248,0.28); }
 .intro-meta {
   display: flex;
   justify-content: space-between;
@@ -3029,6 +3041,28 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   line-height: 1.8;
   white-space: pre-wrap;
 }
+.profile-editor-grid { display: grid; gap: 12px; }
+.profile-inline-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.profile-inline-grid.ratings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.profile-field { display: grid; gap: 6px; }
+.profile-card-editors { display: grid; gap: 10px; }
+.profile-card-editor {
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(3,12,26,0.32);
+  border: 1px solid rgba(126,200,255,0.12);
+}
+.profile-card-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: rgba(228,242,248,0.82);
+  font-weight: 900;
+}
+.profile-about-textarea { min-height: 108px; }
+.profile-card-speech { min-height: 96px; }
+.rating-select { appearance: none; }
 .section-caption { margin-bottom: 10px; color: rgba(228,242,248,0.7); }
 .feature-grid { display: grid; gap: 12px; }
 .scrapbook-grid { display: grid; gap: 14px; }

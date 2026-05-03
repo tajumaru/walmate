@@ -1271,7 +1271,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-04-intro-unlock';
+const APP_VERSION = '2026-05-04-profile-deck';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -1314,7 +1314,7 @@ const I18N_LEGACY = {
         unlock2_tag: 'Lv.2 解禁',
         unlock2_title: 'あなたの自己紹介',
         unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card\"><label class=\"intro-label\" for=\"introInput\">あなたの自己紹介</label><textarea class=\"intro-textarea\" id=\"introInput\" maxlength=\"420\" placeholder=\"Sui や Walrus で遊んでいること、作っているもの、好きなことを書いてね…\" oninput=\"syncUserIntroDraft()\"></textarea><div class=\"intro-meta\"><span id=\"introHelp\">Lv.2で解放。ここに書いた内容をWalrusに刻めます。</span><span id=\"introCount\">0 / 420</span></div><div class=\"intro-actions\"><button class=\"intro-btn\" id=\"introSaveBtn\" type=\"button\" onclick=\"saveUserIntroDraft()\">💾 この端末に保存</button><button class=\"intro-btn alt\" id=\"introWalrusBtn\" type=\"button\" onclick=\"saveUserIntroToWalrus()\">🌐 Walrusに保存</button></div><div class=\"intro-status\" id=\"introStatus\">まだ自己紹介は保存されていません。</div></div><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">ここに、あなたの自己紹介をWalrusが紹介します。</div></div></div></div></div>",
-        unlock2_body2: "<div class=\"section-caption\">Portfolio Projects - クリックすると Walrus が解説します。</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"この育成ゲームそのものがポートフォリオの入口。育てる、保存する、交流する、日記を書くまでを1画面で遊べるようにしているよ。\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Walrus育成ゲーム</span><span class=\"walrus-project-meta\">Game / PWA / Walrus</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"NoteではSuiやWalrusで試したことを、あとから読み返せるログにしているよ。技術メモと沼トークのあいだくらいの温度感。\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Sui / Walrus Note</span><span class=\"walrus-project-meta\">Writing / Research</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"NFTコレクションはたじゅまるの遊び心の棚。Poopie Face、Tajumarte、SunSun、それぞれ違うノリで見てもらえるよ。\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">NFT Collections</span><span class=\"walrus-project-meta\">Art / Community</span></button></div><div class=\"walrus-about-note\">好きなものは <a href=\"https://walrus.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Walrus Protocol</a>、ちょっと妙なアイデア、そしてオンチェーンで遊ぶ余白。技術ネタもネタ投稿も歓迎です。</div><div class=\"social-pills\"><a class=\"social-pill\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 @tajumaruxxx</a><a class=\"social-pill\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">📝 Note / tajumaru</a></div>",
+        unlock2_body2: "<div class=\"intro-builder\"><div class=\"intro-card\"><div class=\"section-caption\">自分ができること、作品カード、SNSリンクをここでカスタマイズできます。</div><div id=\"profileDeckEditor\"></div></div><div class=\"intro-card\"><div class=\"section-caption\">Portfolio Projects - クリックすると Walrus が解説します。</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></button></div><div class=\"walrus-about-note\" id=\"profileAboutNote\"></div><div class=\"social-pills\" id=\"profileSocialPills\"></div><div class=\"intro-status\" id=\"profileDeckStatus\"></div></div></div>",
         intro_saved_local: 'この端末に自己紹介を保存したよ',
         intro_saved_walrus: '自己紹介をWalrusに保存したよ！',
         intro_saved_walrus_status: 'Walrus保存済み',
@@ -1491,7 +1491,7 @@ const I18N_LEGACY = {
         unlock2_tag: 'Lv.2 Unlock',
         unlock2_title: 'Your Intro',
         unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card\"><label class=\"intro-label\" for=\"introInput\">Introduce yourself</label><textarea class=\"intro-textarea\" id=\"introInput\" maxlength=\"420\" placeholder=\"Tell us what you build, what you like, or what you do around Sui / Walrus…\" oninput=\"syncUserIntroDraft()\"></textarea><div class=\"intro-meta\"><span id=\"introHelp\">Unlocked at Lv.2. You can etch this intro into Walrus.</span><span id=\"introCount\">0 / 420</span></div><div class=\"intro-actions\"><button class=\"intro-btn\" id=\"introSaveBtn\" type=\"button\" onclick=\"saveUserIntroDraft()\">💾 Save on device</button><button class=\"intro-btn alt\" id=\"introWalrusBtn\" type=\"button\" onclick=\"saveUserIntroToWalrus()\">🌐 Save to Walrus</button></div><div class=\"intro-status\" id=\"introStatus\">No intro saved yet.</div></div><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">Your Walrus will introduce you here.</div></div></div></div></div>",
-        unlock2_body2: "<div class=\"section-caption\">Portfolio Projects - tap a card and the Walrus will explain it.</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"This pet game is the portfolio entrance: raising, saving, exchanging, and diary writing all live in one playful screen.\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Walrus Pet Game</span><span class=\"walrus-project-meta\">Game / PWA / Walrus</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"On Note, Tajumaru keeps Sui and Walrus experiments readable as field notes: part technical memo, part swamp dispatch.\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Sui / Walrus Notes</span><span class=\"walrus-project-meta\">Writing / Research</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"The NFT collections are Tajumaru's playful display shelf. Poopie Face, Tajumarte, and SunSun each carry a different mood.\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">NFT Collections</span><span class=\"walrus-project-meta\">Art / Community</span></button></div><div class=\"walrus-about-note\">Favorite things: <a href=\"https://walrus.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Walrus Protocol</a>, strange ideas, and the open space where on-chain experiments become playful. Tech talk and odd discoveries are welcome.</div><div class=\"social-pills\"><a class=\"social-pill\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 @tajumaruxxx</a><a class=\"social-pill\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">📝 Note / tajumaru</a></div>",
+        unlock2_body2: "<div class=\"intro-builder\"><div class=\"intro-card\"><div class=\"section-caption\">Customize what you can do, your project cards, and your social links here.</div><div id=\"profileDeckEditor\"></div></div><div class=\"intro-card\"><div class=\"section-caption\">Portfolio Projects - tap a card and the Walrus will explain it.</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></button></div><div class=\"walrus-about-note\" id=\"profileAboutNote\"></div><div class=\"social-pills\" id=\"profileSocialPills\"></div><div class=\"intro-status\" id=\"profileDeckStatus\"></div></div></div>",
         intro_saved_local: 'Saved your intro on this device',
         intro_saved_walrus: 'Saved your intro to Walrus!',
         intro_saved_walrus_status: 'Saved on Walrus',
@@ -1764,12 +1764,128 @@ function localeCode(){
     return currentLang === 'ja' ? 'ja-JP' : 'en-US';
 }
 
+function getProfileEditorCopy(){
+    return currentLang === 'ja'
+        ? {
+            aboutLabel: '自分ができること',
+            aboutPlaceholder: '作れるもの、手伝えること、得意なことを短く書いてね…',
+            linksLabel: 'リンク先',
+            xLabel: 'X URL',
+            instagramLabel: 'Instagram URL',
+            noteLabel: 'Note URL',
+            cardTitle: 'カード名',
+            cardMeta: '肩書き / ジャンル',
+            saveLocal: '💾 この端末に保存',
+            saveWalrus: '🌐 Walrusに保存',
+            statusEmpty: 'まだプロフィールデッキは保存されていません。',
+            savedLocal: 'この端末にプロフィールを保存したよ',
+            savedWalrus: 'プロフィールをWalrusに保存したよ！',
+            savedWalrusStatus: 'Walrus保存済み',
+            savingWalrus: '🌐 保存中…',
+            previewEmpty: 'ここに「何ができるか」とリンクが表示されます。'
+        }
+        : {
+            aboutLabel: 'What you can do',
+            aboutPlaceholder: 'Write what you build, help with, or do best…',
+            linksLabel: 'Links',
+            xLabel: 'X URL',
+            instagramLabel: 'Instagram URL',
+            noteLabel: 'Note URL',
+            cardTitle: 'Card title',
+            cardMeta: 'Role / Category',
+            saveLocal: '💾 Save on device',
+            saveWalrus: '🌐 Save to Walrus',
+            statusEmpty: 'No profile deck saved yet.',
+            savedLocal: 'Saved your profile on this device',
+            savedWalrus: 'Saved your profile to Walrus!',
+            savedWalrusStatus: 'Saved on Walrus',
+            savingWalrus: '🌐 Saving...',
+            previewEmpty: 'Your abilities and links will appear here.'
+        };
+}
+
+function normalizeProfileUrl(value){
+    const raw = `${value || ''}`.trim();
+    if(!raw) return '';
+    if(/^https?:\/\//i.test(raw)) return raw;
+    if(raw.startsWith('//')) return `https:${raw}`;
+    return `https://${raw.replace(/^@/, '')}`;
+}
+
+function normalizeXProfileUrl(value){
+    const raw = `${value || ''}`.trim();
+    if(!raw) return '';
+    if(/^https?:\/\/(www\.)?x\.com\//i.test(raw)) return raw;
+    if(/^https?:\/\//i.test(raw)) return raw;
+    if(raw.startsWith('//')) return `https:${raw}`;
+    const username = raw
+        .replace(/^@/, '')
+        .replace(/^https?:\/\/(www\.)?x\.com\//i, '')
+        .split(/[/?#]/)[0]
+        .trim();
+    return username ? `https://x.com/${username}` : '';
+}
+
+function getDefaultProfileDeck(){
+    if(currentLang === 'ja'){
+        return {
+            about: '好きなものは Walrus Protocol、ちょっと妙なアイデア、そしてオンチェーンで遊ぶ余白。技術ネタもネタ投稿も歓迎です。',
+            socials: {
+                x: 'https://x.com/tajumaruxxx',
+                instagram: '',
+                note: 'https://note.com/tajumaru'
+            },
+            cards: [
+                { id: 'pet-game', icon: '🎮', title: 'Walrus育成ゲーム', meta: 'Game / PWA / Walrus', speech: 'この育成ゲームそのものがポートフォリオの入口。育てる、保存する、交流する、日記を書くまでを1画面で遊べるようにしているよ。', fun: 5, tech: 5 },
+                { id: 'note-lab', icon: '📝', title: 'Sui / Walrus Note', meta: 'Writing / Research', speech: 'NoteではSuiやWalrusで試したことを、あとから読み返せるログにしているよ。技術メモと沼トークのあいだくらいの温度感。', fun: 4, tech: 4 },
+                { id: 'nft-collections', icon: '🖼', title: 'NFT Collections', meta: 'Art / Community', speech: 'NFTコレクションは遊び心の棚。Poopie Face、Tajumarte、SunSun、それぞれ違うノリで見てもらえるよ。', fun: 5, tech: 3 }
+            ]
+        };
+    }
+    return {
+        about: 'Favorite things: Walrus Protocol, strange ideas, and the open space where on-chain experiments become playful. Tech talk and odd posts are welcome.',
+        socials: {
+            x: 'https://x.com/tajumaruxxx',
+            instagram: '',
+            note: 'https://note.com/tajumaru'
+        },
+        cards: [
+            { id: 'pet-game', icon: '🎮', title: 'Walrus Pet Game', meta: 'Game / PWA / Walrus', speech: 'This pet game is the portfolio entrance: raising, saving, exchanging, and diary writing all live in one playful screen.', fun: 5, tech: 5 },
+            { id: 'note-lab', icon: '📝', title: 'Sui / Walrus Notes', meta: 'Writing / Research', speech: 'On Note, experiments around Sui and Walrus stay readable as field notes: part technical memo, part swamp dispatch.', fun: 4, tech: 4 },
+            { id: 'nft-collections', icon: '🖼', title: 'NFT Collections', meta: 'Art / Community', speech: 'The NFT collections are a playful display shelf. Each one carries a different mood and community energy.', fun: 5, tech: 3 }
+        ]
+    };
+}
+
+function getProfileDeckData(source = G?.profileDeck){
+    const defaults = getDefaultProfileDeck();
+    const hasCustom = !!(source && typeof source === 'object');
+    const profile = hasCustom ? source : {};
+    const socials = profile.socials && typeof profile.socials === 'object' ? profile.socials : {};
+    const cards = Array.isArray(profile.cards) ? profile.cards : [];
+    return {
+        about: hasCustom
+            ? (typeof profile.about === 'string' ? profile.about.trim() : '')
+            : defaults.about,
+        socials: {
+            x: hasCustom ? normalizeXProfileUrl(socials.x) : defaults.socials.x,
+            instagram: normalizeProfileUrl(socials.instagram),
+            note: hasCustom ? normalizeProfileUrl(socials.note) : defaults.socials.note
+        },
+        cards: defaults.cards.map((item, index) => {
+            const custom = cards[index] && typeof cards[index] === 'object' ? cards[index] : {};
+            return {
+                ...item,
+                title: typeof custom.title === 'string' && custom.title.trim() ? custom.title.trim() : item.title,
+                meta: typeof custom.meta === 'string' && custom.meta.trim() ? custom.meta.trim() : item.meta,
+                speech: typeof custom.speech === 'string' && custom.speech.trim() ? custom.speech.trim() : item.speech
+            };
+        })
+    };
+}
+
 function getPortfolioConfig(){
-    return [
-        { id: 'pet-game', fun: 5, tech: 5 },
-        { id: 'note-lab', fun: 4, tech: 4 },
-        { id: 'nft-collections', fun: 5, tech: 3 }
-    ];
+    return getProfileDeckData().cards;
 }
 
 function getCollectorStorage(){
@@ -2105,6 +2221,7 @@ function applyLanguage(){
         setHtml(sec1Bodies[0], t('unlock2_body1'));
         setHtml(sec1Bodies[1], t('unlock2_body2'));
         hydrateUserIntroEditor();
+        hydrateProfileDeckEditor();
         initPortfolioCards();
     }
     const sec2 = document.getElementById('sec2');
@@ -2283,15 +2400,133 @@ function saveUserIntroDraft(){
     showToast(t('intro_saved_local'));
 }
 
-function initPortfolioCards(){
+function collectProfileDeckDraft(){
+    return {
+        about: (document.getElementById('profileAboutInput')?.value || '').trim().slice(0, 280),
+        socials: {
+            x: (document.getElementById('profileLinkX')?.value || '').trim().slice(0, 220),
+            instagram: (document.getElementById('profileLinkInstagram')?.value || '').trim().slice(0, 220),
+            note: (document.getElementById('profileLinkNote')?.value || '').trim().slice(0, 220)
+        },
+        cards: [0, 1, 2].map(index => ({
+            title: (document.getElementById(`profileCardTitle${index}`)?.value || '').trim().slice(0, 60),
+            meta: (document.getElementById(`profileCardMeta${index}`)?.value || '').trim().slice(0, 60),
+            speech: ''
+        }))
+    };
+}
+
+function renderProfileDeckStatus(){
+    const status = document.getElementById('profileDeckStatus');
+    if(!status) return;
+    const copy = getProfileEditorCopy();
+    const hasDeck = !!(G?.profileDeck && (
+        (G.profileDeck.about || '').trim()
+        || (G.profileDeck.socials?.x || '').trim()
+        || (G.profileDeck.socials?.instagram || '').trim()
+        || (G.profileDeck.socials?.note || '').trim()
+        || (G.profileDeck.cards || []).some(card => (card?.title || '').trim() || (card?.meta || '').trim() || (card?.speech || '').trim())
+    ));
+    if(!hasDeck){
+        status.textContent = copy.statusEmpty;
+        return;
+    }
+    const savedAt = G.profileDeckSavedAt
+        ? new Date(G.profileDeckSavedAt).toLocaleString(localeCode(), { dateStyle:'medium', timeStyle:'short' })
+        : '';
+    status.textContent = G.profileDeckBlobId
+        ? `${copy.savedWalrusStatus} · ${shortBlobId(G.profileDeckBlobId)}${savedAt ? ` · ${savedAt}` : ''}`
+        : `${copy.savedLocal}${savedAt ? ` · ${savedAt}` : ''}`;
+}
+
+function renderProfilePresence(profile = getProfileDeckData()){
+    const about = document.getElementById('profileAboutNote');
+    const pills = document.getElementById('profileSocialPills');
+    const copy = getProfileEditorCopy();
+    if(about) about.textContent = profile.about || copy.previewEmpty;
+    if(pills){
+        const links = [
+            profile.socials.x ? { label: currentLang === 'ja' ? '𝕏 X' : '𝕏 X', href: profile.socials.x } : null,
+            profile.socials.instagram ? { label: '📷 Instagram', href: profile.socials.instagram } : null,
+            profile.socials.note ? { label: '📝 Note', href: profile.socials.note } : null
+        ].filter(Boolean);
+        pills.innerHTML = links.map(item => `<a class="social-pill" href="${escapeHtml(item.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)}</a>`).join('');
+    }
+}
+
+function syncProfileDeckDraft(){
+    const profile = getProfileDeckData(collectProfileDeckDraft());
+    const aboutInput = document.getElementById('profileAboutInput');
+    const aboutCount = document.getElementById('profileAboutCount');
+    if(aboutInput && aboutCount){
+        if(aboutInput.value.length > 280) aboutInput.value = aboutInput.value.slice(0, 280);
+        aboutCount.textContent = `${aboutInput.value.length} / 280`;
+    }
+    [0, 1, 2].forEach(index => {
+        const title = document.getElementById(`profileCardTitle${index}`);
+        const meta = document.getElementById(`profileCardMeta${index}`);
+        if(title && title.value.length > 60) title.value = title.value.slice(0, 60);
+        if(meta && meta.value.length > 60) meta.value = meta.value.slice(0, 60);
+    });
+    initPortfolioCards(profile);
+    renderProfilePresence(profile);
+}
+
+function hydrateProfileDeckEditor(){
+    const mount = document.getElementById('profileDeckEditor');
+    if(!mount) return;
+    const profile = getProfileDeckData();
+    const copy = getProfileEditorCopy();
+    mount.innerHTML = `
+        <div class="profile-editor-grid">
+            <label class="intro-label" for="profileAboutInput">${copy.aboutLabel}</label>
+            <textarea class="intro-textarea profile-about-textarea" id="profileAboutInput" maxlength="280" placeholder="${escapeHtml(copy.aboutPlaceholder)}" oninput="syncProfileDeckDraft()">${escapeHtml(profile.about)}</textarea>
+            <div class="intro-meta"><span>${copy.aboutLabel}</span><span id="profileAboutCount">0 / 280</span></div>
+            <div class="profile-inline-grid">
+                <label class="profile-field"><span class="intro-label">${copy.xLabel}</span><input class="intro-input" id="profileLinkX" type="url" value="${escapeHtml(profile.socials.x || '')}" oninput="syncProfileDeckDraft()" /></label>
+                <label class="profile-field"><span class="intro-label">${copy.instagramLabel}</span><input class="intro-input" id="profileLinkInstagram" type="url" value="${escapeHtml(profile.socials.instagram || '')}" oninput="syncProfileDeckDraft()" /></label>
+                <label class="profile-field"><span class="intro-label">${copy.noteLabel}</span><input class="intro-input" id="profileLinkNote" type="url" value="${escapeHtml(profile.socials.note || '')}" oninput="syncProfileDeckDraft()" /></label>
+            </div>
+            <div class="section-caption">${copy.linksLabel}</div>
+            <div class="profile-card-editors">
+                ${profile.cards.map((card, index) => `
+                    <div class="profile-card-editor">
+                        <div class="profile-card-editor-head"><span class="walrus-project-icon">${card.icon}</span><strong>${index + 1}</strong></div>
+                        <label class="profile-field"><span class="intro-label">${copy.cardTitle}</span><input class="intro-input" id="profileCardTitle${index}" type="text" maxlength="60" value="${escapeHtml(card.title)}" oninput="syncProfileDeckDraft()" /></label>
+                        <label class="profile-field"><span class="intro-label">${copy.cardMeta}</span><input class="intro-input" id="profileCardMeta${index}" type="text" maxlength="60" value="${escapeHtml(card.meta)}" oninput="syncProfileDeckDraft()" /></label>
+                    </div>`).join('')}
+            </div>
+            <div class="intro-actions">
+                <button class="intro-btn" id="profileDeckSaveBtn" type="button" onclick="saveProfileDeckDraft()">${copy.saveLocal}</button>
+                <button class="intro-btn alt" id="profileDeckWalrusBtn" type="button" onclick="saveProfileDeckToWalrus()">${copy.saveWalrus}</button>
+            </div>
+        </div>`;
+    syncProfileDeckDraft();
+    renderProfileDeckStatus();
+}
+
+function saveProfileDeckDraft(){
+    const copy = getProfileEditorCopy();
+    G.profileDeck = collectProfileDeckDraft();
+    G.profileDeckSavedAt = Date.now();
+    saveG();
+    syncProfileDeckDraft();
+    renderProfileDeckStatus();
+    setMsg(copy.savedLocal);
+    showToast(copy.savedLocal);
+}
+
+function initPortfolioCards(profileOverride){
     const container = document.querySelector('#sec1 .walrus-projects');
     if(!container) return;
     const cards = Array.from(container.querySelectorAll('.walrus-project-card'));
     if(!cards.length) return;
-    const config = getPortfolioConfig();
+    const profile = profileOverride && Array.isArray(profileOverride.cards) ? profileOverride : getProfileDeckData();
+    const config = profile.cards;
     cards.forEach((card, index) => {
         const item = config[index] || config[0];
         card.dataset.projectId = item.id;
+        card.dataset.speech = item.speech || '';
         if(!card.querySelector('.walrus-project-head')){
             const icon = card.querySelector('.walrus-project-icon');
             if(icon){
@@ -2313,13 +2548,13 @@ function initPortfolioCards(){
             handle.setAttribute('title', t('portfolio_discovery_drag'));
             handle.setAttribute('aria-label', t('portfolio_discovery_drag'));
         }
-        const ratingWrap = card.querySelector('.walrus-rating-wrap') || document.createElement('div');
-        ratingWrap.className = 'walrus-rating-wrap';
-        ratingWrap.innerHTML = `
-            <div class="walrus-rating-title">${t('rating_title')}</div>
-            <div class="walrus-rating-row"><span class="walrus-rating-label">${t('rating_fun')}</span><span class="walrus-rating-stars">${renderWalrusStars(item.fun)}</span></div>
-            <div class="walrus-rating-row"><span class="walrus-rating-label">${t('rating_tech')}</span><span class="walrus-rating-stars">${renderWalrusStars(item.tech)}</span></div>`;
-        if(!ratingWrap.parentNode) card.appendChild(ratingWrap);
+        const icon = card.querySelector('.walrus-project-icon');
+        const title = card.querySelector('.walrus-project-title');
+        const meta = card.querySelector('.walrus-project-meta');
+        if(icon) icon.textContent = item.icon || '🫧';
+        if(title) title.textContent = item.title || '';
+        if(meta) meta.textContent = item.meta || '';
+        card.querySelector('.walrus-rating-wrap')?.remove();
         card.querySelector('.portfolio-blob-controls')?.remove();
     });
     let discovery = container.previousElementSibling;
@@ -2332,6 +2567,7 @@ function initPortfolioCards(){
         <span class="walrus-discovery-pill">↕ ${t('portfolio_discovery_drag')}</span>
         <span class="walrus-discovery-pill">🦭 ${t('portfolio_discovery_tap')}</span>`;
     applyPortfolioOrder(container);
+    renderProfilePresence(profile);
 }
 
 function applyPortfolioOrder(container = document.querySelector('#sec1 .walrus-projects')){
@@ -2481,8 +2717,6 @@ async function savePortfolioBlob(id){
         title: card.querySelector('.walrus-project-title')?.textContent?.trim() || '',
         meta: card.querySelector('.walrus-project-meta')?.textContent?.trim() || '',
         summary: card.dataset.speech || '',
-        fun: portfolioItem.fun || null,
-        tech: portfolioItem.tech || null,
         owner: 'tajumaru.sui',
         lang: currentLang,
         savedAt: new Date().toISOString()
