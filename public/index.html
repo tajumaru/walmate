@@ -1736,13 +1736,55 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .pixel-walrus[data-expression="happy"] .pw-eye::after,
 .pixel-walrus[data-expression="ecstatic"] .pw-eye::after { display: none; }
 .pixel-walrus[data-expression="sleepy"] .pw-mouth { width: 16%; left: 42%; }
-.pixel-walrus[data-expression="baby"] { --pw-idle-shift: -1%; --pw-blush: rgba(255, 182, 193, 0.4); }
+.pixel-walrus[data-expression="baby"] {
+  --pw-idle-shift: -1%;
+  --pw-blush: rgba(255, 182, 193, 0.4);
+  transform: scale(0.88) translateY(2%);
+  transform-origin: center 58%;
+}
+.pixel-walrus[data-expression="baby"] .pw-body {
+  left: 18%;
+  top: calc(43% + var(--pw-idle-shift));
+  width: 64%;
+  height: 31%;
+}
+.pixel-walrus[data-expression="baby"] .pw-head {
+  left: 24%;
+  top: calc(12% + var(--pw-idle-shift));
+  width: 52%;
+  height: 34%;
+}
+.pixel-walrus[data-expression="baby"] .pw-muzzle {
+  left: 32%;
+  top: calc(32% + var(--pw-idle-shift));
+  width: 36%;
+  height: 18%;
+}
+.pixel-walrus[data-expression="baby"] .pw-belly {
+  left: 35%;
+  top: calc(51% + var(--pw-idle-shift));
+  width: 30%;
+  height: 16%;
+}
+.pixel-walrus[data-expression="baby"] .pw-flipper {
+  top: calc(62% + var(--pw-idle-shift));
+  width: 17%;
+  height: 11%;
+}
 .pixel-walrus[data-expression="baby"] .pw-eye {
   top: calc(23% + var(--pw-idle-shift));
   width: 9%;
   height: 10%;
   background: #18374a;
   animation: pixelBabySparkle 0.9s steps(2) infinite;
+}
+.pixel-walrus[data-expression="baby"] .pw-eye-l { left: 34%; }
+.pixel-walrus[data-expression="baby"] .pw-eye-r { right: 34%; }
+.pixel-walrus[data-expression="baby"] .pw-nose {
+  left: 43%;
+  top: calc(36% + var(--pw-idle-shift));
+  width: 14%;
+  height: 6%;
 }
 .pixel-walrus[data-expression="baby"] .pw-eye::after {
   width: 40%;
@@ -1762,6 +1804,17 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   box-shadow: 0 calc(var(--pw-stroke) * 0.72) 0 rgba(255,255,255,0.22);
 }
 .pixel-walrus[data-expression="baby"] .pw-blush { width: 10%; height: 6%; }
+.pixel-walrus[data-expression="baby"] .pw-whisker {
+  top: calc(39% + var(--pw-idle-shift));
+  width: 14%;
+}
+.pixel-walrus[data-expression="baby"] .pw-tusk {
+  top: calc(46% + var(--pw-idle-shift));
+  width: 5%;
+  height: 16%;
+}
+.pixel-walrus[data-expression="baby"] .pw-tusk-l { left: 41%; }
+.pixel-walrus[data-expression="baby"] .pw-tusk-r { right: 41%; }
 .pixel-walrus[data-expression="baby"] .pw-star {
   width: 4%;
   height: 4%;
