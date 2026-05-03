@@ -1260,7 +1260,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-04-app-modules';
+const APP_VERSION = '2026-05-04-split-defer-preload';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';

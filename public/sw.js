@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walmate-pwa-v2026-05-04-release-singlefile';
+const CACHE_NAME = 'walmate-pwa-v2026-05-04-split-defer-preload';
 
 const APP_SHELL = [
   './',

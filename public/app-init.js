@@ -1,18 +1,21 @@
 ﻿// Split from app.js: app init
 
 /* ===== INIT ===== */
-window.addEventListener('load', ()=>{
+window.addEventListener('DOMContentLoaded', ()=>{
+    window.__setBootPhase?.('アセットを準備しています…', 0.18);
     registerServiceWorker();
     
     if(ensureFreshVersion()) {
         location.reload();  // 明示的にリロード
         return;
     }
+    window.__setBootPhase?.('セーブデータを読んでいます…', 0.34);
     loadG();
     currentLang = detectLanguage();
     currentTheme = detectTheme();
     babyModeEnabled = detectBabyMode();
     isMuted = detectMute();
+    window.__setBootPhase?.('画面を組み立てています…', 0.58);
     applyTheme();
     applyLanguage();
     applyBabyMode();
@@ -26,8 +29,10 @@ window.addEventListener('load', ()=>{
     setupPwaInstallPrompt();
     const hasSave = G.lv>1 || G.exp>0 || Math.round(G.hunger)!==70;
     const awayMins = hasSave ? applyTimeDecay() : 0;
+    window.__setBootPhase?.(hasSave ? 'Walrusを起こしています…' : 'たまごをあたためています…', 0.78);
 
     setTimeout(()=>{
+        window.__setBootPhase?.('まもなく入れます…', 0.96);
         document.getElementById('loadScreen').classList.add('hidden');
 
         if(hasSave){
@@ -61,5 +66,5 @@ window.addEventListener('load', ()=>{
                 runHatching();
             }, 320);   // 320ms待機でほぼ確実にアニメが動く
         }
-    }, hasSave ? 1400 : 1800);
+    }, hasSave ? 520 : 760);
 });

@@ -590,6 +590,31 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
 .load-title { font-family: 'Fredoka One', cursive; font-size: clamp(1.3rem,5vw,1.6rem); color: var(--sui-light); text-shadow: 0 0 20px rgba(77,162,255,0.5); letter-spacing: 1px; text-align: center; }
 .load-sub { font-size: clamp(0.78rem,3vw,0.9rem); color: rgba(255,255,255,0.38); letter-spacing: 0.5px; }
 .load-meta { max-width: min(320px, 82vw); font-size: clamp(0.72rem,3vw,0.82rem); line-height: 1.5; color: rgba(228,242,248,0.62); text-align: center; letter-spacing: 0.02em; }
+.load-progress {
+  width: min(260px, 72vw);
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(126,200,255,0.18);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.18);
+}
+.load-progress-fill {
+  width: 14%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal), var(--cyan), var(--sui-light));
+  box-shadow: 0 0 16px rgba(126,200,255,0.35);
+  transition: width 0.32s ease;
+}
+.load-progress-text {
+  min-height: 1.2em;
+  max-width: min(300px, 80vw);
+  color: rgba(228,242,248,0.74);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
 
 /* ===== HATCHING ===== */
 #hatchScreen { gap: 20px; }
