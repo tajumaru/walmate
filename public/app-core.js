@@ -14,12 +14,15 @@ let restartBgCanvasLoop = null;
     const ctx = canvas?.getContext('2d');
     if(!ctx) return;
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const ultraLowPower = isThermalConstrainedDevice();
+    const frameInterval = ultraLowPower ? 1000 / 12 : isLowPowerMobile() ? 1000 / 20 : 1000 / 30;
     let W = 0, H = 0, dpr = 1, rafId = null;
+    let lastFrameTime = 0;
     let cachedRayColor = 'rgba(0,229,176,0.08)';
     let cachedBubbleBorder = 'rgba(0,229,176,0.25)';
     let cachedBubbleFill = 'rgba(0,229,176,0.04)';
     const bgLowPower = isLowPowerMobile();
-    const rays = Array.from({length: bgLowPower ? 4 : 7}, (_, i) => ({
+    const rays = Array.from({length: ultraLowPower ? 2 : bgLowPower ? 4 : 7}, (_, i) => ({
         x: 0.2 + i * 0.1,
         rot: (-30 + i * 12) * Math.PI / 180,
         width: 1 + Math.random(),
@@ -27,7 +30,7 @@ let restartBgCanvasLoop = null;
         speed: 0.00045 + Math.random() * 0.00045,
         phase: Math.random() * Math.PI * 2
     }));
-    const bubbles = Array.from({length: bgLowPower ? 10 : 22}, () => ({
+    const bubbles = Array.from({length: ultraLowPower ? 5 : bgLowPower ? 10 : 22}, () => ({
         x: Math.random(),
         y: Math.random(),
         size: 6 + Math.random() * 36,
@@ -36,7 +39,7 @@ let restartBgCanvasLoop = null;
         phase: Math.random() * Math.PI * 2,
         opacity: 0.08 + Math.random() * 0.22
     }));
-    const nodes = Array.from({length: bgLowPower ? 7 : 15}, () => ({
+    const nodes = Array.from({length: ultraLowPower ? 4 : bgLowPower ? 7 : 15}, () => ({
         x: 0.1 + Math.random() * 0.8,
         y: 0.1 + Math.random() * 0.8,
         size: 5 + Math.random() * 7,
@@ -46,7 +49,7 @@ let restartBgCanvasLoop = null;
     const links = nodes.slice(0, -1).map((node, i) => ({ from: node, to: nodes[(i + 3) % nodes.length], phase: Math.random() }));
 
     function resize(){
-        dpr = Math.min(window.devicePixelRatio || 1, bgLowPower ? 1 : 1.5);
+        dpr = Math.min(window.devicePixelRatio || 1, ultraLowPower ? 0.9 : bgLowPower ? 1 : 1.5);
         W = window.innerWidth;
         H = window.innerHeight;
         canvas.width = Math.floor(W * dpr);
@@ -81,8 +84,13 @@ let restartBgCanvasLoop = null;
     function draw(now = 0){
         rafId = null;
         if(_bgPaused || document.hidden) return;
+        if(lastFrameTime && (now - lastFrameTime) < frameInterval){
+            startLoop();
+            return;
+        }
+        lastFrameTime = now;
         ctx.clearRect(0, 0, W, H);
-        const useCanvasGlow = !isLikelyIOSDevice();
+        const useCanvasGlow = !isLikelyIOSDevice() && !ultraLowPower;
 
         rays.forEach(ray => {
             const pulse = 0.35 + Math.sin(now * ray.speed + ray.phase) * 0.28;
@@ -98,29 +106,31 @@ let restartBgCanvasLoop = null;
             ctx.restore();
         });
 
-        links.forEach(link => {
-            const x1 = link.from.x * W, y1 = link.from.y * H;
-            const x2 = link.to.x * W, y2 = link.to.y * H;
-            ctx.globalAlpha = 0.24;
-            ctx.strokeStyle = 'rgba(126,200,255,0.36)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
+        if(!ultraLowPower){
+            links.forEach(link => {
+                const x1 = link.from.x * W, y1 = link.from.y * H;
+                const x2 = link.to.x * W, y2 = link.to.y * H;
+                ctx.globalAlpha = 0.24;
+                ctx.strokeStyle = 'rgba(126,200,255,0.36)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
 
-            const travel = (now * 0.00018 + link.phase) % 1;
-            ctx.globalAlpha = 0.82;
-            ctx.fillStyle = 'rgba(235,250,255,0.9)';
-            if(useCanvasGlow){
-                ctx.shadowBlur = 14;
-                ctx.shadowColor = 'rgba(126,200,255,0.85)';
-            }
-            ctx.beginPath();
-            ctx.arc(x1 + (x2 - x1) * travel, y1 + (y2 - y1) * travel, 2.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        });
+                const travel = (now * 0.00018 + link.phase) % 1;
+                ctx.globalAlpha = 0.82;
+                ctx.fillStyle = 'rgba(235,250,255,0.9)';
+                if(useCanvasGlow){
+                    ctx.shadowBlur = 14;
+                    ctx.shadowColor = 'rgba(126,200,255,0.85)';
+                }
+                ctx.beginPath();
+                ctx.arc(x1 + (x2 - x1) * travel, y1 + (y2 - y1) * travel, 2.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
 
         nodes.forEach(node => {
             const pulse = 0.65 + Math.sin(now * node.speed + node.phase) * 0.35;
@@ -166,6 +176,7 @@ let restartBgCanvasLoop = null;
         if(document.hidden){
             stopLoop();
         } else {
+            lastFrameTime = 0;
             startLoop();
             // iOSバックグラウンドからの復帰: ウォーク中ならタイマーを再起動
             if(walkState.active) {
@@ -193,7 +204,7 @@ let ambientMonitorTimer = null;
 
 const AMBIENT_SILENCE_THRESHOLD = 0.018;
 const AMBIENT_SILENCE_GRACE_MS = 7000;
-const AMBIENT_SAMPLE_MS = 1200;
+const AMBIENT_SAMPLE_MS = isThermalConstrainedDevice() ? 2400 : 1200;
 const AMBIENT_PENALTY_STEP = 0.05;
 let isMuted = false;
 const MUTE_STORAGE_KEY = 'walrus_muted';
@@ -842,7 +853,7 @@ async function startAmbientMonitor(){
         }
         ambientSource = ctx.createMediaStreamSource(ambientStream);
         ambientAnalyser = ctx.createAnalyser();
-        ambientAnalyser.fftSize = 512;
+        ambientAnalyser.fftSize = isThermalConstrainedDevice() ? 256 : 512;
         ambientAnalyser.smoothingTimeConstant = 0.88;
         ambientAnalyserData = new Uint8Array(ambientAnalyser.fftSize);
         ambientSource.connect(ambientAnalyser);
@@ -1903,6 +1914,10 @@ function isIosDevice(){
 
 function isLowPowerMobile(){
     return isIosDevice() || window.innerWidth < 520 || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+}
+
+function isThermalConstrainedDevice(){
+    return isIosDevice() || (navigator.deviceMemory && navigator.deviceMemory <= 4);
 }
 
 function hasSeenPwaInstallBanner(){

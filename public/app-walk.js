@@ -35,6 +35,16 @@ const WALK_HAPPY_PER_KM = 8;  // 1km = +8 happy
 const WALK_MIN_HUNGER_TO_START = 50;
 const WALK_HUNGER_COST_PER_KM = 18;
 
+function getWalkUiIntervalMs(){
+    return isThermalConstrainedDevice() ? 2000 : 1000;
+}
+
+function getWalkGeoOptions(){
+    return isThermalConstrainedDevice()
+        ? { enableHighAccuracy: false, maximumAge: 15000, timeout: 25000 }
+        : { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 };
+}
+
 let walkState = {
     active: false,
     watchId: null,
@@ -91,7 +101,7 @@ function restoreWalkState() {
         const btn = document.getElementById('walkStartBtn');
         if(btn){ btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ 散歩をやめる' : '⏹ Stop Walk'; }
         clearInterval(walkState.timerInterval);
-        walkState.timerInterval = setInterval(updateWalkUI, 1000);
+        walkState.timerInterval = setInterval(updateWalkUI, getWalkUiIntervalMs());
         updateWalkUI();
         startAmbientMonitor();
         if(navigator.geolocation) {
@@ -111,7 +121,7 @@ function restoreWalkState() {
                     walkState.lastCoord = { lat, lon };
                 },
                 (err) => { console.warn('GPS restore error:', err); },
-                { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
+                getWalkGeoOptions()
             );
         }
         showToast(currentLang === 'ja' ? '🚶 散歩を再開しました' : '🚶 Walk resumed');
@@ -302,7 +312,7 @@ function startWalk() {
     setMsg(currentLang === 'ja' ? '🚶 散歩中！ 音を拾って進化の経験値を集めよう！' : '🚶 Walking! Collect sounds and EXP for evolution!');
     startAmbientMonitor();
 
-    walkState.timerInterval = setInterval(updateWalkUI, 1000);
+    walkState.timerInterval = setInterval(updateWalkUI, getWalkUiIntervalMs());
 
     walkState.watchId = navigator.geolocation.watchPosition(
         (pos) => {
@@ -326,7 +336,7 @@ function startWalk() {
                 showToast(currentLang === 'ja' ? '⚠ GPS取得エラー' : '⚠ GPS error', true);
             }
         },
-        { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
+        getWalkGeoOptions()
     );
 
      // ✅ 追加: バックグラウンド時にGPSを一時停止
@@ -364,7 +374,7 @@ function startWalk() {
                             showToast(currentLang === 'ja' ? '⚠ GPS取得エラー' : '⚠ GPS error', true);
                         }
                     },
-                    { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
+                    getWalkGeoOptions()
                 );
             }
         }

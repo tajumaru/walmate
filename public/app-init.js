@@ -2,6 +2,7 @@
 
 /* ===== INIT ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
+    if(isIosDevice()) document.documentElement.classList.add('ios-device');
     window.__setBootPhase?.('アセットを準備しています…', 0.18);
     registerServiceWorker();
     

@@ -888,15 +888,16 @@ function triggerSakuraPetal() {
 function startRandomEvents() {
     if (eventInterval) clearInterval(eventInterval);
     if(isSakuraEventActive() && !G.sakuraPink){
-        setTimeout(triggerSakuraPetal, 1800);
+        setTimeout(triggerSakuraPetal, isThermalConstrainedDevice() ? 2600 : 1800);
     }
+    const eventDelay = isThermalConstrainedDevice() ? 120000 + Math.random() * 60000 : 60000 + Math.random() * 45000;
     eventInterval = setInterval(() => {
         if (isSakuraEventActive() && !G.sakuraPink && Math.random() < 0.72) {
             triggerSakuraPetal();
             return;
         }
         if (Math.random() < 0.35) triggerGoldenFish();
-    }, 60000 + Math.random() * 45000);
+    }, eventDelay);
 }
 
 /* ===== MINI GAME ===== */

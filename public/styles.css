@@ -628,6 +628,16 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
 @keyframes eggGlowWarning { from{transform:scale(1.05);opacity:0.82} to{transform:scale(1.34);opacity:0.48} }
 @keyframes eggGlowCritical { from{transform:scale(1.12);opacity:1} to{transform:scale(1.5);opacity:0.36} }
 html.ios-device .ocean-bg::after { mix-blend-mode: normal; animation: none; opacity: 0.4; }
+html.ios-device .msg-bubble,
+html.ios-device .legend-preview-card,
+html.ios-device .social-popup,
+html.ios-device .mini-result,
+html.ios-device #legendCertModal,
+html.ios-device #walrusLoadModal,
+html.ios-device .pwa-install-banner {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 .egg-orbit, .egg-shells, .hatch-baby { position: absolute; inset: 0; pointer-events: none; }
 .egg-orbit::before, .egg-orbit::after {
   content: '';
