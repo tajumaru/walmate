@@ -1481,7 +1481,7 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 @keyframes legendRingSpin { to { transform: rotate(360deg); } }
 @keyframes legendRingPulse { from { opacity: 0.62; filter: drop-shadow(0 0 8px rgba(245,208,128,0.75)) drop-shadow(0 0 18px rgba(0,229,176,0.34)); } to { opacity: 1; filter: drop-shadow(0 0 14px rgba(245,208,128,1)) drop-shadow(0 0 30px rgba(0,229,176,0.5)) drop-shadow(0 0 46px rgba(126,200,255,0.3)); } }
 
-.pet-stage { width: 100%; height: 100%; position: relative; cursor: pointer; animation: petBob 2.6s ease-in-out infinite; filter: drop-shadow(0 12px 28px rgba(0,229,176,0.18)); user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: filter 0.32s, transform 0.14s; }
+.pet-stage { width: 100%; height: 100%; position: relative; cursor: pointer; animation: petBob 2.6s ease-in-out infinite; filter: drop-shadow(0 12px 28px rgba(0,229,176,0.18)); user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: filter 0.32s, transform 0.14s; --sound-react: 0; --sound-low: 0; --sound-mid: 0; --sound-high: 0; --sound-hue: 186; }
 .pet-stage.sleepy { animation: petSleep 3s ease-in-out infinite; filter: drop-shadow(0 8px 18px rgba(80,100,200,0.25)); }
 .pet-stage.legend-pet { filter: drop-shadow(0 12px 32px rgba(196,152,64,0.45)); }
 .pet-stage.full { transform: scale(1.03); }
@@ -1539,6 +1539,54 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 }
 .pet-stage.legend-reveal { animation: legendReveal 1.8s ease-out forwards, petBob 2.6s ease-in-out 1.8s infinite; }
 @keyframes legendReveal { 0%{filter:drop-shadow(0 0 0px rgba(196,152,64,0.0))} 30%{filter:drop-shadow(0 0 60px rgba(245,208,128,1.0)) drop-shadow(0 0 120px rgba(196,152,64,0.8))} 100%{filter:drop-shadow(0 12px 32px rgba(196,152,64,0.45))} }
+.pet-stage.sound-feeding {
+  filter:
+    drop-shadow(0 16px 28px rgba(0,229,176,calc(0.18 + var(--sound-react) * 0.24)))
+    drop-shadow(0 0 calc(16px + var(--sound-mid) * 26px) hsla(var(--sound-hue), 95%, 70%, calc(0.18 + var(--sound-mid) * 0.24)));
+}
+.pet-stage.sound-feeding .pixel-walrus {
+  animation:
+    pixelIdle 1.2s steps(2) infinite,
+    soundAbsorbPulse calc(1.2s - var(--sound-low) * 0.45s) ease-in-out infinite;
+}
+.pet-stage.sound-feeding .pw-body,
+.pet-stage.sound-feeding .pw-head,
+.pet-stage.sound-feeding .pw-belly {
+  filter: brightness(calc(1 + var(--sound-low) * 0.12));
+}
+.pet-stage.sound-feeding .pw-aura {
+  opacity: calc(0.5 + var(--sound-mid) * 0.42);
+  transform: scale(calc(1 + var(--sound-mid) * 0.18)) rotate(calc(var(--sound-high) * 18deg));
+  border-color: hsla(var(--sound-hue), 96%, 78%, calc(0.72 + var(--sound-mid) * 0.24));
+  box-shadow:
+    0 0 calc(12px + var(--sound-mid) * 30px) hsla(var(--sound-hue), 95%, 75%, calc(0.14 + var(--sound-mid) * 0.24)),
+    inset 0 0 calc(8px + var(--sound-low) * 18px) rgba(255,255,255,0.12);
+}
+.pet-stage.sound-feeding .pw-blush {
+  transform: scale(calc(1 + var(--sound-mid) * 0.42));
+  opacity: calc(0.62 + var(--sound-mid) * 0.34);
+  background: hsla(calc(var(--sound-hue) - 26), 100%, 74%, calc(0.3 + var(--sound-mid) * 0.38));
+}
+.pet-stage.sound-feeding .pw-whisker-l {
+  transform-origin: right center;
+  transform: translateX(calc(var(--sound-high) * -5%)) rotate(calc(var(--sound-high) * -16deg));
+}
+.pet-stage.sound-feeding .pw-whisker-r {
+  transform-origin: left center;
+  transform: translateX(calc(var(--sound-high) * 5%)) rotate(calc(var(--sound-high) * 16deg));
+}
+.pet-stage.sound-feeding .pw-whisker {
+  opacity: calc(0.56 + var(--sound-high) * 0.38);
+  box-shadow:
+    0 calc(var(--pw-stroke) * 0.85) 0 rgba(255,255,255,calc(0.42 + var(--sound-high) * 0.34)),
+    0 calc(var(--pw-stroke) * 1.7) 0 rgba(255,255,255,calc(0.4 + var(--sound-high) * 0.3));
+}
+@keyframes soundAbsorbPulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  28% { transform: translateY(calc(var(--sound-low) * -3px)) scale(calc(1 + var(--sound-low) * 0.05), calc(1 - var(--sound-low) * 0.03)); }
+  52% { transform: translateY(calc(var(--sound-react) * -5px)) scale(calc(1 - var(--sound-low) * 0.02), calc(1 + var(--sound-low) * 0.06)); }
+  78% { transform: translateY(calc(var(--sound-react) * -2px)) scale(calc(1 + var(--sound-mid) * 0.03)); }
+}
 
 /* ===== PIXEL WALRUS ===== */
 .pixel-walrus {
@@ -4616,16 +4664,35 @@ let restartBgCanvasLoop = null;
 // ===== WEB AUDIO =====
 let audioCtx = null;
 let masterGain = null;
+let soundAnalyser = null;
+let soundAnalyserData = null;
+let soundVizFrame = 0;
 let isMuted = false;
 const MUTE_STORAGE_KEY = 'walrus_muted';
 
+function ensureSoundAnalyser(){
+    const ctx = getAudioCtx();
+    if(!ctx) return null;
+    if(soundAnalyser && soundAnalyser.context === ctx) return soundAnalyser;
+    soundAnalyser = ctx.createAnalyser();
+    soundAnalyser.fftSize = 256;
+    soundAnalyser.smoothingTimeConstant = 0.82;
+    soundAnalyser.minDecibels = -88;
+    soundAnalyser.maxDecibels = -18;
+    soundAnalyserData = new Uint8Array(soundAnalyser.frequencyBinCount);
+    soundAnalyser.connect(ctx.destination);
+    return soundAnalyser;
+}
+
 function getMasterGain(){
     if(!audioCtx) return null;
+    const analyser = ensureSoundAnalyser();
     if(!masterGain){
         masterGain = audioCtx.createGain();
         masterGain.gain.value = isMuted ? 0 : 1;
-        masterGain.connect(audioCtx.destination);
     }
+    try { masterGain.disconnect(); } catch(e){}
+    masterGain.connect(analyser || audioCtx.destination);
     return masterGain;
 }
 function toggleMute(){
@@ -4682,6 +4749,10 @@ window.addEventListener('pagehide', () => {
 
     audioCtx = null;
     masterGain = null;
+    soundAnalyser = null;
+    soundAnalyserData = null;
+    cancelAnimationFrame(soundVizFrame);
+    soundVizFrame = 0;
 }, { passive: true });
 
 
@@ -5182,6 +5253,69 @@ function _scheduleBar(ctx, barT, barDur, bpm, vol){
     if(soundSlots.fx)     _playFx(ctx, soundSlots.fx.area,   barT, barDur, vol);
 }
 
+function sampleBand(data, start, end){
+    const safeStart = Math.max(0, start | 0);
+    const safeEnd = Math.max(safeStart + 1, Math.min(data.length, end | 0));
+    let total = 0;
+    for(let i = safeStart; i < safeEnd; i++) total += data[i];
+    return total / (safeEnd - safeStart);
+}
+
+function normalizeBandEnergy(value, floor = 26, ceil = 170){
+    return clampNumber((value - floor) / (ceil - floor), 0, 1, 0);
+}
+
+function clearSoundReactiveStage(){
+    const stage = document.getElementById('petStage');
+    if(!stage) return;
+    stage.classList.remove('sound-feeding');
+    stage.style.removeProperty('--sound-react');
+    stage.style.removeProperty('--sound-low');
+    stage.style.removeProperty('--sound-mid');
+    stage.style.removeProperty('--sound-high');
+    stage.style.removeProperty('--sound-hue');
+}
+
+function syncSoundReactiveStage(forceIdle = false){
+    const stage = document.getElementById('petStage');
+    if(!stage) return;
+    if(forceIdle || !isTrackPlaying || !soundAnalyser || !soundAnalyserData){
+        clearSoundReactiveStage();
+        return;
+    }
+    const low = normalizeBandEnergy(sampleBand(soundAnalyserData, 1, 6), 28, 172);
+    const mid = normalizeBandEnergy(sampleBand(soundAnalyserData, 6, 22), 24, 164);
+    const high = normalizeBandEnergy(sampleBand(soundAnalyserData, 22, 64), 22, 156);
+    const react = clampNumber(low * 0.96 + mid * 0.28, 0, 1, 0);
+    const hue = Math.round(182 + high * 34 - low * 12 + mid * 8);
+    stage.classList.add('sound-feeding');
+    stage.style.setProperty('--sound-react', react.toFixed(3));
+    stage.style.setProperty('--sound-low', low.toFixed(3));
+    stage.style.setProperty('--sound-mid', mid.toFixed(3));
+    stage.style.setProperty('--sound-high', high.toFixed(3));
+    stage.style.setProperty('--sound-hue', String(hue));
+}
+
+function startSoundReactiveStage(){
+    const analyser = ensureSoundAnalyser();
+    if(!analyser || !soundAnalyserData){
+        clearSoundReactiveStage();
+        return;
+    }
+    cancelAnimationFrame(soundVizFrame);
+    const render = () => {
+        if(!isTrackPlaying || !soundAnalyser || !soundAnalyserData){
+            clearSoundReactiveStage();
+            soundVizFrame = 0;
+            return;
+        }
+        soundAnalyser.getByteFrequencyData(soundAnalyserData);
+        syncSoundReactiveStage();
+        soundVizFrame = requestAnimationFrame(render);
+    };
+    render();
+}
+
 function toggleTrack(){
     if(isTrackPlaying) stopTrack(); else startTrack();
 }
@@ -5204,6 +5338,8 @@ function startTrack(){
     if(ctx.state === 'suspended'){
         ctx.resume().catch(()=>{});
     }
+
+    getMasterGain();
 
     isTrackPlaying = true;
 
@@ -5228,6 +5364,7 @@ function startTrack(){
     };
 
     scheduler();
+    startSoundReactiveStage();
 
     renderSoundSlots();
     setMsg(currentLang==='ja' ? `🎵 演奏スタート！ BPM ${bpm}` : `🎵 Track playing! BPM ${bpm}`);
@@ -5237,6 +5374,9 @@ function startTrack(){
 function stopTrack(){
     isTrackPlaying = false;
     if(soundLoopTimer){ clearTimeout(soundLoopTimer); soundLoopTimer=null; }
+    cancelAnimationFrame(soundVizFrame);
+    soundVizFrame = 0;
+    clearSoundReactiveStage();
     renderSoundSlots();
     setMsg(currentLang==='ja' ? '🎵 演奏停止' : '🎵 Track stopped');
 }
@@ -7104,6 +7244,7 @@ function updateUI(){
     if(!stage.classList.contains('bounce') && !stage.classList.contains('shake') && !stage.classList.contains('legend-reveal') && !stage.classList.contains('action-feed') && !stage.classList.contains('action-pet') && !stage.classList.contains('action-play')){
         stage.className = getPetClasses();
     }
+    syncSoundReactiveStage();
 
     document.getElementById('zzzWrap').style.display = mood==='sleepy' ? 'block':'none';
     const showRing = G.lv >= 4;

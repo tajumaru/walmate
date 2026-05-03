@@ -1,4 +1,4 @@
-const CACHE_NAME = 'walmate-pwa-v2026-05-02-pixel-walrus';
+const CACHE_NAME = 'walmate-pwa-v2026-05-03-sound-feed-reactive';
 
 const APP_SHELL = [
   './',
