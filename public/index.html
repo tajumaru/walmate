@@ -544,6 +544,38 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
   font-size: 0.6rem; color: rgba(255,255,255,0.26); font-weight: 900;
   letter-spacing: 0.08em; text-transform: uppercase; margin: 7px 0 5px;
 }
+.sound-memory-summary {
+  border-radius: 12px;
+  padding: 10px 11px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, rgba(0,229,176,0.08), rgba(255,122,170,0.08));
+  border: 1px solid rgba(0,229,176,0.18);
+}
+.sound-memory-summary.empty {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.08);
+}
+.sound-memory-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 6px;
+}
+.sound-memory-title {
+  color: rgba(228,242,248,0.9); font-size: 0.72rem; font-weight: 900;
+}
+.sound-memory-total {
+  color: rgba(0,229,176,0.78); font-size: 0.58rem; font-weight: 800; letter-spacing: 0.08em;
+}
+.sound-memory-note {
+  color: rgba(255,255,255,0.72); font-size: 0.68rem; line-height: 1.5; margin-bottom: 7px;
+}
+.sound-memory-traits {
+  display: flex; flex-wrap: wrap; gap: 5px;
+}
+.sound-memory-chip {
+  padding: 4px 7px; border-radius: 999px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(228,242,248,0.76); font-size: 0.6rem; font-weight: 700;
+}
 .sound-memory-list {
   display: flex; flex-direction: column; gap: 5px;
   max-height: 104px; overflow-y: auto;
@@ -856,7 +888,13 @@ will-change: transform, opacity;
 }
 
 /* ===== MAIN SCREEN ===== */
-#mainScreen { overflow-y: auto; align-items: stretch; padding: 0; }
+#mainScreen { overflow-y: auto; align-items: stretch; padding: 0; transition: filter 0.35s ease, background 0.35s ease; }
+#mainScreen.sound-starved {
+  filter: saturate(0.88) brightness(0.9);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(8,18,34,0.18), rgba(2,6,14,0.42)),
+    var(--bg-linear);
+}
 .main-inner {
   position: relative;
   z-index: 2;
@@ -886,6 +924,7 @@ will-change: transform, opacity;
 .alert-sleepy { background: rgba(100,100,180,0.18); color: #aac; border: 1px solid rgba(100,100,180,0.35); }
 .alert-legend { background: rgba(196,152,64,0.18); color: var(--gold); border: 1px solid rgba(196,152,64,0.35); animation: none; }
 .alert-sakura { background: rgba(255,122,170,0.16); color: #ffc6d8; border: 1px solid rgba(255,122,170,0.38); animation: none; }
+.alert-silence { background: rgba(92,116,178,0.18); color: #c4d2ff; border: 1px solid rgba(124,146,210,0.42); }
 @keyframes alertPulse { from{opacity:1} to{opacity:0.55} }
 
 /* ===== TAMAGOTCHI DEVICE ===== */
@@ -4195,7 +4234,7 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
         <!-- ===== SOUND LAB ===== -->
         <div class="sound-lab" id="soundLab">
             <div class="sound-lab-header">
-                <div class="sound-lab-title">🎵 サウンドラボ</div>
+                <div class="sound-lab-title" id="soundLabTitle">🎵 サウンドキッチン</div>
                 <div class="sound-bpm-display">BPM <span id="soundBpmVal">90</span></div>
             </div>
             <div class="sound-zone-row">
@@ -4231,7 +4270,9 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
                 <button class="sound-sm-btn" onclick="saveMemoryTrack()">💾</button>
                 <button class="sound-sm-btn" onclick="clearAllSlots()">✕</button>
             </div>
-            <div class="sound-memory-label">📼 思い出トラック</div>
+            <div class="sound-memory-label" id="soundDietLabel">④ 音の記憶</div>
+            <div class="sound-memory-summary empty" id="soundDietCard"></div>
+            <div class="sound-memory-label" id="soundTrackLabel">📼 思い出トラック</div>
             <div class="sound-memory-list" id="soundMemoryList"></div>
         </div>
 
@@ -4667,6 +4708,16 @@ let masterGain = null;
 let soundAnalyser = null;
 let soundAnalyserData = null;
 let soundVizFrame = 0;
+let ambientStream = null;
+let ambientSource = null;
+let ambientAnalyser = null;
+let ambientAnalyserData = null;
+let ambientMonitorTimer = null;
+
+const AMBIENT_SILENCE_THRESHOLD = 0.018;
+const AMBIENT_SILENCE_GRACE_MS = 7000;
+const AMBIENT_SAMPLE_MS = 1200;
+const AMBIENT_PENALTY_STEP = 0.05;
 let isMuted = false;
 const MUTE_STORAGE_KEY = 'walrus_muted';
 
@@ -4753,6 +4804,7 @@ window.addEventListener('pagehide', () => {
     soundAnalyserData = null;
     cancelAnimationFrame(soundVizFrame);
     soundVizFrame = 0;
+    stopAmbientMonitor();
 }, { passive: true });
 
 
@@ -4781,6 +4833,7 @@ function sfxKuu(){
 // ===== SOUND LAB =====
 const SOUND_STORAGE_KEY = 'walrus_sound_slots';
 const SOUND_MEMORY_KEY  = 'walrus_sound_memory';
+const SOUND_DIET_RECENT_MAX = 8;
 
 let activeZone = 'beach';
 let soundSlots = { drum: null, bass: null, melody: null, fx: null };
@@ -4800,6 +4853,126 @@ const SOUND_DEF = {
 };
 const ZONE_EMOJI = { beach:'🌊', forest:'🌿', city:'🏙', ruins:'🏚' };
 const SLOT_KEYS = ['drum','bass','melody','fx'];
+
+function createEmptySoundDiet(dateKey = getLocalDateKey()){
+    return {
+        dateKey,
+        total: 0,
+        zones: { beach: 0, forest: 0, city: 0, ruins: 0 },
+        slots: { drum: 0, bass: 0, melody: 0, fx: 0 },
+        recent: []
+    };
+}
+
+function normalizeSoundDiet(diet){
+    const base = createEmptySoundDiet();
+    const next = (diet && typeof diet === 'object') ? diet : {};
+    base.dateKey = typeof next.dateKey === 'string' ? next.dateKey : getLocalDateKey();
+    base.total = Math.max(0, Number(next.total) || 0);
+    Object.keys(base.zones).forEach(key => {
+        base.zones[key] = Math.max(0, Number(next.zones?.[key]) || 0);
+    });
+    Object.keys(base.slots).forEach(key => {
+        base.slots[key] = Math.max(0, Number(next.slots?.[key]) || 0);
+    });
+    base.recent = Array.isArray(next.recent) ? next.recent.slice(0, SOUND_DIET_RECENT_MAX) : [];
+    return base;
+}
+
+function ensureSoundDietFresh(){
+    const today = getLocalDateKey();
+    if(!G.soundDiet || G.soundDiet.dateKey !== today){
+        G.soundDiet = createEmptySoundDiet(today);
+        saveG();
+    }
+    return G.soundDiet;
+}
+
+function pickDominantKey(counts, order){
+    let winner = order[0] || '';
+    let best = -1;
+    order.forEach(key => {
+        const score = Number(counts?.[key]) || 0;
+        if(score > best){
+            best = score;
+            winner = key;
+        }
+    });
+    return winner;
+}
+
+function getSoundFlavorLabel(zone, slotType){
+    const map = {
+        beach: {
+            drum: currentLang === 'ja' ? '波打ちビート' : 'wave beat',
+            bass: currentLang === 'ja' ? '潮の低音' : 'tide bass',
+            melody: currentLang === 'ja' ? '雨音みたいな海風' : 'rainy sea breeze',
+            fx: currentLang === 'ja' ? '雨音っぽいしぶき' : 'rainy ocean mist'
+        },
+        forest: {
+            drum: currentLang === 'ja' ? '木の実ノック' : 'wood knock',
+            bass: currentLang === 'ja' ? '根っこのうなり' : 'root hum',
+            melody: currentLang === 'ja' ? '森のさえずり' : 'forest trill',
+            fx: currentLang === 'ja' ? '葉っぱのささやき' : 'leaf whisper'
+        },
+        city: {
+            drum: currentLang === 'ja' ? 'クラブ音みたいなキック' : 'club kick',
+            bass: currentLang === 'ja' ? 'クラブ音みたいな低音' : 'club bass',
+            melody: currentLang === 'ja' ? 'ネオンのきらめき' : 'neon ping',
+            fx: currentLang === 'ja' ? '街の空気ノイズ' : 'city air noise'
+        },
+        ruins: {
+            drum: currentLang === 'ja' ? '遺跡のこだま' : 'ruin clap',
+            bass: currentLang === 'ja' ? '残響ドローン' : 'echo drone',
+            melody: currentLang === 'ja' ? '幽かなベル' : 'ghost bell',
+            fx: currentLang === 'ja' ? '深い残響ノイズ' : 'deep echo noise'
+        }
+    };
+    return map[zone]?.[slotType] || (currentLang === 'ja' ? 'ふしぎな音' : 'strange sound');
+}
+
+function getSoundDietInsight(){
+    const diet = ensureSoundDietFresh();
+    const favoriteZone = pickDominantKey(diet.zones, ['beach','forest','city','ruins']);
+    const favoriteSlot = pickDominantKey(diet.slots, SLOT_KEYS);
+    const favoriteLabel = getSoundFlavorLabel(favoriteZone, favoriteSlot);
+    let personality;
+    let evolution;
+    if((favoriteZone === 'city') && (favoriteSlot === 'drum' || favoriteSlot === 'bass')){
+        personality = currentLang === 'ja' ? '夜ふかしビート好き' : 'night-owl beat lover';
+        evolution = currentLang === 'ja' ? 'クラブ音で進化しそう' : 'might evolve through club sounds';
+    } else if(favoriteZone === 'beach' && (favoriteSlot === 'fx' || favoriteSlot === 'melody')){
+        personality = currentLang === 'ja' ? 'おだやかな雨音好き' : 'calm rain-sound lover';
+        evolution = currentLang === 'ja' ? '雨音で進化しそう' : 'might evolve through rain sounds';
+    } else if(favoriteZone === 'forest' && (favoriteSlot === 'melody' || favoriteSlot === 'fx')){
+        personality = currentLang === 'ja' ? 'やさしい森音好き' : 'gentle forest-sound lover';
+        evolution = currentLang === 'ja' ? '森の声で進化しそう' : 'might evolve through forest voices';
+    } else if(favoriteZone === 'ruins' && (favoriteSlot === 'bass' || favoriteSlot === 'fx')){
+        personality = currentLang === 'ja' ? 'ミステリアスな残響好き' : 'mysterious echo lover';
+        evolution = currentLang === 'ja' ? '残響で進化しそう' : 'might evolve through echoes';
+    } else {
+        const byZone = {
+            beach: currentLang === 'ja' ? 'のんびり潮風タイプ' : 'easygoing tide type',
+            forest: currentLang === 'ja' ? '静かな森タイプ' : 'quiet forest type',
+            city: currentLang === 'ja' ? 'せっかちシティタイプ' : 'restless city type',
+            ruins: currentLang === 'ja' ? '深海ミステリータイプ' : 'deep-sea mystery type'
+        };
+        personality = byZone[favoriteZone] || (currentLang === 'ja' ? '気まぐれタイプ' : 'moody type');
+        evolution = currentLang === 'ja' ? `${favoriteLabel}で育ちそう` : `seems shaped by ${favoriteLabel}`;
+    }
+    return { diet, favoriteZone, favoriteSlot, favoriteLabel, personality, evolution };
+}
+
+function registerSoundMeal(slotType, zone){
+    const diet = ensureSoundDietFresh();
+    diet.total += 1;
+    if(Object.prototype.hasOwnProperty.call(diet.zones, zone)) diet.zones[zone] += 1;
+    if(Object.prototype.hasOwnProperty.call(diet.slots, slotType)) diet.slots[slotType] += 1;
+    diet.recent.unshift({ slotType, zone, ts: Date.now() });
+    if(diet.recent.length > SOUND_DIET_RECENT_MAX) diet.recent.length = SOUND_DIET_RECENT_MAX;
+    saveG();
+    renderSoundDietCard();
+}
 
 function getSoundBpm(){
     let b = 88;
@@ -4851,8 +5024,8 @@ function renderSoundSlots(){
     const btn = document.getElementById('soundPlayBtn');
     if(btn){
         btn.textContent = isTrackPlaying
-            ? (currentLang === 'ja' ? '⏹ ストップ' : '⏹ Stop')
-            : (currentLang === 'ja' ? '▶ 演奏する' : '▶ Play');
+            ? (currentLang === 'ja' ? '⏹ おなか休み' : '⏹ Digesting break')
+            : (currentLang === 'ja' ? '▶ 音を食べる' : '▶ Feed sounds');
         btn.classList.toggle('playing', isTrackPlaying);
         btn.disabled = !anyFilled;
     }
@@ -4895,9 +5068,11 @@ function collectSoundPiece(slotType, zone){
     soundSlots[slotType] = { area:zone, ts:Date.now() };
     saveSoundSlots();
     renderSoundSlots();
+    registerSoundMeal(slotType, zone);
+    const insight = getSoundDietInsight();
     const msg = currentLang === 'ja'
-        ? `🎵 ${ZONE_EMOJI[zone]}「${def.name}」を拾った！`
-        : `🎵 Found "${def.name}" (${zone})!`;
+        ? `🦭 ${ZONE_EMOJI[zone]}「${def.name}」をぱくっ。${insight.favoriteLabel}が好きみたい`
+        : `🦭 Ate "${def.name}". Seems to like ${insight.favoriteLabel}.`;
     setMsg(msg);
     haptic([20,10,30]);
     sfxSoundPick();
@@ -5044,6 +5219,7 @@ function collectWalkSoundPiece(){
 
     saveSoundSlots();
     renderSoundSlots();
+    registerSoundMeal(slotType, zone);
 
     // 履歴用：最大20件まで
     walkState.collected = walkState.collected || [];
@@ -5070,9 +5246,162 @@ function collectWalkSoundPiece(){
 
     showToast(
         currentLang === 'ja'
-            ? `🎧 ${def.emoji} ${def.name} を拾った！`
-            : `🎧 Found ${def.emoji} ${def.name}!`
+            ? `🦭 ${def.emoji} ${def.name} を食べた！`
+            : `🦭 Ate ${def.emoji} ${def.name}!`
     );
+}
+
+function renderSoundDietCard(){
+    const card = document.getElementById('soundDietCard');
+    if(!card) return;
+    const { diet, favoriteLabel, personality, evolution } = getSoundDietInsight();
+    if(!diet.total){
+        card.className = 'sound-memory-summary empty';
+        card.innerHTML = currentLang === 'ja'
+            ? `<div class="sound-memory-note">まだ音を味見していません。散歩して、この子の好物を見つけよう。</div>`
+            : `<div class="sound-memory-note">No sound meals yet. Go for a walk and discover this one's taste.</div>`;
+        return;
+    }
+    card.className = 'sound-memory-summary';
+    const totalLabel = currentLang === 'ja'
+        ? `今日 ${diet.total} くち`
+        : `TODAY ${diet.total} BITE${diet.total > 1 ? 'S' : ''}`;
+    const note = currentLang === 'ja'
+        ? `「この子、${favoriteLabel}好きだな」`
+        : `Seems to love ${favoriteLabel}.`;
+    card.innerHTML = `
+        <div class="sound-memory-head">
+            <div class="sound-memory-title">${currentLang === 'ja' ? '今日の音ぐせ' : "Today's sound habit"}</div>
+            <div class="sound-memory-total">${totalLabel}</div>
+        </div>
+        <div class="sound-memory-note">${note}</div>
+        <div class="sound-memory-traits">
+            <span class="sound-memory-chip">${personality}</span>
+            <span class="sound-memory-chip">${evolution}</span>
+        </div>
+    `;
+}
+
+function computeAmbientLevel(data){
+    if(!data?.length) return 0;
+    let sum = 0;
+    for(let i = 0; i < data.length; i += 1){
+        const n = (data[i] - 128) / 128;
+        sum += n * n;
+    }
+    return Math.sqrt(sum / data.length);
+}
+
+function setSoundStarvedUI(active){
+    const main = document.getElementById('mainScreen');
+    if(main) main.classList.toggle('sound-starved', !!active);
+}
+
+function isSoundStarved(now = Date.now()){
+    return !!(walkState.active && walkState.isSilent && walkState.silentSince && (now - walkState.silentSince) >= AMBIENT_SILENCE_GRACE_MS);
+}
+
+function applySilencePenalty(now = Date.now()){
+    if(!isSoundStarved(now)) return;
+    const lastPenalty = walkState.lastSilencePenaltyAt || 0;
+    if(lastPenalty && (now - lastPenalty) < 1000) return;
+    walkState.lastSilencePenaltyAt = now;
+    walkState.silencePenalty = (Number(walkState.silencePenalty) || 0) + AMBIENT_PENALTY_STEP;
+    G.hunger = Math.max(0, G.hunger - AMBIENT_PENALTY_STEP);
+    if(!walkState.lastSilenceWarnAt || (now - walkState.lastSilenceWarnAt) > 9000){
+        walkState.lastSilenceWarnAt = now;
+        setMsg(
+            currentLang === 'ja'
+                ? '静かすぎるよ… もう少し音を食べたいな'
+                : 'It is too quiet... I need a little more sound to eat.',
+            true
+        );
+    }
+    saveG();
+    updateUI();
+    updateWalkUI();
+}
+
+function updateAmbientSilenceState(level){
+    const now = Date.now();
+    walkState.ambientLevel = level;
+    const silent = level < AMBIENT_SILENCE_THRESHOLD;
+    if(silent){
+        if(!walkState.silentSince) walkState.silentSince = now;
+        walkState.isSilent = true;
+    } else {
+        walkState.isSilent = false;
+        walkState.silentSince = 0;
+        walkState.lastSilencePenaltyAt = 0;
+    }
+    setSoundStarvedUI(isSoundStarved(now));
+    applySilencePenalty(now);
+    updateWalkHero();
+}
+
+async function startAmbientMonitor(){
+    if(!walkState.active || ambientMonitorTimer) return;
+    walkState.micState = 'requesting';
+    try{
+        if(!navigator.mediaDevices?.getUserMedia){
+            walkState.micState = 'unsupported';
+            updateWalkHero();
+            return;
+        }
+        ambientStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            }
+        });
+        const ctx = getAudioCtx();
+        if(!ctx){
+            try { ambientStream.getTracks().forEach(track => track.stop()); } catch(e){}
+            ambientStream = null;
+            walkState.micState = 'unavailable';
+            updateWalkHero();
+            return;
+        }
+        ambientSource = ctx.createMediaStreamSource(ambientStream);
+        ambientAnalyser = ctx.createAnalyser();
+        ambientAnalyser.fftSize = 512;
+        ambientAnalyser.smoothingTimeConstant = 0.88;
+        ambientAnalyserData = new Uint8Array(ambientAnalyser.fftSize);
+        ambientSource.connect(ambientAnalyser);
+        walkState.micState = 'active';
+        updateWalkHero();
+        ambientMonitorTimer = setInterval(() => {
+            if(!walkState.active || !ambientAnalyser || !ambientAnalyserData) return;
+            ambientAnalyser.getByteTimeDomainData(ambientAnalyserData);
+            updateAmbientSilenceState(computeAmbientLevel(ambientAnalyserData));
+        }, AMBIENT_SAMPLE_MS);
+    }catch(e){
+        console.warn('Ambient monitor failed:', e);
+        walkState.micState = 'denied';
+        updateWalkHero();
+    }
+}
+
+function stopAmbientMonitor(){
+    if(ambientMonitorTimer){
+        clearInterval(ambientMonitorTimer);
+        ambientMonitorTimer = null;
+    }
+    try { ambientSource?.disconnect(); } catch(e){}
+    if(ambientStream){
+        try { ambientStream.getTracks().forEach(track => track.stop()); } catch(e){}
+    }
+    ambientStream = null;
+    ambientSource = null;
+    ambientAnalyser = null;
+    ambientAnalyserData = null;
+    walkState.ambientLevel = 0;
+    walkState.isSilent = false;
+    walkState.silentSince = 0;
+    walkState.lastSilencePenaltyAt = 0;
+    walkState.micState = 'idle';
+    setSoundStarvedUI(false);
 }
 
 
@@ -5454,7 +5783,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-02-walk-core-loop';
+const APP_VERSION = '2026-05-04-silence-penalty';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -5480,6 +5809,9 @@ const I18N_LEGACY = {
         newborn_guide_copy: 'まずは <strong>散歩</strong> に行こう。<strong>満腹50%以上</strong> なら出発できて、歩くと <strong>音</strong> と <strong>経験値</strong> が集まるよ。',
         main_title: 'たじゅまるのWalrus',
         main_sub: '散歩して音を集めて、Walrusを進化させよう',
+        sound_lab_title: '🎵 サウンドキッチン',
+        sound_memory_title: '④ 音の記憶',
+        sound_track_title: '📼 思い出トラック',
         feed: '餌やり',
         pet: 'なでなで',
         play: '遊ぶ',
@@ -5649,6 +5981,9 @@ const I18N_LEGACY = {
         newborn_guide_copy: 'Start with a <strong>walk</strong>. You can leave only when <strong>hunger is 50%+</strong>, and walking collects <strong>sounds</strong> plus <strong>EXP</strong>.',
         main_title: "Tajumaru's Walrus",
         main_sub: 'Walk, collect sounds, and evolve your Walrus',
+        sound_lab_title: '🎵 Sound Kitchen',
+        sound_memory_title: '④ Sound Memory',
+        sound_track_title: '📼 Memory Tracks',
         feed: 'Feed',
         pet: 'Pet',
         play: 'Play',
@@ -6243,6 +6578,9 @@ function applyLanguage(){
     if(document.getElementById('newbornGuideCopy')) document.getElementById('newbornGuideCopy').innerHTML = t('newborn_guide_copy');
     if(q('#mainScreen .main-title')) q('#mainScreen .main-title').textContent = t('main_title');
     if(q('#mainScreen .main-sub')) q('#mainScreen .main-sub').textContent = t('main_sub');
+    if(document.getElementById('soundLabTitle')) document.getElementById('soundLabTitle').textContent = t('sound_lab_title');
+    if(document.getElementById('soundDietLabel')) document.getElementById('soundDietLabel').textContent = t('sound_memory_title');
+    if(document.getElementById('soundTrackLabel')) document.getElementById('soundTrackLabel').textContent = t('sound_track_title');
     if(document.getElementById('btnFeedLabel')) document.getElementById('btnFeedLabel').textContent = t('feed');
     if(document.getElementById('btnPetLabel')) document.getElementById('btnPetLabel').textContent = t('pet');
     if(document.getElementById('btnPlayLabel')) document.getElementById('btnPlayLabel').textContent = t('play');
@@ -7074,7 +7412,8 @@ const DEFAULT_GAME_STATE = Object.freeze({
     legendPath: '',
     legendEvolution: false,
     petName: 'たじゅまる',
-    custom: { color: 'gold', accessory: 'none' }
+    custom: { color: 'gold', accessory: 'none' },
+    soundDiet: createEmptySoundDiet('1970-01-01')
 });
 
 function createGameState(overrides = {}){
@@ -7085,7 +7424,8 @@ function createGameState(overrides = {}){
         custom: {
             ...DEFAULT_GAME_STATE.custom,
             ...(overrides.custom || {})
-        }
+        },
+        soundDiet: normalizeSoundDiet(overrides.soundDiet || DEFAULT_GAME_STATE.soundDiet)
     };
     return normalizeGameState(merged);
 }
@@ -7097,6 +7437,7 @@ function normalizeGameState(state){
     if(!state.legendPath) state.legendPath = '';
     state.legendEvolution = !!state.legendEvolution;
     if(!state.petName || typeof state.petName !== 'string') state.petName = DEFAULT_GAME_STATE.petName;
+    state.soundDiet = normalizeSoundDiet(state.soundDiet);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -7236,6 +7577,13 @@ function updateUI(){
     if(G.sakuraPink) alerts.innerHTML += `<span class="alert-tag alert-sakura">${currentLang === 'ja' ? '🌸 桜Walrus' : '🌸 Sakura Walrus'}</span>`;
     else if(G.sakuraPetals > 0) alerts.innerHTML += `<span class="alert-tag alert-sakura">🌸 ${G.sakuraPetals}/${SAKURA_PETALS_REQUIRED}</span>`;
     if(G.lv === 4) alerts.innerHTML += `<span class="alert-tag alert-legend">✦ LEGEND</span>`;
+    if((G.soundDiet?.total || 0) > 0){
+        const insight = getSoundDietInsight();
+        alerts.innerHTML += `<span class="alert-tag alert-happy">🎵 ${insight.favoriteLabel}</span>`;
+    }
+    if(isSoundStarved()){
+        alerts.innerHTML += `<span class="alert-tag alert-silence">${currentLang === 'ja' ? '🔇 静かすぎる…' : '🔇 Too quiet...'}</span>`;
+    }
 
     const stage = document.getElementById('petStage');
     renderWalrusMarkup(stage, G.lv, mood, expression);
@@ -7245,6 +7593,7 @@ function updateUI(){
         stage.className = getPetClasses();
     }
     syncSoundReactiveStage();
+    renderSoundDietCard();
 
     document.getElementById('zzzWrap').style.display = mood==='sleepy' ? 'block':'none';
     const showRing = G.lv >= 4;
@@ -9807,7 +10156,14 @@ let walkState = {
     totalMeters: 0,
     expEarned: 0,
     hungerSpent: 0,
-    collected: []
+    collected: [],
+    ambientLevel: 0,
+    micState: 'idle',
+    isSilent: false,
+    silentSince: 0,
+    silencePenalty: 0,
+    lastSilencePenaltyAt: 0,
+    lastSilenceWarnAt: 0
 };
 
 /* --- Walk state persistence (iOS background対策) --- */
@@ -9838,11 +10194,18 @@ function restoreWalkState() {
         walkState.expEarned   = saved.expEarned   || 0;
         walkState.hungerSpent = saved.hungerSpent || 0;
         walkState.lastCoord   = null;
+        walkState.ambientLevel = 0;
+        walkState.isSilent = false;
+        walkState.silentSince = 0;
+        walkState.silencePenalty = 0;
+        walkState.lastSilencePenaltyAt = 0;
+        walkState.lastSilenceWarnAt = 0;
         const btn = document.getElementById('walkStartBtn');
         if(btn){ btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ 散歩をやめる' : '⏹ Stop Walk'; }
         clearInterval(walkState.timerInterval);
         walkState.timerInterval = setInterval(updateWalkUI, 1000);
         updateWalkUI();
+        startAmbientMonitor();
         if(navigator.geolocation) {
             walkState.watchId = navigator.geolocation.watchPosition(
                 (pos) => {
@@ -9916,7 +10279,11 @@ function updateWalkHero() {
     const btn = document.getElementById('walkStartBtn');
 
     if(desire) {
-        if(walkState.active) {
+        if(isSoundStarved()) {
+            desire.textContent = isJa
+                ? '「静かすぎるよ… ポケットの外で音を食べたいな」'
+                : '"It is too quiet... let me hear the world outside your pocket."';
+        } else if(walkState.active) {
             desire.textContent = isJa
                 ? '「いい音がありそう！ もっと先まで歩こう！」'
                 : '"I hear something out there. Let us keep walking!"';
@@ -9936,8 +10303,16 @@ function updateWalkHero() {
     }
 
     if(ctaNote) {
-        ctaNote.classList.toggle('warn', !walkState.active && G.hunger < WALK_MIN_HUNGER_TO_START);
-        if(walkState.active) {
+        ctaNote.classList.toggle('warn', (!walkState.active && G.hunger < WALK_MIN_HUNGER_TO_START) || isSoundStarved());
+        if(isSoundStarved()) {
+            ctaNote.textContent = isJa
+                ? `静音ペナルティ中。少しずつ満腹が減ります (-${walkState.silencePenalty.toFixed(2)}%)`
+                : `Silence penalty active. Hunger is slowly dropping (-${walkState.silencePenalty.toFixed(2)}%).`;
+        } else if(walkState.active && walkState.micState === 'denied') {
+            ctaNote.textContent = isJa
+                ? '周囲の音を検知できません。マイクを許可すると無音ペナルティを判定できます。'
+                : 'Ambient sound is unavailable. Allow microphone access to enable silence detection.';
+        } else if(walkState.active) {
             ctaNote.textContent = isJa
                 ? `歩くほど満腹が減るよ。今の散歩コスト: -${walkState.hungerSpent}%`
                 : `Walking drains hunger. Current walk cost: -${walkState.hungerSpent}%`;
@@ -10025,11 +10400,19 @@ function startWalk() {
     walkState.totalMeters = 0;
     walkState.expEarned = 0;
     walkState.hungerSpent = 0;
+    walkState.ambientLevel = 0;
+    walkState.micState = 'idle';
+    walkState.isSilent = false;
+    walkState.silentSince = 0;
+    walkState.silencePenalty = 0;
+    walkState.lastSilencePenaltyAt = 0;
+    walkState.lastSilenceWarnAt = 0;
     saveWalkState();
 
     const btn = document.getElementById('walkStartBtn');
     if(btn){ btn.disabled = false; btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ 散歩をやめる' : '⏹ Stop Walk'; }
     setMsg(currentLang === 'ja' ? '🚶 散歩中！ 音を拾って進化の経験値を集めよう！' : '🚶 Walking! Collect sounds and EXP for evolution!');
+    startAmbientMonitor();
 
     walkState.timerInterval = setInterval(updateWalkUI, 1000);
 
@@ -10105,6 +10488,7 @@ function stopWalk() {
     walkState.active = false;
     clearWalkState();
     soundDropCheckpointM = 0;
+    stopAmbientMonitor();
     if(walkState.watchId !== null) {
         navigator.geolocation.clearWatch(walkState.watchId);
         walkState.watchId = null;
