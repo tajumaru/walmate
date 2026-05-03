@@ -487,6 +487,51 @@ async function saveToWalrus(){
     document.getElementById('btnSave').innerHTML = `<span class="act-icon">🌐</span>${t('walrus_save')}`;
 }
 
+async function saveUserIntroToWalrus(){
+    const input = document.getElementById('introInput');
+    const value = ((input?.value || G?.userIntro || '') + '').trim().slice(0, 420);
+    if(!value){
+        showToast(t('intro_empty'), true);
+        return;
+    }
+
+    G.userIntro = value;
+    G.userIntroSavedAt = Date.now();
+    saveG();
+    hydrateUserIntroEditor();
+
+    const btn = document.getElementById('introWalrusBtn');
+    if(btn){
+        btn.disabled = true;
+        btn.innerHTML = currentLang === 'ja' ? '🌐 保存中…' : '🌐 Saving...';
+    }
+
+    const payload = {
+        type: 'walrus-user-intro',
+        petName: G.petName || '',
+        intro: G.userIntro,
+        savedAt: new Date().toISOString(),
+        level: G.lv
+    };
+    const blobId = await uploadToWalrus(JSON.stringify(payload, null, 2), 'walrus-user-intro.json');
+
+    if(blobId){
+        G.userIntroBlobId = blobId;
+        G.userIntroSavedAt = Date.now();
+        saveG();
+        renderUserIntroStatus();
+        setMsg(t('intro_saved_walrus'));
+        showToast(t('intro_saved_walrus'));
+    } else {
+        showToast(currentLang === 'ja' ? '⚠ 自己紹介のWalrus保存に失敗しました' : '⚠ Failed to save intro to Walrus', true);
+    }
+
+    if(btn){
+        btn.disabled = false;
+        btn.innerHTML = currentLang === 'ja' ? '🌐 Walrusに保存' : '🌐 Save to Walrus';
+    }
+}
+
 async function loadFromWalrus(blobIdOverride){
     const savedId = localStorage.getItem('walrus_blobid');
     const blobId = (blobIdOverride || '').trim() || savedId;

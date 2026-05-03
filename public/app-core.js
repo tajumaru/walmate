@@ -1271,7 +1271,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-04-split-defer-preload';
+const APP_VERSION = '2026-05-04-intro-unlock';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -1312,9 +1312,14 @@ const I18N_LEGACY = {
         stat_happy: '💗 ハッピー',
         stat_exp: '⭐ 経験値',
         unlock2_tag: 'Lv.2 解禁',
-        unlock2_title: 'たじゅまる 自己紹介',
-        unlock2_body1: "<div class=\"walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span>ぼくの相棒は <strong>たじゅまる（tajumaru.sui）</strong>。Sui と Walrus を触りながら、ゲーム、記事、NFT、オンチェーン実験を少しずつ育てているビルダーだよ。気になるカードを押すと、ぼくが見どころを案内するね。</div></div><div class=\"profile-chips\"><span class=\"profile-chip\">🌊 Walrus沼 住民</span><span class=\"profile-chip\">🛠 Sui Builder</span><span class=\"profile-chip\">🎮 Interactive Pet</span></div></div>",
+        unlock2_title: 'あなたの自己紹介',
+        unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card\"><label class=\"intro-label\" for=\"introInput\">あなたの自己紹介</label><textarea class=\"intro-textarea\" id=\"introInput\" maxlength=\"420\" placeholder=\"Sui や Walrus で遊んでいること、作っているもの、好きなことを書いてね…\" oninput=\"syncUserIntroDraft()\"></textarea><div class=\"intro-meta\"><span id=\"introHelp\">Lv.2で解放。ここに書いた内容をWalrusに刻めます。</span><span id=\"introCount\">0 / 420</span></div><div class=\"intro-actions\"><button class=\"intro-btn\" id=\"introSaveBtn\" type=\"button\" onclick=\"saveUserIntroDraft()\">💾 この端末に保存</button><button class=\"intro-btn alt\" id=\"introWalrusBtn\" type=\"button\" onclick=\"saveUserIntroToWalrus()\">🌐 Walrusに保存</button></div><div class=\"intro-status\" id=\"introStatus\">まだ自己紹介は保存されていません。</div></div><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">ここに、あなたの自己紹介をWalrusが紹介します。</div></div></div></div></div>",
         unlock2_body2: "<div class=\"section-caption\">Portfolio Projects - クリックすると Walrus が解説します。</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"この育成ゲームそのものがポートフォリオの入口。育てる、保存する、交流する、日記を書くまでを1画面で遊べるようにしているよ。\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Walrus育成ゲーム</span><span class=\"walrus-project-meta\">Game / PWA / Walrus</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"NoteではSuiやWalrusで試したことを、あとから読み返せるログにしているよ。技術メモと沼トークのあいだくらいの温度感。\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Sui / Walrus Note</span><span class=\"walrus-project-meta\">Writing / Research</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"NFTコレクションはたじゅまるの遊び心の棚。Poopie Face、Tajumarte、SunSun、それぞれ違うノリで見てもらえるよ。\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">NFT Collections</span><span class=\"walrus-project-meta\">Art / Community</span></button></div><div class=\"walrus-about-note\">好きなものは <a href=\"https://walrus.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Walrus Protocol</a>、ちょっと妙なアイデア、そしてオンチェーンで遊ぶ余白。技術ネタもネタ投稿も歓迎です。</div><div class=\"social-pills\"><a class=\"social-pill\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 @tajumaruxxx</a><a class=\"social-pill\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">📝 Note / tajumaru</a></div>",
+        intro_saved_local: 'この端末に自己紹介を保存したよ',
+        intro_saved_walrus: '自己紹介をWalrusに保存したよ！',
+        intro_saved_walrus_status: 'Walrus保存済み',
+        intro_empty: 'まず自己紹介を書いてね',
+        intro_preview_empty: 'ここに、あなたの自己紹介をWalrusが紹介します。',
         unlock3_tag: 'Lv.3 解禁',
         unlock3_title: '好きなこと・活動',
         unlock3_body1: "<div class=\"section-caption\">Lv.3 では Walrus のスクラップブックが開きます。たじゅまるが見つけた Sui / Walrus ネタを、ぼくが『これ好き』『あとで読み返したい』の温度で集めてるモードです。</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-a\"><span class=\"thumb-badge\">NOTE PICK</span><div class=\"thumb-title\">Walrus視点の<br>深海メモ採集</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Collected by Walrus</div><div class=\"showcase-meta\">Sui / Walrus / Field Notes</div><div class=\"showcase-copy\">記事そのものより、『この発見おもしろい』を先に拾っていく感じ。あとで見返すと、深海で拾った小さなログがちゃんと地図になります。</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#Sui</span><span class=\"scrapbook-tag\">#Walrus</span><span class=\"scrapbook-tag\">#Discovery</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">記事を見にいく →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-b\"><span class=\"thumb-badge\">SCRAP LOG</span><div class=\"thumb-title\">今日ひろった<br>Sui / Walrus 小ネタ</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Shelf Memo</div><div class=\"showcase-meta\">Builder Diary / Swamp Dispatch</div><div class=\"showcase-copy\">検証していて気づいたこと、Note に残したい話題、誰かに見せたいリンクの予感。その日の『おっ』を Walrus が棚に並べてるイメージです。</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#NotePick</span><span class=\"scrapbook-tag\">#DevLog</span><span class=\"scrapbook-tag\">#SwampFind</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">@tajumaru をのぞく →</a></div></article></div>",
@@ -1484,9 +1489,14 @@ const I18N_LEGACY = {
         stat_happy: '💗 Happy',
         stat_exp: '⭐ EXP',
         unlock2_tag: 'Lv.2 Unlock',
-        unlock2_title: 'About Tajumaru',
-        unlock2_body1: "<div class=\"walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span>My buddy is <strong>Tajumaru (tajumaru.sui)</strong>, a builder growing games, writing, NFTs, and on-chain experiments around Sui and Walrus. Tap a project card and I will introduce the good part.</div></div><div class=\"profile-chips\"><span class=\"profile-chip\">🌊 Walrus Swamp Resident</span><span class=\"profile-chip\">🛠 Sui Builder</span><span class=\"profile-chip\">🎮 Interactive Pet</span></div></div>",
+        unlock2_title: 'Your Intro',
+        unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card\"><label class=\"intro-label\" for=\"introInput\">Introduce yourself</label><textarea class=\"intro-textarea\" id=\"introInput\" maxlength=\"420\" placeholder=\"Tell us what you build, what you like, or what you do around Sui / Walrus…\" oninput=\"syncUserIntroDraft()\"></textarea><div class=\"intro-meta\"><span id=\"introHelp\">Unlocked at Lv.2. You can etch this intro into Walrus.</span><span id=\"introCount\">0 / 420</span></div><div class=\"intro-actions\"><button class=\"intro-btn\" id=\"introSaveBtn\" type=\"button\" onclick=\"saveUserIntroDraft()\">💾 Save on device</button><button class=\"intro-btn alt\" id=\"introWalrusBtn\" type=\"button\" onclick=\"saveUserIntroToWalrus()\">🌐 Save to Walrus</button></div><div class=\"intro-status\" id=\"introStatus\">No intro saved yet.</div></div><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">Your Walrus will introduce you here.</div></div></div></div></div>",
         unlock2_body2: "<div class=\"section-caption\">Portfolio Projects - tap a card and the Walrus will explain it.</div><div class=\"walrus-projects\"><button class=\"walrus-project-card active\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"This pet game is the portfolio entrance: raising, saving, exchanging, and diary writing all live in one playful screen.\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Walrus Pet Game</span><span class=\"walrus-project-meta\">Game / PWA / Walrus</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"On Note, Tajumaru keeps Sui and Walrus experiments readable as field notes: part technical memo, part swamp dispatch.\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Sui / Walrus Notes</span><span class=\"walrus-project-meta\">Writing / Research</span></button><button class=\"walrus-project-card\" type=\"button\" onclick=\"showAboutProject(this)\" data-speech=\"The NFT collections are Tajumaru's playful display shelf. Poopie Face, Tajumarte, and SunSun each carry a different mood.\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">NFT Collections</span><span class=\"walrus-project-meta\">Art / Community</span></button></div><div class=\"walrus-about-note\">Favorite things: <a href=\"https://walrus.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Walrus Protocol</a>, strange ideas, and the open space where on-chain experiments become playful. Tech talk and odd discoveries are welcome.</div><div class=\"social-pills\"><a class=\"social-pill\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 @tajumaruxxx</a><a class=\"social-pill\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">📝 Note / tajumaru</a></div>",
+        intro_saved_local: 'Saved your intro on this device',
+        intro_saved_walrus: 'Saved your intro to Walrus!',
+        intro_saved_walrus_status: 'Saved on Walrus',
+        intro_empty: 'Write your intro first',
+        intro_preview_empty: 'Your Walrus will introduce you here.',
         unlock3_tag: 'Lv.3 Unlock',
         unlock3_title: 'Things I Like / Activities',
         unlock3_body1: "<div class=\"section-caption\">Lv.3 opens the Walrus scrapbook. This is where I collect Sui / Walrus finds with a very specific energy: not just articles, but little things worth saving for later.</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-a\"><span class=\"thumb-badge\">NOTE PICK</span><div class=\"thumb-title\">Deep Sea Notes<br>from the Walrus View</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Collected by Walrus</div><div class=\"showcase-meta\">Sui / Walrus / Field Notes</div><div class=\"showcase-copy\">Less like a formal archive, more like keeping the best “wait, this is interesting” moments in one place until they turn into a map.</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#Sui</span><span class=\"scrapbook-tag\">#Walrus</span><span class=\"scrapbook-tag\">#Discovery</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Read on Note →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-b\"><span class=\"thumb-badge\">SCRAP LOG</span><div class=\"thumb-title\">Today’s Tiny<br>Sui / Walrus Finds</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Shelf Memo</div><div class=\"showcase-meta\">Builder Diary / Swamp Dispatch</div><div class=\"showcase-copy\">Experiments, loose thoughts, future article seeds, and links that feel too good to lose. It is a shelf of “oh, keep that one.”</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#NotePick</span><span class=\"scrapbook-tag\">#DevLog</span><span class=\"scrapbook-tag\">#SwampFind</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Visit @tajumaru →</a></div></article></div>",
@@ -2094,6 +2104,7 @@ function applyLanguage(){
         setText(sec1.querySelector('.utitle'), t('unlock2_title'));
         setHtml(sec1Bodies[0], t('unlock2_body1'));
         setHtml(sec1Bodies[1], t('unlock2_body2'));
+        hydrateUserIntroEditor();
         initPortfolioCards();
     }
     const sec2 = document.getElementById('sec2');
@@ -2212,6 +2223,64 @@ function applyLanguage(){
 function initAboutWalrusNarrator(){
     const avatar = document.getElementById('aboutWalrusAvatar');
     renderWalrusMarkup(avatar, G?.lv || 1, 'happy', 'happy', true);
+}
+
+function getIntroPreviewText(){
+    const raw = (G?.userIntro || '').trim();
+    if(!raw) return t('intro_preview_empty');
+    return currentLang === 'ja'
+        ? `ぼくの相棒はこんな人だよ。\n${raw}`
+        : `Here is my buddy.\n${raw}`;
+}
+
+function syncUserIntroDraft(){
+    const input = document.getElementById('introInput');
+    const count = document.getElementById('introCount');
+    const preview = document.getElementById('introPreviewCopy');
+    const value = input ? input.value.slice(0, 420) : '';
+    if(input && input.value !== value) input.value = value;
+    if(count) count.textContent = `${value.length} / 420`;
+    if(preview) preview.textContent = value.trim() ? (currentLang === 'ja' ? `ぼくの相棒はこんな人だよ。\n${value.trim()}` : `Here is my buddy.\n${value.trim()}`) : t('intro_preview_empty');
+}
+
+function renderUserIntroStatus(){
+    const status = document.getElementById('introStatus');
+    if(!status) return;
+    const hasIntro = !!(G?.userIntro || '').trim();
+    if(!hasIntro){
+        status.textContent = currentLang === 'ja' ? 'まだ自己紹介は保存されていません。' : 'No intro saved yet.';
+        return;
+    }
+    const savedAt = G.userIntroSavedAt
+        ? new Date(G.userIntroSavedAt).toLocaleString(localeCode(), { dateStyle:'medium', timeStyle:'short' })
+        : '';
+    if(G.userIntroBlobId){
+        status.textContent = `${t('intro_saved_walrus_status')} · ${shortBlobId(G.userIntroBlobId)}${savedAt ? ` · ${savedAt}` : ''}`;
+    } else {
+        status.textContent = `${t('intro_saved_local')}${savedAt ? ` · ${savedAt}` : ''}`;
+    }
+}
+
+function hydrateUserIntroEditor(){
+    const input = document.getElementById('introInput');
+    if(input) input.value = G?.userIntro || '';
+    syncUserIntroDraft();
+    renderUserIntroStatus();
+}
+
+function saveUserIntroDraft(){
+    const input = document.getElementById('introInput');
+    const value = (input?.value || '').trim().slice(0, 420);
+    if(!value){
+        showToast(t('intro_empty'), true);
+        return;
+    }
+    G.userIntro = value;
+    G.userIntroSavedAt = Date.now();
+    saveG();
+    hydrateUserIntroEditor();
+    setMsg(t('intro_saved_local'));
+    showToast(t('intro_saved_local'));
 }
 
 function initPortfolioCards(){

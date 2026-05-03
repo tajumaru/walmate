@@ -2959,6 +2959,76 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .walrus-rating-stars { letter-spacing: 0.08em; font-size: 0.78rem; color: rgba(255,255,255,0.16); }
 .walrus-rating-stars .filled { color: var(--gold-light); text-shadow: 0 0 12px rgba(245,208,128,0.2); }
 .walrus-about-note { color: rgba(228,242,248,0.58); font-size: 0.78rem; line-height: 1.7; }
+.intro-builder {
+  display: grid;
+  gap: 12px;
+}
+.intro-card {
+  border-radius: 18px;
+  padding: 14px;
+  background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025));
+  border: 1px solid rgba(126,200,255,0.14);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.intro-label {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(228,242,248,0.7);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.intro-textarea {
+  width: 100%;
+  min-height: 122px;
+  resize: vertical;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(3,12,26,0.55);
+  color: var(--white);
+  padding: 14px;
+  font: 700 0.88rem/1.7 'Nunito', sans-serif;
+}
+.intro-textarea::placeholder { color: rgba(228,242,248,0.28); }
+.intro-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(228,242,248,0.48);
+  font-size: 0.72rem;
+}
+.intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.intro-btn {
+  border: 1px solid rgba(0,229,176,0.24);
+  background: rgba(0,229,176,0.1);
+  color: var(--teal);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font: 800 0.82rem 'Nunito', sans-serif;
+  cursor: pointer;
+}
+.intro-btn.alt {
+  border-color: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: rgba(228,242,248,0.72);
+}
+.intro-status {
+  color: rgba(228,242,248,0.62);
+  font-size: 0.76rem;
+  line-height: 1.6;
+  word-break: break-all;
+}
+.intro-preview-copy {
+  color: rgba(228,242,248,0.82);
+  font-size: 0.84rem;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
 .section-caption { margin-bottom: 10px; color: rgba(228,242,248,0.7); }
 .feature-grid { display: grid; gap: 12px; }
 .scrapbook-grid { display: grid; gap: 14px; }

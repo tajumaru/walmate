@@ -16,6 +16,9 @@ const DEFAULT_GAME_STATE = Object.freeze({
     legendPath: '',
     legendEvolution: false,
     petName: 'たじゅまる',
+    userIntro: '',
+    userIntroBlobId: '',
+    userIntroSavedAt: 0,
     custom: { color: 'gold', accessory: 'none' },
     soundDiet: createEmptySoundDiet('1970-01-01')
 });
@@ -41,6 +44,9 @@ function normalizeGameState(state){
     if(!state.legendPath) state.legendPath = '';
     state.legendEvolution = !!state.legendEvolution;
     if(!state.petName || typeof state.petName !== 'string') state.petName = DEFAULT_GAME_STATE.petName;
+    state.userIntro = typeof state.userIntro === 'string' ? state.userIntro.slice(0, 420) : '';
+    state.userIntroBlobId = typeof state.userIntroBlobId === 'string' ? state.userIntroBlobId : '';
+    state.userIntroSavedAt = Number(state.userIntroSavedAt) || 0;
     state.soundDiet = normalizeSoundDiet(state.soundDiet);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
@@ -656,7 +662,9 @@ function checkLevelUp(){
         if(G.lv !== 4) showLevelUpOverlay(G.lv);
         setMsg(G.lv===4
             ? (currentLang === 'ja' ? '✦ Legend到達。Walrus の伝説が刻まれた！' : 'Legend reached. Your Walrus has been etched into legend!')
-            : (currentLang === 'ja' ? `✨ レベルアップ！ Lv.${G.lv} · ${getLvName(G.lv)} になったよ！` : `Level up! Lv.${G.lv} ${getLvName(G.lv)}`));
+            : (G.lv===2
+                ? (currentLang === 'ja' ? '✨ Lv.2解放！ きみの自己紹介を教えてね。' : '✨ Lv.2 unlocked! Tell your Walrus about yourself.')
+                : (currentLang === 'ja' ? `✨ レベルアップ！ Lv.${G.lv} · ${getLvName(G.lv)} になったよ！` : `Level up! Lv.${G.lv} ${getLvName(G.lv)}`)));
         if(G.lv===4){
             socialPopupPending = false;
             showLegendAscension();
@@ -667,6 +675,12 @@ function checkLevelUp(){
         const c=getStageCenter();
         spawnParticles(['✨','⭐','💎','✨','🫧'],c.x,c.y);
         scrollToUnlockedSection(G.lv);
+        if(G.lv === 2){
+            setTimeout(() => {
+                showToast(currentLang === 'ja' ? 'Lv.2で自己紹介が書けるようになったよ' : 'Lv.2 unlocked your intro card');
+                hydrateUserIntroEditor();
+            }, 700);
+        }
         return true;
     }
     return false;
