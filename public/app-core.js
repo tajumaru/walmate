@@ -234,7 +234,8 @@ function getMasterGain(){
     masterGain.connect(analyser || audioCtx.destination);
     return masterGain;
 }
-function toggleMute(){
+function toggleMute(event){
+    event?.stopPropagation?.();
     isMuted = !isMuted;
     try { localStorage.setItem(MUTE_STORAGE_KEY, isMuted ? '1' : '0'); } catch(e){}
     if(masterGain) masterGain.gain.setTargetAtTime(isMuted ? 0 : 1, audioCtx.currentTime, 0.02);
@@ -244,6 +245,8 @@ function toggleMute(){
         btn.classList.toggle('muted', isMuted);
         btn.setAttribute('aria-label', isMuted ? '音をオンにする' : '消音にする');
     }
+    refreshWalrusMenu?.();
+    closeWalrusMenu?.();
 }
 function detectMute(){
     try { return localStorage.getItem(MUTE_STORAGE_KEY) === '1'; } catch(e){ return false; }
@@ -1205,7 +1208,7 @@ document.addEventListener('pointerdown', (e) => {
   unlockDesktopAudio();
 
   const blocked = e.target.closest(
-    'button, .sound-lab, .walk-panel, .utility-btn, .sound-pick-float, input, textarea, select, a'
+    'button, .sound-lab, .walk-panel, .utility-btn, .walrus-menu-shell, #petStage, .sound-pick-float, input, textarea, select, a'
   );
   if(blocked) return;
 
@@ -2155,6 +2158,7 @@ const APP_VERSION = '2026-05-05-cache-bust-sw-refresh';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
+const SURFACE_THEME_STORAGE_KEY = 'walrus_surface_theme';
 const PWA_INSTALL_BANNER_KEY = 'walrus_pwa_install_banner_seen';
 const PORTFOLIO_ORDER_KEY = 'walrus_portfolio_order';
 const PORTFOLIO_BLOB_KEY = 'walrus_portfolio_blobs';
@@ -2173,7 +2177,7 @@ const I18N_LEGACY = {
         hatch_step_2: 'ヒビを待つ',
         hatch_step_3: '連打で孵化',
         newborn_guide_title: "TODAY'S SIGNAL",
-        newborn_guide_copy: '今日は <strong>散歩だけ</strong> じゃなくていい。まずは <strong>タップ</strong>、<strong>OFFER</strong>、<strong>SYNC</strong>、<strong>DRIFT</strong> で信号を見てみよう。',
+        newborn_guide_copy: '今日は <strong>散歩だけ</strong> じゃなくていい。まずは Walrus に<strong>ふれて</strong>海の気配を整えてから、<strong>OFFER</strong>、<strong>SYNC</strong>、<strong>DRIFT</strong> で信号を見てみよう。',
         main_title: 'WalMate',
         main_sub: '散歩して音を集めて、Walrusを進化させよう',
         sound_lab_title: '🎵 サウンドキッチン',
@@ -2312,6 +2316,24 @@ const I18N_LEGACY = {
         theme_toggle_deep: '🌙 深海',
         theme_toggle_lagoon: '☀ 海中ラグーン',
         theme_toggle_ukiyo: '🎏 和モード',
+        walrus_menu_kicker: 'WALRUS MENU',
+        walrus_menu_copy: 'Walrusにふれると、海の気配を少しだけ整えられる。',
+        walrus_menu_sound_label: '音設定',
+        walrus_menu_sound_on: 'AMBIENT ON',
+        walrus_menu_sound_off: 'AMBIENT OFF',
+        walrus_menu_sound_meta_on: '環境音を静かにひらく',
+        walrus_menu_sound_meta_off: '波の気配を休ませる',
+        walrus_menu_theme_label: '表示モード',
+        walrus_menu_theme_dive: '潜る',
+        walrus_menu_theme_surface: '浮上する',
+        walrus_menu_theme_meta_deep: 'いまは深海の静けさにいる',
+        walrus_menu_theme_meta_surface: 'いまは海面の光にいる',
+        walrus_menu_theme_meta_ukiyo: 'いまは和の水面に浮かんでいる',
+        walrus_menu_language_label: '言語',
+        walrus_menu_language_state_ja: '日本語',
+        walrus_menu_language_state_en: 'ENGLISH',
+        walrus_menu_language_meta_ja: '言葉の波を切り替える',
+        walrus_menu_language_meta_en: 'Switch the voice of the sea',
         portfolio_discovery_drag: 'ドラッグで並べ替え',
         portfolio_discovery_tap: '',
         rating_title: 'Walrus Rating',
@@ -2355,7 +2377,7 @@ const I18N_LEGACY = {
         hatch_step_2: 'Wait for cracks',
         hatch_step_3: 'Tap to hatch',
         newborn_guide_title: "TODAY'S SIGNAL",
-        newborn_guide_copy: 'Today does not have to begin with a <strong>walk</strong>. First try a <strong>tap</strong>, <strong>OFFER</strong>, <strong>SYNC</strong>, or <strong>DRIFT</strong> and see what signal appears.',
+        newborn_guide_copy: 'Today does not have to begin with a <strong>walk</strong>. First touch your Walrus to tune the sea around you, then try <strong>OFFER</strong>, <strong>SYNC</strong>, or <strong>DRIFT</strong> and see what signal appears.',
         main_title: "WalMate",
         main_sub: 'Walk, collect sounds, and evolve your Walrus',
         sound_lab_title: '🎵 Sound Kitchen',
@@ -2494,6 +2516,24 @@ const I18N_LEGACY = {
         theme_toggle_deep: '🌙 DEEP',
         theme_toggle_lagoon: '☀ LAGOON',
         theme_toggle_ukiyo: '🎏 UKIYO',
+        walrus_menu_kicker: 'WALRUS MENU',
+        walrus_menu_copy: 'Touch your Walrus to gently tune the sea around you.',
+        walrus_menu_sound_label: 'Sound',
+        walrus_menu_sound_on: 'AMBIENT ON',
+        walrus_menu_sound_off: 'AMBIENT OFF',
+        walrus_menu_sound_meta_on: 'Let the ambient sea breathe',
+        walrus_menu_sound_meta_off: 'Let the waves rest for a while',
+        walrus_menu_theme_label: 'Display Mode',
+        walrus_menu_theme_dive: 'Dive',
+        walrus_menu_theme_surface: 'Surface',
+        walrus_menu_theme_meta_deep: 'You are resting in the deep sea hush',
+        walrus_menu_theme_meta_surface: 'You are floating in surface light',
+        walrus_menu_theme_meta_ukiyo: 'You are drifting in an ukiyo tide',
+        walrus_menu_language_label: 'Language',
+        walrus_menu_language_state_ja: 'JAPANESE',
+        walrus_menu_language_state_en: 'ENGLISH',
+        walrus_menu_language_meta_ja: 'Switch to the Japanese tide',
+        walrus_menu_language_meta_en: 'Switch the voice of the sea',
         portfolio_discovery_drag: 'Drag to reorder',
         portfolio_discovery_tap: '',
         rating_title: 'Walrus Rating',
@@ -2598,6 +2638,7 @@ const I18N = {
 };
 let currentLang = 'ja';
 let currentTheme = 'deep';
+let lastSurfaceTheme = 'lagoon';
 let socialPopupPending = false;
 let activeCollectorSpeechId = '';
 let portfolioDragState = null;
@@ -2636,6 +2677,14 @@ function detectTheme(){
         if(saved === 'deep' || saved === 'lagoon' || saved === 'ukiyo') return saved;
     } catch(e){}
     return 'deep';
+}
+
+function detectSurfaceTheme(){
+    try {
+        const saved = localStorage.getItem(SURFACE_THEME_STORAGE_KEY);
+        if(saved === 'lagoon' || saved === 'ukiyo') return saved;
+    } catch(e){}
+    return 'lagoon';
 }
 
 function getLvName(lv){
@@ -3236,27 +3285,145 @@ function applyTheme(){
                 : 'theme_toggle_deep';
         themeSwitch.textContent = t(nextThemeKey);
     }
+    refreshWalrusMenu();
 }
 
 function setTheme(theme){
     currentTheme = theme === 'lagoon' || theme === 'ukiyo' ? theme : 'deep';
+    if(currentTheme !== 'deep'){
+        lastSurfaceTheme = currentTheme;
+        try { localStorage.setItem(SURFACE_THEME_STORAGE_KEY, lastSurfaceTheme); } catch(e){}
+    }
     try { localStorage.setItem(THEME_STORAGE_KEY, currentTheme); } catch(e){}
     applyTheme();
     refreshBgCssVarCache?.();
     restartBgCanvasLoop?.();
 }
 
-function toggleLanguage(){
+function toggleLanguage(event){
+    event?.stopPropagation?.();
     setLanguage(currentLang === 'ja' ? 'en' : 'ja');
+    closeWalrusMenu?.();
 }
 
-function toggleTheme(){
+function toggleTheme(event){
+    event?.stopPropagation?.();
     const nextTheme = currentTheme === 'deep'
         ? 'lagoon'
         : currentTheme === 'lagoon'
             ? 'ukiyo'
             : 'deep';
     setTheme(nextTheme);
+    closeWalrusMenu?.();
+}
+
+function toggleDiveMode(event){
+    event?.stopPropagation?.();
+    if(currentTheme === 'deep'){
+        setTheme(lastSurfaceTheme === 'ukiyo' ? 'ukiyo' : 'lagoon');
+    } else {
+        lastSurfaceTheme = currentTheme;
+        try { localStorage.setItem(SURFACE_THEME_STORAGE_KEY, lastSurfaceTheme); } catch(e){}
+        setTheme('deep');
+    }
+    closeWalrusMenu?.();
+}
+
+function isWalrusMenuOpen(){
+    return document.getElementById('walrusMenuShell')?.classList.contains('open');
+}
+
+function ensureWalrusMenuLayer(){
+    const shell = document.getElementById('walrusMenuShell');
+    if(shell && shell.parentElement !== document.body){
+        document.body.appendChild(shell);
+    }
+    return shell;
+}
+
+function positionWalrusMenu(){
+    const shell = document.getElementById('walrusMenuShell');
+    const stage = document.getElementById('petStage');
+    if(!shell || !stage) return;
+    const margin = 16;
+    const gap = 14;
+    const stageRect = stage.getBoundingClientRect();
+    shell.style.visibility = 'hidden';
+    shell.classList.add('open');
+    const menuWidth = shell.offsetWidth || 280;
+    const menuHeight = shell.offsetHeight || 220;
+    const centeredLeft = stageRect.left + stageRect.width / 2 - menuWidth / 2;
+    const left = Math.max(margin, Math.min(centeredLeft, window.innerWidth - menuWidth - margin));
+    const topAbove = stageRect.top - menuHeight - gap;
+    const canOpenAbove = topAbove >= margin;
+    const top = canOpenAbove
+        ? topAbove
+        : Math.min(stageRect.bottom + gap, window.innerHeight - menuHeight - margin);
+    shell.classList.toggle('below', !canOpenAbove);
+    shell.style.left = `${Math.round(left)}px`;
+    shell.style.top = `${Math.round(top)}px`;
+    shell.style.visibility = '';
+}
+
+function openWalrusMenu(){
+    const shell = ensureWalrusMenuLayer();
+    const stage = document.getElementById('petStage');
+    if(!shell || !stage) return;
+    shell.classList.add('open');
+    shell.setAttribute('aria-hidden', 'false');
+    stage.setAttribute('aria-expanded', 'true');
+    refreshWalrusMenu();
+    positionWalrusMenu();
+}
+
+function closeWalrusMenu(){
+    const shell = document.getElementById('walrusMenuShell');
+    const stage = document.getElementById('petStage');
+    if(!shell || !stage) return;
+    shell.classList.remove('open');
+    shell.classList.remove('below');
+    shell.setAttribute('aria-hidden', 'true');
+    stage.setAttribute('aria-expanded', 'false');
+    shell.style.left = '';
+    shell.style.top = '';
+    shell.style.visibility = '';
+}
+
+function toggleWalrusMenu(){
+    if(isWalrusMenuOpen()) closeWalrusMenu();
+    else openWalrusMenu();
+}
+
+function refreshWalrusMenu(){
+    const soundLabel = document.getElementById('walrusSoundLabel');
+    const soundState = document.getElementById('walrusSoundState');
+    const soundMeta = document.getElementById('walrusSoundMeta');
+    const themeLabel = document.getElementById('walrusThemeLabel');
+    const themeState = document.getElementById('walrusThemeState');
+    const themeMeta = document.getElementById('walrusThemeMeta');
+    const langLabel = document.getElementById('walrusLangLabel');
+    const langState = document.getElementById('walrusLangState');
+    const langMeta = document.getElementById('walrusLangMeta');
+    const kicker = document.getElementById('walrusMenuKicker');
+    const copy = document.getElementById('walrusMenuCopy');
+    if(kicker) kicker.textContent = t('walrus_menu_kicker');
+    if(copy) copy.textContent = t('walrus_menu_copy');
+    if(soundLabel) soundLabel.textContent = t('walrus_menu_sound_label');
+    if(soundState) soundState.textContent = t(isMuted ? 'walrus_menu_sound_off' : 'walrus_menu_sound_on');
+    if(soundMeta) soundMeta.textContent = t(isMuted ? 'walrus_menu_sound_meta_off' : 'walrus_menu_sound_meta_on');
+    if(themeLabel) themeLabel.textContent = t('walrus_menu_theme_label');
+    if(themeState) themeState.textContent = t(currentTheme === 'deep' ? 'walrus_menu_theme_surface' : 'walrus_menu_theme_dive');
+    if(themeMeta){
+        const themeMetaKey = currentTheme === 'deep'
+            ? 'walrus_menu_theme_meta_deep'
+            : currentTheme === 'ukiyo'
+                ? 'walrus_menu_theme_meta_ukiyo'
+                : 'walrus_menu_theme_meta_surface';
+        themeMeta.textContent = t(themeMetaKey);
+    }
+    if(langLabel) langLabel.textContent = t('walrus_menu_language_label');
+    if(langState) langState.textContent = t(currentLang === 'ja' ? 'walrus_menu_language_state_ja' : 'walrus_menu_language_state_en');
+    if(langMeta) langMeta.textContent = t(currentLang === 'ja' ? 'walrus_menu_language_meta_ja' : 'walrus_menu_language_meta_en');
 }
 
 function buildVersionedUrl(){
@@ -3491,6 +3658,9 @@ function applyLanguage(){
     if(statNames[0]) statNames[0].innerHTML = `◇ ENERGY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? 'エネルギー' : 'Energy'}</span>`;
     if(statNames[1]) statNames[1].innerHTML = `✦ BOND<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? '共鳴' : 'Bond'}</span>`;
     if(statNames[2]) statNames[2].innerHTML = `◎ MEMORY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? '記憶' : 'Memory'}</span>`;
+    const petStage = document.getElementById('petStage');
+    if(petStage) petStage.setAttribute('aria-label', currentLang === 'ja' ? 'Walrusメニューをひらく' : 'Open Walrus menu');
+    refreshWalrusMenu();
     if(typeof updateActionCards === 'function') updateActionCards();
     updateFriendQrModalCopy();
 

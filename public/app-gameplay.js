@@ -1317,15 +1317,13 @@ function doFeed(){ offerToWalrus(); }
 function doPet(){ syncWithWalrus(); }
 function doPlay(){ driftWalrus(); }
 function tapPet(){
-    if(getMood()==='sleepy'){ setMsg(currentLang === 'ja' ? 'お腹空いてて元気ない…🐟' : 'Too hungry to move...🐟',true); haptic(30); return; }
-    recordBehaviorAction('tapCount');
     haptic(10);
-    G.happy=Math.min(100,G.happy+4); G.exp+=2;
-    const msgs=getMoodMsg();
-    setMsg(msgs[Math.floor(Math.random()*msgs.length)]);
-    animPet('shake');
-    const c=getStageCenter(); spawnParticles(['💚'],c.x,c.y);
-    checkLevelUp(); updateUI();
+    recordBehaviorAction('tapCount');
+    toggleWalrusMenu?.();
+    if(isWalrusMenuOpen?.()){
+        setMsg(currentLang === 'ja' ? '🫧 Walrusが、海の気配をそっとひらいた。' : '🫧 Your Walrus quietly opened the sea around you.');
+        animPet('bounce');
+    }
 }
 
 function doReset(){

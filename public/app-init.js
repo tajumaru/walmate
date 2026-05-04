@@ -14,18 +14,36 @@ window.addEventListener('DOMContentLoaded', ()=>{
     ensureWalMateUserId();
     currentLang = detectLanguage();
     currentTheme = detectTheme();
+    lastSurfaceTheme = detectSurfaceTheme();
+    if(currentTheme !== 'deep') lastSurfaceTheme = currentTheme;
     isMuted = detectMute();
     window.__setBootPhase?.('画面を組み立てています…', 0.58);
     applyTheme();
     applyLanguage();
     initMotionPreferenceControls();
     ensureDailyState();
-    // ミュートボタンの初期状態を反映
-    const muteBtn = document.getElementById('muteSwitch');
-    if(muteBtn){
-        muteBtn.textContent = isMuted ? '🔇' : '🔊';
-        muteBtn.classList.toggle('muted', isMuted);
+    refreshWalrusMenu();
+    ensureWalrusMenuLayer?.();
+    const petStage = document.getElementById('petStage');
+    if(petStage){
+        petStage.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter' || e.key === ' '){
+                e.preventDefault();
+                tapPet();
+            }
+        });
     }
+    document.addEventListener('pointerdown', (e) => {
+        if(!isWalrusMenuOpen?.()) return;
+        if(e.target.closest('#petStage') || e.target.closest('#walrusMenuShell')) return;
+        closeWalrusMenu?.();
+    });
+    window.addEventListener('resize', () => {
+        if(isWalrusMenuOpen?.()) positionWalrusMenu?.();
+    });
+    window.addEventListener('scroll', () => {
+        if(isWalrusMenuOpen?.()) positionWalrusMenu?.();
+    }, { passive: true });
     setupPwaInstallPrompt();
     const hasSave = G.lv>1 || G.exp>0 || Math.round(G.hunger)!==70;
     const awayMins = hasSave ? applyTimeDecay() : 0;

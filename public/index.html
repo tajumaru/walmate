@@ -187,6 +187,112 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
 .theme-switch { right: 94px; min-width: 112px; }
 .mute-switch { left: 128px; min-width: 44px; font-size: 1rem; padding: 10px 12px; }
 .mute-switch.muted { background: rgba(255,107,107,0.22); border-color: rgba(255,107,107,0.55); color: #ff6b6b; }
+.walrus-menu-shell {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(280px, calc(100vw - 42px));
+  transform: translate3d(0, 0, 0) scale(0.94);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease, transform 0.24s ease;
+  z-index: 120;
+}
+.walrus-menu-shell.open {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  pointer-events: auto;
+}
+.walrus-menu-shell.below .walrus-menu::after {
+  top: -10px;
+  bottom: auto;
+  border-right: 1px solid rgba(126,200,255,0.2);
+  border-bottom: 0;
+  border-top: 1px solid rgba(126,200,255,0.2);
+  transform: translateX(-50%) rotate(225deg);
+}
+.walrus-menu {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(126,200,255,0.22);
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.13), transparent 36%),
+    linear-gradient(180deg, rgba(9,24,40,0.96), rgba(3,12,26,0.94));
+  box-shadow: 0 20px 40px rgba(0,0,0,0.26), 0 0 30px rgba(0,200,240,0.10);
+  backdrop-filter: blur(12px);
+}
+.walrus-menu::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 20px;
+  height: 20px;
+  background: rgba(5,17,30,0.96);
+  border-right: 1px solid rgba(126,200,255,0.2);
+  border-bottom: 1px solid rgba(126,200,255,0.2);
+  transform: translateX(-50%) rotate(45deg);
+}
+.walrus-menu-kicker {
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(228,242,248,0.55);
+}
+.walrus-menu-copy {
+  color: rgba(228,242,248,0.78);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+.walrus-menu-actions {
+  display: grid;
+  gap: 8px;
+}
+.walrus-menu-btn {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  align-items: center;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+.walrus-menu-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0,229,176,0.34);
+  background: rgba(0,229,176,0.08);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+}
+.walrus-menu-label {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+.walrus-menu-meta {
+  grid-column: 1 / -1;
+  color: rgba(228,242,248,0.56);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+.walrus-menu-state {
+  color: var(--teal);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  justify-self: end;
+}
 
 /* ===== WALK PANEL ===== */
 .walk-panel {
@@ -4443,6 +4549,9 @@ footer { text-align: center; margin-top: 24px; font-size: clamp(0.65rem,2.8vw,0.
   .theme-switch { top: 12px; right: 12px; min-width: 104px; }
   .lang-switch { top: 56px; right: 12px; }
   .mute-switch { top: 56px; left: 12px; min-width: 40px; padding: 9px 11px; }
+  .walrus-menu-shell { width: min(250px, calc(100vw - 28px)); }
+  .walrus-menu { padding: 12px; border-radius: 20px; }
+  .walrus-menu-btn { padding: 10px 11px; }
   .main-inner { padding-top: clamp(72px, 15vw, 96px); }
   .tama-device { width: min(300px, 80vw); }
   .pet-stage-wrap { max-height: min(190px, 48vw); }
@@ -5857,10 +5966,6 @@ html.motion-paused .legend-ring-outer {
 <button class="pwa-install-close" onclick="closePwaInstallBanner()" type="button" aria-label="閉じる">×</button>
     </div>
 </div>
-<button class="utility-btn mute-switch" id="muteSwitch" onclick="toggleMute()" type="button" aria-label="消音切替">🔊</button>
-<button class="utility-btn theme-switch" id="themeSwitch" onclick="toggleTheme()" type="button">☀ LAGOON</button>
-<button class="utility-btn lang-switch" id="langSwitch" onclick="toggleLanguage()" type="button">EN</button>
-
 <!-- LOADING -->
 <div class="screen" id="loadScreen">
     <div class="loader-wrap">
@@ -6068,7 +6173,39 @@ html.motion-paused .legend-ring-outer {
                 <div class="pet-stage-wrap free-swim-wrap">
                     <div class="legend-ring" id="legendRing"></div>
                     <div class="legend-ring-outer" id="legendRingOuter"></div>
-                    <div class="pet-stage" id="petStage" onclick="tapPet()"></div>
+                    <div
+                        class="pet-stage"
+                        id="petStage"
+                        onclick="tapPet()"
+                        role="button"
+                        tabindex="0"
+                        aria-haspopup="dialog"
+                        aria-expanded="false"
+                        aria-label="Walrus menu"
+                    ></div>
+                    <div class="walrus-menu-shell" id="walrusMenuShell" aria-hidden="true">
+                        <div class="walrus-menu" id="walrusMenu" role="dialog" aria-label="Walrus menu">
+                            <div class="walrus-menu-kicker" id="walrusMenuKicker">WALRUS MENU</div>
+                            <div class="walrus-menu-copy" id="walrusMenuCopy">Walrusにふれると、海の気配を少しだけ整えられる。</div>
+                            <div class="walrus-menu-actions">
+                                <button class="walrus-menu-btn" id="walrusSoundBtn" onclick="toggleMute(event)" type="button">
+                                    <span class="walrus-menu-label" id="walrusSoundLabel">音設定</span>
+                                    <span class="walrus-menu-state" id="walrusSoundState">AMBIENT ON</span>
+                                    <span class="walrus-menu-meta" id="walrusSoundMeta">環境音を静かにひらく</span>
+                                </button>
+                                <button class="walrus-menu-btn" id="walrusThemeBtn" onclick="toggleDiveMode(event)" type="button">
+                                    <span class="walrus-menu-label" id="walrusThemeLabel">表示モード</span>
+                                    <span class="walrus-menu-state" id="walrusThemeState">潜る</span>
+                                    <span class="walrus-menu-meta" id="walrusThemeMeta">いまは海面の光にいる</span>
+                                </button>
+                                <button class="walrus-menu-btn" id="walrusLangBtn" onclick="toggleLanguage(event)" type="button">
+                                    <span class="walrus-menu-label" id="walrusLangLabel">言語</span>
+                                    <span class="walrus-menu-state" id="walrusLangState">日本語</span>
+                                    <span class="walrus-menu-meta" id="walrusLangMeta">言葉の波を切り替える</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="zzz-wrap" id="zzzWrap">
                         <span class="zzz">z</span><span class="zzz">z</span><span class="zzz">Z</span>
                     </div>
@@ -6094,7 +6231,7 @@ html.motion-paused .legend-ring-outer {
         </div>
         <div class="newborn-guide" id="newbornGuide">
             <div class="newborn-guide-title" id="newbornGuideTitle">TODAY'S SIGNAL</div>
-            <div class="newborn-guide-copy" id="newbornGuideCopy">今日は <strong>散歩だけ</strong> じゃなくていい。まずは <strong>タップ</strong> したり、<strong>ごはん</strong> や <strong>あそぶ</strong> で様子を見よう。</div>
+            <div class="newborn-guide-copy" id="newbornGuideCopy">今日は <strong>散歩だけ</strong> じゃなくていい。まずは Walrus に<strong>ふれて</strong>海の気配を整えてから、<strong>ごはん</strong> や <strong>あそぶ</strong> で様子を見よう。</div>
         </div>
 
         <div class="stats-grid">
