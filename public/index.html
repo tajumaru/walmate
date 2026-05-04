@@ -90,20 +90,38 @@ window.__setBootPhase = function(message, ratio){
     <div class="save-moment" id="saveMoment">
         <div class="save-moment-title" id="saveMomentTitle">Walrusへ保存中</div>
         <div class="save-moment-stage">
-            <div class="save-orb"><strong>🎮</strong><span id="saveMomentLocal">GAME DATA</span></div>
-            <div class="save-stream" aria-hidden="true">
-                <i class="save-drop" style="--top:-26px;--size:8px;--delay:0s"></i>
-                <i class="save-drop" style="--top:24px;--size:6px;--delay:0.18s"></i>
-                <i class="save-drop" style="--top:-48px;--size:10px;--delay:0.34s"></i>
-                <i class="save-drop" style="--top:46px;--size:7px;--delay:0.48s"></i>
-                <i class="save-drop" style="--top:-4px;--size:5px;--delay:0.62s"></i>
-                <i class="save-drop" style="--top:58px;--size:6px;--delay:0.76s"></i>
+            <div class="save-side save-side-local">
+                <div class="save-side-kicker" id="saveOnChainLabel">ON-CHAIN</div>
+                <div class="save-orb"><strong>🎮</strong><span id="saveMomentLocal">GAME DATA</span></div>
+                <div class="save-side-note" id="saveOnChainText">BlobId</div>
             </div>
-            <div class="save-orb storage"><strong>🌊</strong><span id="saveMomentStorage">WALRUS BLOB</span></div>
-        </div>
-        <div class="save-proof">
-            <div class="save-proof-chip"><strong id="saveOnChainLabel">ON-CHAIN</strong><span id="saveOnChainText">BlobId</span></div>
-            <div class="save-proof-chip off"><strong id="saveOffChainLabel">OFF-CHAIN</strong><span id="saveOffChainText">Walrus Blob</span></div>
+            <div class="save-stream" aria-hidden="true">
+                <div class="save-noise-grid"></div>
+                <div class="save-packet-cloud">
+                    <i class="save-drop glitch" style="--top:-34px;--size:8px;--delay:0s"></i>
+                    <i class="save-drop" style="--top:-18px;--size:6px;--delay:0.12s"></i>
+                    <i class="save-drop square" style="--top:6px;--size:7px;--delay:0.22s"></i>
+                    <i class="save-drop" style="--top:26px;--size:5px;--delay:0.34s"></i>
+                    <i class="save-drop square" style="--top:44px;--size:9px;--delay:0.48s"></i>
+                    <i class="save-drop glitch" style="--top:62px;--size:6px;--delay:0.62s"></i>
+                    <i class="save-drop" style="--top:84px;--size:5px;--delay:0.76s"></i>
+                </div>
+                <div class="save-beam">
+                    <span class="save-beam-wave"></span>
+                    <span class="save-beam-wave alt"></span>
+                    <span class="save-beam-wave glitch"></span>
+                </div>
+                <div class="save-sink">
+                    <span class="save-sink-core"></span>
+                    <span class="save-sink-ring"></span>
+                    <span class="save-sink-ring alt"></span>
+                </div>
+            </div>
+            <div class="save-side save-side-storage">
+                <div class="save-side-kicker" id="saveOffChainLabel">OFF-CHAIN</div>
+                <div class="save-orb storage"><strong>🌊</strong><span id="saveMomentStorage">WALRUS BLOB</span></div>
+                <div class="save-side-note" id="saveOffChainText">Walrus Blob</div>
+            </div>
         </div>
         <div class="save-result" id="saveMomentResult"></div>
     </div>
@@ -271,25 +289,25 @@ window.__setBootPhase = function(message, ratio){
 
         <!-- ===== WALK PANEL ===== -->
         <div class="walk-panel" id="walkPanel">
-            <div class="walk-kicker" id="walkKicker">CORE LOOP</div>
+            <div class="walk-kicker" id="walkKicker">WALRUS SCOPE</div>
             <div class="walk-panel-header">
-                <div class="walk-panel-title"><span>🚶</span><span id="walkPanelTitle">散歩しないと始まらない</span></div>
+                <div class="walk-panel-title"><span class="walk-panel-title-icon">🦭</span><span id="walkPanelTitle">今日は漂ってる…</span></div>
                 <div class="walk-flow" id="walkFlow">
-                    <span class="walk-flow-step">🚶 <span id="walkFlowWalk">散歩</span></span>
+                    <span class="walk-flow-step">🌊 <span id="walkFlowWalk">漂う</span></span>
                     <span class="walk-flow-arrow">→</span>
-                    <span class="walk-flow-step">🎵 <span id="walkFlowSound">音あつめ</span></span>
+                    <span class="walk-flow-step">🎵 <span id="walkFlowSound">響き</span></span>
                     <span class="walk-flow-arrow">→</span>
-                    <span class="walk-flow-step">⭐ <span id="walkFlowEvolution">進化</span></span>
+                    <span class="walk-flow-step">✨ <span id="walkFlowEvolution">変化</span></span>
                 </div>
             </div>
-            <div class="walk-hero-copy" id="walkHeroCopy">Walrusは外に出たがってる。<strong>満腹50%以上</strong>で出発して、歩くほど音と経験値が集まるよ。</div>
+            <div class="walk-hero-copy" id="walkHeroCopy">しばらく様子を見ていると、今の気分が少しずつ見えてくる。</div>
             <div class="walk-desire-row">
                 <div class="walk-desire-bubble">
-                    <div class="walk-desire-label" id="walkDesireLabel">Walrus Mood</div>
+                    <div class="walk-desire-label" id="walkDesireLabel">Walrus Signal</div>
                     <div class="walk-desire-text" id="walkDesireText">「ねえ、散歩いこう。音をひろいたいよ」</div>
                 </div>
                 <div class="walk-rule-chip">
-                    <span class="walk-rule-label" id="walkRuleLabel">Start Rule</span>
+                    <span class="walk-rule-label" id="walkRuleLabel">Walk Key</span>
                     <span class="walk-rule-value" id="walkRuleValue">満腹 50%+</span>
                 </div>
             </div>
@@ -308,10 +326,10 @@ window.__setBootPhase = function(message, ratio){
                 </div>
             </div>
             <div class="walk-btn-row">
-                <button class="walk-start-btn" id="walkStartBtn" onclick="toggleWalk()">🚶 散歩に出かける</button>
+                <button class="walk-start-btn" id="walkStartBtn" onclick="toggleWalk()">🌊 流れに乗る</button>
                 <button class="walk-save-btn" id="walkSaveBtn" onclick="saveWalkToWalrus()" disabled>🌊 Walrusへ</button>
             </div>
-            <div class="walk-cta-note" id="walkCtaNote">散歩を始めると満腹が少しずつ減るよ。</div>
+            <div class="walk-cta-note" id="walkCtaNote">歩き始めると、少しずつお腹が減っていく。</div>
             <div class="walk-log-list" id="walkLogList"></div>
             <div class="walk-blob-chip" id="walkBlobChip"></div>
         </div>

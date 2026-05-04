@@ -70,6 +70,35 @@ function normalizeIdleEventState(idleEvent){
     return base;
 }
 
+function createDefaultBehaviorState(){
+    return {
+        feedCount: 0,
+        petCount: 0,
+        playCount: 0,
+        tapCount: 0,
+        walkSessions: 0,
+        longAwayCount: 0,
+        neglectMinutes: 0,
+        missedLoginDays: 0,
+        originPath: ''
+    };
+}
+
+function normalizeBehaviorState(behavior){
+    const base = createDefaultBehaviorState();
+    const next = (behavior && typeof behavior === 'object') ? behavior : {};
+    base.feedCount = Math.max(0, Number(next.feedCount) || 0);
+    base.petCount = Math.max(0, Number(next.petCount) || 0);
+    base.playCount = Math.max(0, Number(next.playCount) || 0);
+    base.tapCount = Math.max(0, Number(next.tapCount) || 0);
+    base.walkSessions = Math.max(0, Number(next.walkSessions) || 0);
+    base.longAwayCount = Math.max(0, Number(next.longAwayCount) || 0);
+    base.neglectMinutes = Math.max(0, Number(next.neglectMinutes) || 0);
+    base.missedLoginDays = Math.max(0, Number(next.missedLoginDays) || 0);
+    base.originPath = ['feral', 'shadow', 'clingy', 'balanced'].includes(next.originPath) ? next.originPath : '';
+    return base;
+}
+
 const DEFAULT_GAME_STATE = Object.freeze({
     hunger: 70,
     happy: 50,
@@ -90,7 +119,8 @@ const DEFAULT_GAME_STATE = Object.freeze({
     custom: { color: 'gold', accessory: 'none' },
     soundDiet: createEmptySoundDiet('1970-01-01'),
     daily: createDefaultDailyState(),
-    idleEvent: createDefaultIdleEventState()
+    idleEvent: createDefaultIdleEventState(),
+    behavior: createDefaultBehaviorState()
 });
 
 function createGameState(overrides = {}){
@@ -104,7 +134,8 @@ function createGameState(overrides = {}){
         },
         soundDiet: normalizeSoundDiet(overrides.soundDiet || DEFAULT_GAME_STATE.soundDiet),
         daily: normalizeDailyState(overrides.daily || DEFAULT_GAME_STATE.daily),
-        idleEvent: normalizeIdleEventState(overrides.idleEvent || DEFAULT_GAME_STATE.idleEvent)
+        idleEvent: normalizeIdleEventState(overrides.idleEvent || DEFAULT_GAME_STATE.idleEvent),
+        behavior: normalizeBehaviorState(overrides.behavior || DEFAULT_GAME_STATE.behavior)
     };
     return normalizeGameState(merged);
 }
@@ -125,6 +156,7 @@ function normalizeGameState(state){
     state.soundDiet = normalizeSoundDiet(state.soundDiet);
     state.daily = normalizeDailyState(state.daily);
     state.idleEvent = normalizeIdleEventState(state.idleEvent);
+    state.behavior = normalizeBehaviorState(state.behavior);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -182,7 +214,51 @@ function applyTimeDecay(){
     const mins = Math.min(elapsed, 120);
     G.hunger = Math.max(0, G.hunger - DECAY_PER_MIN.hunger * mins);
     G.happy  = Math.max(0, G.happy  - DECAY_PER_MIN.happy  * mins);
+    G.behavior = normalizeBehaviorState(G.behavior);
+    G.behavior.neglectMinutes += Math.max(0, Math.floor(mins));
+    if(mins >= 180) G.behavior.longAwayCount += 1;
     return Math.floor(mins);
+}
+
+function ensureBehaviorState(){
+    G.behavior = normalizeBehaviorState(G.behavior);
+    return G.behavior;
+}
+
+function recordBehaviorAction(action, amount = 1){
+    const behavior = ensureBehaviorState();
+    if(typeof behavior[action] !== 'number') return behavior;
+    behavior[action] += amount;
+    return behavior;
+}
+
+function recordMissedLoginDays(days = 0){
+    if(days <= 0) return ensureBehaviorState();
+    const behavior = ensureBehaviorState();
+    behavior.missedLoginDays += days;
+    return behavior;
+}
+
+function determineOriginPath(){
+    const behavior = ensureBehaviorState();
+    const careScore = behavior.feedCount + behavior.petCount + behavior.playCount + Math.floor(behavior.tapCount / 3);
+    const walkSessions = behavior.walkSessions;
+    if((behavior.neglectMinutes >= 360 || behavior.longAwayCount >= 2) && walkSessions <= 1){
+        return 'feral';
+    }
+    if(behavior.missedLoginDays >= 4 && G.daily?.streak <= 1){
+        return 'shadow';
+    }
+    if(careScore >= 40 && walkSessions <= 2){
+        return 'clingy';
+    }
+    return 'balanced';
+}
+
+function ensureOriginPath(){
+    const behavior = ensureBehaviorState();
+    if(!behavior.originPath) behavior.originPath = determineOriginPath();
+    return behavior.originPath;
 }
 
 const IDLE_RANDOM_EVENT_MIN_AWAY_MINS = 20;
@@ -808,14 +884,33 @@ function checkLevelUp(){
         haptic(50);
         if(G.lv !== 4) showLevelUpOverlay(G.lv);
         setMsg(G.lv===4
-            ? (currentLang === 'ja' ? '✦ Legend到達。Walrus の伝説が刻まれた！' : 'Legend reached. Your Walrus has been etched into legend!')
+            ? (currentLang === 'ja' ? '✦ Legend到達。育ち方のクセが姿に刻まれた！' : 'Legend reached. Its growth style has shaped the final form!')
             : (G.lv===2
                 ? (currentLang === 'ja' ? '✨ Lv.2解放！ 自己紹介とプロフィールカードを教えてね。' : '✨ Lv.2 unlocked! Set your intro and profile cards.')
                 : (currentLang === 'ja' ? `✨ レベルアップ！ Lv.${G.lv} · ${getLvName(G.lv)} になったよ！` : `Level up! Lv.${G.lv} ${getLvName(G.lv)}`)));
         if(G.lv===4){
+            const originPath = ensureOriginPath();
             socialPopupPending = false;
             showLegendAscension();
             setTimeout(()=>animPet('legend-reveal'), 560);
+            setTimeout(() => {
+                const msg = currentLang === 'ja'
+                    ? (originPath === 'feral'
+                        ? '🪶 放置の気配で野生化したLegend Walrusになった'
+                        : originPath === 'shadow'
+                            ? '🌑 ログインの途切れで闇進化したLegend Walrusになった'
+                            : originPath === 'clingy'
+                                ? '💞 構いすぎで依存進化したLegend Walrusになった'
+                                : '🌊 散歩以外の暮らし方も抱えたLegend Walrusになった')
+                    : (originPath === 'feral'
+                        ? '🪶 It became a feral Legend Walrus through neglect.'
+                        : originPath === 'shadow'
+                            ? '🌑 It became a shadow Legend Walrus through sparse logins.'
+                            : originPath === 'clingy'
+                                ? '💞 It became a clingy Legend Walrus through too much attention.'
+                                : '🌊 It became a balanced Legend Walrus shaped by daily life.');
+                setMsg(msg);
+            }, 1200);
         } else {
             animPet('bounce');
         }
@@ -858,6 +953,7 @@ function normalizeProfileDeckState(profileDeck){
 /* ===== ACTIONS ===== */
 function doFeed(){
     dismissNewbornGuide();
+    recordBehaviorAction('feedCount');
     pulseActionButtons('#btnFeed', '.tama-btn-a');
     sfxFeed(); haptic(15);
     G.hunger=Math.min(100,G.hunger+28); G.exp+=15;
@@ -870,6 +966,7 @@ function doFeed(){
 }
 function doPet(){
     dismissNewbornGuide();
+    recordBehaviorAction('petCount');
     pulseActionButtons('#btnPet', '.tama-btn-b');
     sfxPet(); haptic(12);
     G.happy=Math.min(100,G.happy+22); G.exp+=10;
@@ -882,6 +979,7 @@ function doPet(){
 }
 function doPlay(){
     dismissNewbornGuide();
+    recordBehaviorAction('playCount');
     pulseActionButtons('#btnPlay', '.tama-btn-c');
     sfxPlay(); haptic(20);
     G.happy=Math.min(100,G.happy+18); G.hunger=Math.max(0,G.hunger-10); G.exp+=20;
@@ -898,6 +996,7 @@ function tapPet(){
         babyDelightBurst(true);
         return;
     }
+    recordBehaviorAction('tapCount');
     haptic(10);
     G.happy=Math.min(100,G.happy+4); G.exp+=2;
     const msgs=getMoodMsg();

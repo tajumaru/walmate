@@ -361,12 +361,12 @@ function closeWalrusBlobPreview(){
 function setSaveMomentText(){
     const isJa = currentLang === 'ja';
     setStorageText('saveMomentTitle', isJa ? 'Walrusへ保存中' : 'Saving to Walrus');
-    setStorageText('saveMomentLocal', isJa ? '育成データ' : 'GAME DATA');
-    setStorageText('saveMomentStorage', isJa ? 'WALRUS BLOB' : 'WALRUS BLOB');
+    setStorageText('saveMomentLocal', isJa ? 'DATA' : 'DATA');
+    setStorageText('saveMomentStorage', isJa ? 'WALRUS' : 'WALRUS');
     setStorageText('saveOnChainLabel', 'ON-CHAIN');
-    setStorageText('saveOnChainText', isJa ? 'BlobIdだけ残る' : 'BlobId remains');
+    setStorageText('saveOnChainText', isJa ? 'FRAGMENT' : 'FRAGMENT');
     setStorageText('saveOffChainLabel', 'OFF-CHAIN');
-    setStorageText('saveOffChainText', isJa ? '中身はWalrusへ' : 'Data goes to Walrus');
+    setStorageText('saveOffChainText', isJa ? 'ABSORB' : 'ABSORB');
     setStorageText('saveMomentResult', '');
 }
 

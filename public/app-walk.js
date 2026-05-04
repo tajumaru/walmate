@@ -5,24 +5,24 @@
 function applyWalkLanguage() {
     const isJa = currentLang === 'ja';
     const setText = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
-    setText('walkKicker', 'CORE LOOP');
-    setText('walkPanelTitle', isJa ? '散歩しないと始まらない' : 'Nothing starts until you walk');
-    setText('walkFlowWalk', isJa ? '散歩' : 'Walk');
-    setText('walkFlowSound', isJa ? '音あつめ' : 'Collect Sounds');
-    setText('walkFlowEvolution', isJa ? '進化' : 'Evolve');
+    setText('walkKicker', isJa ? 'WALRUS SCOPE' : 'WALRUS SCOPE');
+    setText('walkPanelTitle', isJa ? '今日は漂ってる…' : 'Drifting today...');
+    setText('walkFlowWalk', isJa ? '漂う' : 'Drift');
+    setText('walkFlowSound', isJa ? '響き' : 'Echo');
+    setText('walkFlowEvolution', isJa ? '変化' : 'Change');
     const heroCopy = document.getElementById('walkHeroCopy');
     if(heroCopy) heroCopy.innerHTML = isJa
-        ? 'Walrusは外に出たがってる。<strong>満腹50%以上</strong>で出発して、歩くほど音と経験値が集まるよ。'
-        : 'Your Walrus wants to go outside. Start only at <strong>50%+ hunger</strong>, then collect sounds and EXP as you walk.';
-    setText('walkDesireLabel', 'Walrus Mood');
-    setText('walkRuleLabel', 'Start Rule');
+        ? 'しばらく様子を見ていると、今の気分が少しずつ見えてくる。'
+        : 'Watch for a moment and its mood starts to surface.';
+    setText('walkDesireLabel', isJa ? 'Walrus Signal' : 'Walrus Signal');
+    setText('walkRuleLabel', isJa ? 'Walk Key' : 'Walk Key');
     setText('walkRuleValue', isJa ? '満腹 50%+' : 'Hunger 50%+');
     setText('walkLabelDist',  isJa ? '距離' : 'Distance');
     setText('walkLabelTime',  isJa ? '歩行時間' : 'Time');
     setText('walkLabelExp',   isJa ? '獲得EXP' : 'EXP Gained');
     const startBtn = document.getElementById('walkStartBtn');
-    if(startBtn && !walkState.active) startBtn.textContent = isJa ? '🚶 散歩に出かける' : '🚶 Go for a Walk';
-    if(startBtn && walkState.active)  startBtn.textContent = isJa ? '⏹ 散歩をやめる' : '⏹ Stop Walk';
+    if(startBtn && !walkState.active) startBtn.textContent = isJa ? '🌊 流れに乗る' : '🌊 Follow the current';
+    if(startBtn && walkState.active)  startBtn.textContent = isJa ? '⏹ ひと休みする' : '⏹ Pause here';
     const saveBtn = document.getElementById('walkSaveBtn');
     if(saveBtn) saveBtn.textContent = isJa ? '🌊 Walrusへ' : '🌊 To Walrus';
     updateWalkHero();
@@ -99,7 +99,7 @@ function restoreWalkState() {
         walkState.lastSilencePenaltyAt = 0;
         walkState.lastSilenceWarnAt = 0;
         const btn = document.getElementById('walkStartBtn');
-        if(btn){ btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ 散歩をやめる' : '⏹ Stop Walk'; }
+        if(btn){ btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ ひと休みする' : '⏹ Pause here'; }
         clearInterval(walkState.timerInterval);
         walkState.timerInterval = setInterval(updateWalkUI, getWalkUiIntervalMs());
         updateWalkUI();
@@ -173,12 +173,56 @@ function applyWalkProgressEffects(distanceDelta) {
 
 function updateWalkHero() {
     const isJa = currentLang === 'ja';
+    const panel = document.getElementById('walkPanel');
+    const title = document.getElementById('walkPanelTitle');
+    const heroCopy = document.getElementById('walkHeroCopy');
     const desire = document.getElementById('walkDesireText');
     const ctaNote = document.getElementById('walkCtaNote');
     const btn = document.getElementById('walkStartBtn');
+    const statsRow = document.querySelector('.walk-stats-row');
+    const isHungry = G.hunger < WALK_MIN_HUNGER_TO_START;
+    const isBored = G.happy < 35;
+    const soundStarved = isSoundStarved();
+
+    if(panel){
+        panel.classList.toggle('walk-active', walkState.active);
+        panel.classList.toggle('walk-blocked', !walkState.active && isHungry);
+        panel.classList.toggle('walk-drifting', !walkState.active && !isHungry && !isBored && !soundStarved);
+    }
+    if(statsRow){
+        statsRow.classList.toggle('show-stats', walkState.active);
+    }
+
+    if(title){
+        if(soundStarved){
+            title.textContent = isJa ? '静けさに沈んでる…' : 'Sinking into silence...';
+        } else if(walkState.active){
+            title.textContent = isJa ? '流れに乗ってる…' : 'Riding the current...';
+        } else if(isHungry){
+            title.textContent = isJa ? 'お腹すいたみたい' : 'Looks hungry';
+        } else if(isBored){
+            title.textContent = isJa ? 'どこか行きたそう…' : 'Looks ready to wander...';
+        } else {
+            title.textContent = isJa ? '今日は漂ってる…' : 'Drifting today...';
+        }
+    }
+
+    if(heroCopy){
+        if(walkState.active){
+            heroCopy.textContent = isJa ? '耳をすまして、外の音を追いかけている。' : 'It is listening closely and following sounds outside.';
+        } else if(isHungry){
+            heroCopy.textContent = isJa ? '今は移動より食事を優先したいらしい。' : 'Right now it seems to want food before movement.';
+        } else if(isBored){
+            heroCopy.textContent = isJa ? '少し退屈そう。外の気配を待っている。' : 'A little restless, waiting for the world outside.';
+        } else if(soundStarved){
+            heroCopy.textContent = isJa ? '静かすぎて、外の響きを思い出している。' : 'It misses the sound of the outside world.';
+        } else {
+            heroCopy.textContent = isJa ? '今はただ、ゆっくり潮に身をまかせている。' : 'For now, it is just drifting with the tide.';
+        }
+    }
 
     if(desire) {
-        if(isSoundStarved()) {
+        if(soundStarved) {
             desire.textContent = isJa
                 ? '「静かすぎるよ… ポケットの外で音を食べたいな」'
                 : '"It is too quiet... let me hear the world outside your pocket."';
@@ -186,24 +230,24 @@ function updateWalkHero() {
             desire.textContent = isJa
                 ? '「いい音がありそう！ もっと先まで歩こう！」'
                 : '"I hear something out there. Let us keep walking!"';
-        } else if(G.hunger < WALK_MIN_HUNGER_TO_START) {
+        } else if(isHungry) {
             desire.textContent = isJa
                 ? '「お腹がすいた… 先に魚を食べてから散歩したいよ」'
                 : '"I am too hungry... feed me first, then let us walk."';
-        } else if(G.happy < 35) {
+        } else if(isBored) {
             desire.textContent = isJa
                 ? '「外に出たいな。散歩したら元気になれそう！」'
                 : '"I want to get outside. A walk will cheer me up!"';
         } else {
             desire.textContent = isJa
-                ? '「ねえ、散歩いこう。音をひろいたいよ」'
-                : '"Hey, let us go out. I want to collect some sounds."';
+                ? '「ねえ、ちょっと様子を見に行かない？」'
+                : '"Hey... want to come with me for a bit?"';
         }
     }
 
     if(ctaNote) {
-        ctaNote.classList.toggle('warn', (!walkState.active && G.hunger < WALK_MIN_HUNGER_TO_START) || isSoundStarved());
-        if(isSoundStarved()) {
+        ctaNote.classList.toggle('warn', walkState.active && soundStarved);
+        if(soundStarved) {
             ctaNote.textContent = isJa
                 ? `静音ペナルティ中。少しずつ満腹が減ります (-${walkState.silencePenalty.toFixed(2)}%)`
                 : `Silence penalty active. Hunger is slowly dropping (-${walkState.silencePenalty.toFixed(2)}%).`;
@@ -215,19 +259,31 @@ function updateWalkHero() {
             ctaNote.textContent = isJa
                 ? `歩くほど満腹が減るよ。今の散歩コスト: -${walkState.hungerSpent}%`
                 : `Walking drains hunger. Current walk cost: -${walkState.hungerSpent}%`;
-        } else if(G.hunger < WALK_MIN_HUNGER_TO_START) {
+        } else if(isHungry) {
             ctaNote.textContent = isJa
-                ? `満腹${Math.round(G.hunger)}%。散歩にはあと${Math.max(0, WALK_MIN_HUNGER_TO_START - Math.round(G.hunger))}%必要です。`
-                : `Hunger is ${Math.round(G.hunger)}%. You need ${Math.max(0, WALK_MIN_HUNGER_TO_START - Math.round(G.hunger))}% more to start a walk.`;
+                ? `散歩には満腹${WALK_MIN_HUNGER_TO_START}%以上が必要。今は${Math.round(G.hunger)}%。`
+                : `Walking needs ${WALK_MIN_HUNGER_TO_START}%+ hunger. It is at ${Math.round(G.hunger)}% now.`;
         } else {
             ctaNote.textContent = isJa
-                ? `散歩を始めると満腹が少しずつ減るよ。出発条件は満腹${WALK_MIN_HUNGER_TO_START}%以上。`
-                : `Walking slowly reduces hunger. Departure requires ${WALK_MIN_HUNGER_TO_START}%+ hunger.`;
+                ? '歩き始めると、少しずつお腹が減っていく。'
+                : 'Walking slowly drains hunger.';
         }
     }
 
-    if(btn && !walkState.active) {
-        btn.disabled = G.hunger < WALK_MIN_HUNGER_TO_START;
+    if(btn){
+        if(walkState.active){
+            btn.textContent = isJa ? '⏹ ひと休みする' : '⏹ Pause here';
+            btn.disabled = false;
+        } else if(isHungry){
+            btn.textContent = isJa ? '🐟 まだ行けない' : '🐟 Not yet';
+            btn.disabled = true;
+        } else if(isBored){
+            btn.textContent = isJa ? '🌊 一緒に行く？' : '🌊 Come with it?';
+            btn.disabled = false;
+        } else {
+            btn.textContent = isJa ? '🌊 流れに乗る' : '🌊 Follow the current';
+            btn.disabled = false;
+        }
     }
 }
 
@@ -280,13 +336,13 @@ function startWalk() {
         showToast(
             currentLang === 'ja'
                 ? `🐟 満腹${WALK_MIN_HUNGER_TO_START}%以上で散歩できます`
-                : `🐟 You need ${WALK_MIN_HUNGER_TO_START}%+ hunger to start walking`,
+                : `🐟 You need ${WALK_MIN_HUNGER_TO_START}%+ hunger before it can wander`,
             true
         );
         setMsg(
             currentLang === 'ja'
                 ? 'まずは魚を食べてお腹を満たしてから散歩に行こう！'
-                : 'Feed your Walrus first, then head out for a walk!',
+                : 'Feed it first, then follow where it wants to go.',
             true
         );
         pulseActionButtons('#btnFeed', '.tama-btn-a');
@@ -309,8 +365,8 @@ function startWalk() {
     saveWalkState();
 
     const btn = document.getElementById('walkStartBtn');
-    if(btn){ btn.disabled = false; btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ 散歩をやめる' : '⏹ Stop Walk'; }
-    setMsg(currentLang === 'ja' ? '🚶 散歩中！ 音を拾って進化の経験値を集めよう！' : '🚶 Walking! Collect sounds and EXP for evolution!');
+    if(btn){ btn.disabled = false; btn.classList.add('walking'); btn.textContent = currentLang === 'ja' ? '⏹ ひと休みする' : '⏹ Pause here'; }
+    setMsg(currentLang === 'ja' ? '🌊 外の響きを追いはじめた。しばらく様子を見よう。' : '🌊 It started following the sounds outside. Let us watch for a bit.');
     startAmbientMonitor();
 
     walkState.timerInterval = setInterval(updateWalkUI, getWalkUiIntervalMs());
@@ -397,10 +453,11 @@ function stopWalk() {
     clearInterval(walkState.timerInterval);
 
     const btn = document.getElementById('walkStartBtn');
-    if(btn){ btn.classList.remove('walking'); btn.textContent = currentLang === 'ja' ? '🚶 散歩に出かける' : '🚶 Go for a Walk'; }
+    if(btn){ btn.classList.remove('walking'); btn.textContent = currentLang === 'ja' ? '🌊 流れに乗る' : '🌊 Follow the current'; }
 
     const km = walkState.totalMeters / 1000;
     if(km >= 0.01) {
+        recordBehaviorAction?.('walkSessions');
         const log = {
             date: new Date().toLocaleDateString(localeCode(), { month:'short', day:'numeric' }),
             ts: Date.now(),

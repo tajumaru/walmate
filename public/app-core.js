@@ -525,6 +525,7 @@ function ensureDailyState(){
 
     const prevLogin = G.daily.lastLoginDate;
     const diff = prevLogin ? getDateKeyDiff(prevLogin, today) : 0;
+    if(diff > 1) recordMissedLoginDays?.(diff - 1);
     const streak = !prevLogin ? 1 : diff === 1 ? G.daily.streak + 1 : 1;
     const context = getTodayDailyContext();
 
@@ -1903,6 +1904,26 @@ function showIdleRandomEventMoment(){
     saveG();
 }
 
+function getOriginPathLabel(path, isJa = currentLang === 'ja'){
+    const map = {
+        feral: isJa ? '野生化Legend' : 'Feral Legend',
+        shadow: isJa ? '闇進化Legend' : 'Shadow Legend',
+        clingy: isJa ? '依存進化Legend' : 'Clingy Legend',
+        balanced: isJa ? '通常Legend' : 'Balanced Legend'
+    };
+    return map[path] || map.balanced;
+}
+
+function getOriginPathCopy(path, isJa = currentLang === 'ja'){
+    const map = {
+        feral: isJa ? '放置が続いたぶん、ひとりで生きる力が強くなった。' : 'Long neglect made it tougher and more self-willed.',
+        shadow: isJa ? 'ログインの空白が、静かな闇のオーラを育てた。' : 'Sparse logins nurtured a quieter, darker aura.',
+        clingy: isJa ? 'たくさん構われたぶん、離れたくない気持ちが強く育った。' : 'So much attention made it grow deeply attached.',
+        balanced: isJa ? '散歩だけじゃない、ふつうの暮らし方そのものが姿になった。' : 'It was shaped by everyday life, not just walking.'
+    };
+    return map[path] || map.balanced;
+}
+
 function showDailyLoginMoment(){
     const daily = ensureDailyState();
     if(daily.shownDateKey === daily.dateKey) return;
@@ -2419,6 +2440,7 @@ function detectBabyMode(){
 
 function getLvName(lv){
     if(lv >= 4 && G && G.legendEvolution) return 'Mythic Legend Walrus';
+    if(lv >= 4 && G?.behavior?.originPath) return getOriginPathLabel(G.behavior.originPath, false) + ' Walrus';
     return ['','Baby Walrus','Child Walrus','Adult Walrus','Legend Walrus'][lv] || '';
 }
 
@@ -3619,6 +3641,7 @@ const LEGEND_ACCESSORIES = ['none', 'pearl', 'scarf', 'halo', 'sunglasses'];
 
 function ensureLegendState(){
     if(!G.custom || typeof G.custom !== 'object') G.custom = {};
+    G.behavior = normalizeBehaviorState?.(G.behavior);
     if(!LEGEND_COLORS[G.custom.color]) G.custom.color = 'gold';
     if(!LEGEND_ACCESSORIES.includes(G.custom.accessory)) G.custom.accessory = 'none';
     if(!G.legendPath) G.legendPath = '';
@@ -3629,10 +3652,13 @@ function getLegendStatusText(){
     ensureLegendState();
     if(G.legendEvolution) return t('legend_lab_evolved');
     if(G.legendPath === 'custom') return t('legend_lab_custom');
+    if(G.behavior?.originPath) return getOriginPathLabel(G.behavior.originPath);
     return t('legend_lab_idle');
 }
 
 function renderLegendPreview(){
+    const originPath = G.behavior?.originPath || '';
+    const previewCopy = originPath ? getOriginPathCopy(originPath) : t('legend_preview_copy');
     const previewColors = ['gold', 'aurora', 'coral'].map(key => {
         const opt = LEGEND_COLORS[key];
         return `<span class="legend-preview-swatch" style="background:${opt.dot}" title="${t('legend_color_' + key)}"></span>`;
@@ -3640,7 +3666,7 @@ function renderLegendPreview(){
     return `
         <div class="legend-preview">
             <div class="legend-preview-kicker">${t('legend_preview_kicker')}</div>
-            <div class="legend-preview-copy">${t('legend_preview_copy')}</div>
+            <div class="legend-preview-copy">${previewCopy}</div>
             <div class="legend-preview-rail">
                 <div class="legend-preview-card mythic">
                     <div class="legend-preview-glow mythic"></div>
@@ -3691,7 +3717,7 @@ function renderLegendLab(){
                 <div class="customize-label">${t('legend_accessory')}</div>
                 <div class="accessory-row">${accessoryBtns}</div>
             </div>
-            <div class="legend-lab-note">${t('legend_lab_note')}</div>
+            <div class="legend-lab-note">${G.behavior?.originPath ? getOriginPathCopy(G.behavior.originPath) : t('legend_lab_note')}</div>
         </div>`;
 }
 
@@ -3752,6 +3778,18 @@ const BELLY = ['','#7AAAC8','#9898C8','#55AFCA','#D4B055'];
 function getLegendLook(lv){
     if(lv < 4) return null;
     ensureLegendState();
+    if(!G.legendEvolution && G.legendPath !== 'custom'){
+        const originPath = G.behavior?.originPath || ensureOriginPath?.();
+        if(originPath === 'feral'){
+            return { body:'#6C7B57', belly:'#A7B28B', accent:'#C7D96A', accessory:'scarf', evolved:false };
+        }
+        if(originPath === 'shadow'){
+            return { body:'#4F4B86', belly:'#96A2D9', accent:'#7FD4FF', accessory:'halo', evolved:false };
+        }
+        if(originPath === 'clingy'){
+            return { body:'#C96F8D', belly:'#FFD1DE', accent:'#FF8FBF', accessory:'pearl', evolved:false };
+        }
+    }
     const colors = LEGEND_COLORS[G.custom.color] || LEGEND_COLORS.gold;
     return {
         body: colors.body,
