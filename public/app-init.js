@@ -31,6 +31,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     setupPwaInstallPrompt();
     const hasSave = G.lv>1 || G.exp>0 || Math.round(G.hunger)!==70;
     const awayMins = hasSave ? applyTimeDecay() : 0;
+    if(hasSave) rollIdleRandomEvent(awayMins);
     window.__setBootPhase?.(hasSave ? 'Walrusを起こしています…' : 'たまごをあたためています…', 0.78);
 
     setTimeout(()=>{
@@ -49,6 +50,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
             renderSoundMemory();
             renderDailyBoard();
             showDailyLoginMoment();
+            showIdleRandomEventMoment();
             syncDailyWeatherFromGPS({ silent:true });
             if(awayMins>1){
                 const h=Math.floor(awayMins/60), m=awayMins%60;

@@ -45,6 +45,31 @@ function normalizeDailyState(daily){
     return base;
 }
 
+function createDefaultIdleEventState(){
+    return {
+        id: '',
+        dateKey: '',
+        variant: '',
+        weather: 'clear',
+        timeBand: 'day',
+        announced: false,
+        triggeredAt: 0
+    };
+}
+
+function normalizeIdleEventState(idleEvent){
+    const base = createDefaultIdleEventState();
+    const next = (idleEvent && typeof idleEvent === 'object') ? idleEvent : {};
+    base.id = typeof next.id === 'string' ? next.id : '';
+    base.dateKey = typeof next.dateKey === 'string' ? next.dateKey : '';
+    base.variant = ['dawn', 'day', 'night', 'rain'].includes(next.variant) ? next.variant : '';
+    base.weather = next.weather === 'rain' ? 'rain' : 'clear';
+    base.timeBand = ['dawn', 'day', 'night'].includes(next.timeBand) ? next.timeBand : 'day';
+    base.announced = !!next.announced;
+    base.triggeredAt = Number(next.triggeredAt) || 0;
+    return base;
+}
+
 const DEFAULT_GAME_STATE = Object.freeze({
     hunger: 70,
     happy: 50,
@@ -64,7 +89,8 @@ const DEFAULT_GAME_STATE = Object.freeze({
     profileDeckSavedAt: 0,
     custom: { color: 'gold', accessory: 'none' },
     soundDiet: createEmptySoundDiet('1970-01-01'),
-    daily: createDefaultDailyState()
+    daily: createDefaultDailyState(),
+    idleEvent: createDefaultIdleEventState()
 });
 
 function createGameState(overrides = {}){
@@ -77,7 +103,8 @@ function createGameState(overrides = {}){
             ...(overrides.custom || {})
         },
         soundDiet: normalizeSoundDiet(overrides.soundDiet || DEFAULT_GAME_STATE.soundDiet),
-        daily: normalizeDailyState(overrides.daily || DEFAULT_GAME_STATE.daily)
+        daily: normalizeDailyState(overrides.daily || DEFAULT_GAME_STATE.daily),
+        idleEvent: normalizeIdleEventState(overrides.idleEvent || DEFAULT_GAME_STATE.idleEvent)
     };
     return normalizeGameState(merged);
 }
@@ -97,6 +124,7 @@ function normalizeGameState(state){
     state.profileDeckSavedAt = Number(state.profileDeckSavedAt) || 0;
     state.soundDiet = normalizeSoundDiet(state.soundDiet);
     state.daily = normalizeDailyState(state.daily);
+    state.idleEvent = normalizeIdleEventState(state.idleEvent);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -155,6 +183,55 @@ function applyTimeDecay(){
     G.hunger = Math.max(0, G.hunger - DECAY_PER_MIN.hunger * mins);
     G.happy  = Math.max(0, G.happy  - DECAY_PER_MIN.happy  * mins);
     return Math.floor(mins);
+}
+
+const IDLE_RANDOM_EVENT_MIN_AWAY_MINS = 20;
+const IDLE_RANDOM_EVENT_CHANCE = 0.01;
+
+function clearIdleRandomEvent(){
+    G.idleEvent = createDefaultIdleEventState();
+    return G.idleEvent;
+}
+
+function getActiveIdleRandomEvent(){
+    const idleEvent = normalizeIdleEventState(G.idleEvent);
+    if(!idleEvent.id) return null;
+    if(idleEvent.dateKey !== getLocalDateKey()){
+        clearIdleRandomEvent();
+        return null;
+    }
+    return idleEvent;
+}
+
+function rollIdleRandomEvent(awayMins = 0){
+    const idleEvent = getActiveIdleRandomEvent();
+    if(idleEvent) return idleEvent;
+    if(awayMins < IDLE_RANDOM_EVENT_MIN_AWAY_MINS) return null;
+
+    const daily = G.daily || createDefaultDailyState(getLocalDateKey());
+    if(Math.random() >= IDLE_RANDOM_EVENT_CHANCE){
+        clearIdleRandomEvent();
+        return null;
+    }
+
+    const variant = daily.weather === 'rain'
+        ? 'rain'
+        : daily.timeBand === 'night'
+            ? 'night'
+            : daily.timeBand === 'dawn'
+                ? 'dawn'
+                : 'day';
+    G.idleEvent = normalizeIdleEventState({
+        id: 'mystery_walrus',
+        dateKey: daily.dateKey || getLocalDateKey(),
+        variant,
+        weather: daily.weather,
+        timeBand: daily.timeBand,
+        announced: false,
+        triggeredAt: Date.now()
+    });
+    G.happy = Math.min(100, G.happy + 6);
+    return G.idleEvent;
 }
 
 function getLocalDateKey(date = new Date()){
@@ -256,6 +333,10 @@ function updateUI(){
     if(isSoundStarved()){
         alerts.innerHTML += `<span class="alert-tag alert-silence">${currentLang === 'ja' ? '🔇 静かすぎる…' : '🔇 Too quiet...'}</span>`;
     }
+    const idleMeta = getIdleRandomEventMeta?.();
+    if(idleMeta){
+        alerts.innerHTML += `<span class="alert-tag alert-mystery">${currentLang === 'ja' ? idleMeta.statusJa : idleMeta.statusEn}</span>`;
+    }
 
     const stage = document.getElementById('petStage');
     renderWalrusMarkup(stage, G.lv, mood, expression);
@@ -264,6 +345,7 @@ function updateUI(){
     if(!stage.classList.contains('bounce') && !stage.classList.contains('shake') && !stage.classList.contains('legend-reveal') && !stage.classList.contains('action-feed') && !stage.classList.contains('action-pet') && !stage.classList.contains('action-play')){
         stage.className = getPetClasses();
     }
+    applyIdleRandomEventVisuals?.();
     syncSoundReactiveStage();
     renderSoundDietCard();
     renderDailyBoard();
@@ -303,6 +385,7 @@ function updateUI(){
     bubble.classList.toggle('mood-happy', expression === 'happy' || expression === 'ecstatic');
     bubble.classList.toggle('mood-sleepy', expression === 'sleepy');
     bubble.classList.toggle('mood-full', expression === 'full' || expression === 'ecstatic');
+    applyIdleRandomEventVisuals?.();
     saveG();
 }
 
@@ -316,6 +399,7 @@ function setMsg(txt, warn=false){
         if(expression === 'happy' || expression === 'ecstatic') el.classList.add('mood-happy');
         if(expression === 'sleepy') el.classList.add('mood-sleepy');
         if(expression === 'full' || expression === 'ecstatic') el.classList.add('mood-full');
+        applyIdleRandomEventVisuals?.();
         el.style.opacity='1';
     },70);
 }

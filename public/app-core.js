@@ -299,6 +299,35 @@ window.addEventListener('pagehide', () => {
 function sfxFeed()    { playTone(440,'sine',0.1,0.07); setTimeout(()=>playTone(660,'sine',0.08,0.06),80); }
 function sfxPet()     { playTone(520,'sine',0.15,0.06); setTimeout(()=>playTone(780,'sine',0.1,0.05),100); }
 function sfxPlay()    { [330,440,550,660].forEach((f,i)=>setTimeout(()=>playTone(f,'square',0.06,0.04),i*55)); }
+function sfxMysteryWalrus(variant = 'day'){
+    const patterns = {
+        dawn: [
+            [620, 'sine', 0.16, 0.04, 0],
+            [880, 'triangle', 0.18, 0.05, 90],
+            [1040, 'sine', 0.12, 0.035, 180]
+        ],
+        day: [
+            [540, 'sine', 0.12, 0.04, 0],
+            [760, 'triangle', 0.14, 0.05, 80],
+            [980, 'sine', 0.12, 0.035, 170]
+        ],
+        night: [
+            [320, 'triangle', 0.2, 0.05, 0],
+            [480, 'sine', 0.18, 0.04, 120],
+            [720, 'triangle', 0.16, 0.03, 260]
+        ],
+        rain: [
+            [460, 'sine', 0.1, 0.03, 0],
+            [680, 'triangle', 0.12, 0.04, 70],
+            [520, 'sine', 0.14, 0.025, 150],
+            [860, 'sine', 0.1, 0.03, 240]
+        ]
+    };
+    const notes = patterns[variant] || patterns.day;
+    notes.forEach(([freq, type, dur, vol, delay]) => {
+        setTimeout(() => playTone(freq, type, dur, vol), delay);
+    });
+}
 function sfxLevelUp() {
     // iOS Safari対策: AudioContextがsuspendedなら再開してから再生
     try {
@@ -1787,6 +1816,93 @@ function renderDailyBoard(){
         </div>`;
 }
 
+function getIdleRandomEventMeta(idleEvent = getActiveIdleRandomEvent?.()){
+    if(!idleEvent || idleEvent.id !== 'mystery_walrus') return null;
+    const variantMap = {
+        dawn: {
+            emoji: '🌅',
+            badgeJa: '朝焼けの謎Walrus',
+            badgeEn: 'Dawn mystery Walrus',
+            copyJa: '朝の光を吸って、真珠色のWalrusが少しだけ近くまで来ていたみたい。',
+            copyEn: 'A pearl-tinted Walrus seems to have drifted close in the dawn light.',
+            hintJa: 'うっすら桃色に発光中',
+            hintEn: 'Soft pearl-pink glow',
+            stageClass: 'mystery-dawn',
+            bubbleClass: 'mystery-dawn'
+        },
+        day: {
+            emoji: '☀️',
+            badgeJa: '日中の謎Walrus',
+            badgeEn: 'Daylight mystery Walrus',
+            copyJa: '昼の潮にまぎれて、ミント色の謎Walrusが画面の外を泳いでいた気配がある。',
+            copyEn: 'A mint-toned mystery Walrus may be circling just beyond the screen in daylight.',
+            hintJa: 'ミント色の気配',
+            hintEn: 'Mint-colored presence',
+            stageClass: 'mystery-day',
+            bubbleClass: 'mystery-day'
+        },
+        night: {
+            emoji: '🌌',
+            badgeJa: '深夜の謎Walrus',
+            badgeEn: 'Midnight mystery Walrus',
+            copyJa: '夜の深海で、群青色に光る謎Walrusがじっとこちらを見ていたらしい。',
+            copyEn: 'In the midnight deep, an indigo-glowing mystery Walrus may have been watching.',
+            hintJa: '群青の残光',
+            hintEn: 'Indigo afterglow',
+            stageClass: 'mystery-night',
+            bubbleClass: 'mystery-night'
+        },
+        rain: {
+            emoji: '🌧',
+            badgeJa: '雨の日の謎Walrus',
+            badgeEn: 'Rainy mystery Walrus',
+            copyJa: '雨のしずくをまとって、水色にきらめく謎Walrusが現れた気配がある。',
+            copyEn: 'A rain-lit mystery Walrus seems to have appeared in a pale blue shimmer.',
+            hintJa: '雨色ブルーに変化',
+            hintEn: 'Shifted into rain-blue',
+            stageClass: 'mystery-rain',
+            bubbleClass: 'mystery-rain'
+        }
+    };
+    const variant = variantMap[idleEvent.variant] || variantMap.day;
+    return {
+        ...variant,
+        titleJa: '1% 謎のWalrus出現',
+        titleEn: '1% mystery Walrus sighting',
+        statusJa: `${variant.emoji} 謎のWalrus`,
+        statusEn: `${variant.emoji} Mystery Walrus`,
+        toastJa: `1%イベント発生: ${variant.badgeJa}`,
+        toastEn: `1% event: ${variant.badgeEn}`,
+        messageJa: `👀 ${variant.badgeJa}。${variant.hintJa}`,
+        messageEn: `👀 ${variant.badgeEn}. ${variant.hintEn}`
+    };
+}
+
+function applyIdleRandomEventVisuals(){
+    const idleMeta = getIdleRandomEventMeta();
+    const stage = document.getElementById('petStage');
+    const bubble = document.getElementById('msgBubble');
+    if(stage){
+        stage.classList.remove('mystery-visitor', 'mystery-dawn', 'mystery-day', 'mystery-night', 'mystery-rain');
+        if(idleMeta) stage.classList.add('mystery-visitor', idleMeta.stageClass);
+    }
+    if(bubble){
+        bubble.classList.remove('mystery-event', 'mystery-dawn', 'mystery-day', 'mystery-night', 'mystery-rain');
+        if(idleMeta) bubble.classList.add('mystery-event', idleMeta.bubbleClass);
+    }
+}
+
+function showIdleRandomEventMoment(){
+    const idleEvent = getActiveIdleRandomEvent?.();
+    const idleMeta = getIdleRandomEventMeta(idleEvent);
+    if(!idleEvent || !idleMeta || idleEvent.announced) return;
+    setMsg(currentLang === 'ja' ? idleMeta.messageJa : idleMeta.messageEn);
+    showToast(currentLang === 'ja' ? idleMeta.toastJa : idleMeta.toastEn);
+    sfxMysteryWalrus(idleEvent.variant);
+    G.idleEvent.announced = true;
+    saveG();
+}
+
 function showDailyLoginMoment(){
     const daily = ensureDailyState();
     if(daily.shownDateKey === daily.dateKey) return;
@@ -1817,7 +1933,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-04-gps-weather-daily';
+const APP_VERSION = '2026-05-04-idle-mystery-event';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -1831,7 +1947,7 @@ const I18N_LEGACY = {
     ja: {
         cache_refresh: '更新',
         cache_refreshing: '更新中…',
-        app_title: 'たじゅまるのWalrus',
+        app_title: 'WalMate',
         load_title: 'Walrusを孵化させています…',
         load_sub: 'たじゅまるの秘密基地へようこそ',
         hatch_wait: '卵が揺れている…',
@@ -1841,7 +1957,7 @@ const I18N_LEGACY = {
         hatch_step_3: '連打で孵化',
         newborn_guide_title: 'FIRST STEP',
         newborn_guide_copy: 'まずは <strong>散歩</strong> に行こう。<strong>満腹50%以上</strong> なら出発できて、歩くと <strong>音</strong> と <strong>経験値</strong> が集まるよ。',
-        main_title: 'たじゅまるのWalrus',
+        main_title: 'WalMate',
         main_sub: '散歩して音を集めて、Walrusを進化させよう',
         sound_lab_title: '🎵 サウンドキッチン',
         sound_memory_title: '④ 音の記憶',
@@ -2008,7 +2124,7 @@ const I18N_LEGACY = {
     en: {
         cache_refresh: 'Refresh',
         cache_refreshing: 'Refreshing...',
-        app_title: "Tajumaru's Walrus",
+        app_title: "WalMate",
         load_title: 'Hatching your Walrus...',
         load_sub: "Welcome to Tajumaru's secret base",
         hatch_wait: 'The egg is shaking...',
@@ -2018,7 +2134,7 @@ const I18N_LEGACY = {
         hatch_step_3: 'Tap to hatch',
         newborn_guide_title: 'FIRST STEP',
         newborn_guide_copy: 'Start with a <strong>walk</strong>. You can leave only when <strong>hunger is 50%+</strong>, and walking collects <strong>sounds</strong> plus <strong>EXP</strong>.',
-        main_title: "Tajumaru's Walrus",
+        main_title: "WalMate",
         main_sub: 'Walk, collect sounds, and evolve your Walrus',
         sound_lab_title: '🎵 Sound Kitchen',
         sound_memory_title: '④ Sound Memory',
