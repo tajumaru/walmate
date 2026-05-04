@@ -4844,3 +4844,180 @@ animation: visitBtnPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 1.5s both;
     min-width: 90px;
   }
 }
+
+button,
+input,
+textarea,
+select {
+  font-family: 'DotGothic16', 'Nunito', sans-serif;
+}
+
+.utility-btn,
+.act-btn,
+.daily-board,
+.daily-event-card,
+.daily-choice-card,
+.daily-sound-card,
+.stat-card,
+.story-panel,
+.message-log-panel,
+.msg-bubble,
+.walk-panel,
+.walrus-project-card,
+.legend-choice-btn,
+.diary-textarea,
+.diary-save-btn,
+.diary-view-btn,
+.diary-walrus-btn,
+.game-btn {
+  border-radius: 6px;
+}
+
+.utility-btn,
+.act-btn,
+.daily-board,
+.daily-event-card,
+.daily-choice-card,
+.daily-sound-card,
+.stat-card,
+.story-panel,
+.message-log-panel,
+.msg-bubble,
+.walk-panel {
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.32);
+}
+
+.utility-btn,
+.act-btn,
+.daily-board-title,
+.story-panel-title,
+.main-title,
+.game-header {
+  font-family: 'DotGothic16', 'Nunito', sans-serif;
+}
+
+.utility-btn:hover,
+.act-btn:hover,
+.daily-choice-btn:hover {
+  transform: translate(-1px, -1px);
+}
+
+.act-btn:active {
+  transform: translate(1px, 1px) scale(0.985);
+}
+
+.msg-bubble {
+  font-style: normal;
+  background: linear-gradient(180deg, rgba(9,24,46,0.94), rgba(5,15,30,0.92));
+  border-color: rgba(126,200,255,0.24);
+}
+
+.daily-event-reward {
+  margin-top: 10px;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.72);
+  letter-spacing: 0.04em;
+}
+
+.story-panel,
+.message-log-panel {
+  background: linear-gradient(180deg, rgba(8,21,42,0.92), rgba(4,12,24,0.92));
+  border: 1px solid rgba(126,200,255,0.22);
+  padding: 12px 14px;
+  margin: 0 0 12px;
+}
+
+.story-panel-head,
+.message-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.story-panel-kicker,
+.message-log-title {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+}
+
+.story-panel-stage,
+.message-log-sub {
+  font-size: 0.64rem;
+  color: rgba(255,255,255,0.52);
+}
+
+.story-panel-title {
+  font-size: clamp(0.9rem,3.8vw,1rem);
+  line-height: 1.5;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+
+.story-panel-copy {
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.72);
+}
+
+.message-log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.message-log-item {
+  display: grid;
+  gap: 4px;
+  padding: 8px 9px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+}
+
+.message-log-date {
+  font-size: 0.62rem;
+  color: var(--teal);
+}
+
+.message-log-text,
+.message-log-empty {
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: rgba(255,255,255,0.78);
+}
+
+.pet-stage.daily-awaken {
+  animation: dailyAwaken 0.84s steps(6, end) 1;
+}
+
+@keyframes dailyAwaken {
+  0% { transform: translateY(0) scale(1); filter: brightness(0.98); }
+  35% { transform: translateY(-8px) scale(1.04); filter: brightness(1.16); }
+  70% { transform: translateY(2px) scale(0.99); }
+  100% { transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+html.motion-paused .ocean-bg::after,
+html.motion-paused .pet-stage,
+html.motion-paused .free-swim-bubble,
+html.motion-paused .zzz,
+html.motion-paused .pw-star,
+html.motion-paused .legend-ring,
+html.motion-paused .legend-ring-outer {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-bg::after,
+  .pet-stage,
+  .free-swim-bubble,
+  .zzz,
+  .pw-star,
+  .legend-ring,
+  .legend-ring-outer {
+    animation: none !important;
+    transition: none !important;
+  }
+}

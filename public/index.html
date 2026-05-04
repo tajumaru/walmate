@@ -357,10 +357,25 @@ window.__setBootPhase = function(message, ratio){
             </div>
         </div>
 
-        <div class="msg-bubble" id="msgBubble">クー！ 散歩して音をあつめよう！</div>
+        <div class="msg-bubble" id="msgBubble">今日の海で、なにかが待っている気がする…</div>
+        <div class="story-panel" id="storyPanel" aria-live="polite">
+            <div class="story-panel-head">
+                <div class="story-panel-kicker" id="storyPanelKicker">STORY SIGNAL</div>
+                <div class="story-panel-stage" id="storyPanelStage">PHASE 1</div>
+            </div>
+            <div class="story-panel-title" id="storyPanelTitle">卵の殻が、まだ少しあたたかい。</div>
+            <div class="story-panel-copy" id="storyPanelCopy">生まれたばかりのWalrusは、海の名前をまだ知らない。</div>
+        </div>
+        <div class="message-log-panel" id="messageLogPanel" aria-live="polite">
+            <div class="message-log-head">
+                <div class="message-log-title" id="messageLogTitle">WALRUS LOG</div>
+                <div class="message-log-sub" id="messageLogSub">直近5件</div>
+            </div>
+            <div class="message-log-list" id="messageLogList"></div>
+        </div>
         <div class="newborn-guide" id="newbornGuide">
-            <div class="newborn-guide-title" id="newbornGuideTitle">FIRST STEP</div>
-            <div class="newborn-guide-copy" id="newbornGuideCopy">まずは <strong>散歩</strong> に行こう。<strong>満腹50%以上</strong> なら出発できて、歩くと <strong>音</strong> と <strong>経験値</strong> が集まるよ。</div>
+            <div class="newborn-guide-title" id="newbornGuideTitle">TODAY'S SIGNAL</div>
+            <div class="newborn-guide-copy" id="newbornGuideCopy">今日は <strong>散歩だけ</strong> じゃなくていい。まずは <strong>タップ</strong> したり、<strong>ごはん</strong> や <strong>あそぶ</strong> で様子を見よう。</div>
         </div>
 
         <div class="stats-grid">

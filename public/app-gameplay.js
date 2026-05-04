@@ -4,6 +4,10 @@
 const DECAY_PER_MIN = { hunger: 1.8, happy: 1.2 };
 const COOLDOWNS = { feed: 8000, pet: 5000, play: 12000 };
 const GAME_STORAGE_KEY = 'walrus_taju4';
+const WALMATE_LAST_DAILY_EVENT_DATE_KEY = 'walmate_last_daily_event_date';
+const WALMATE_LAST_DAILY_EVENT_ID_KEY = 'walmate_last_daily_event_id';
+const WALMATE_MESSAGE_LOG_KEY = 'walmate_message_logs';
+const WALMATE_STORY_STAGE_KEY = 'walmate_story_stage';
 const SAKURA_PETALS_REQUIRED = 5;
 
 function createDefaultDailyState(dateKey = '1970-01-01'){
@@ -425,6 +429,7 @@ function updateUI(){
     syncSoundReactiveStage();
     renderSoundDietCard();
     renderDailyBoard();
+    syncStoryProgress?.(false);
 
     document.getElementById('zzzWrap').style.display = mood==='sleepy' ? 'block':'none';
     const showRing = G.lv >= 4;
@@ -525,6 +530,56 @@ function getMoodMsgSafe(){
     return ['kuu!','splash splash','walrus!','pet me!','kuu~','ocean vibes','let us play!'];
 }
 const getMoodMsg = getMoodMsgSafe;
+
+function getStoredDailyEventDate(){
+    try { return localStorage.getItem(WALMATE_LAST_DAILY_EVENT_DATE_KEY) || ''; } catch(e){ return ''; }
+}
+
+function setStoredDailyEventSnapshot(dateKey, eventId){
+    try {
+        localStorage.setItem(WALMATE_LAST_DAILY_EVENT_DATE_KEY, dateKey || '');
+        localStorage.setItem(WALMATE_LAST_DAILY_EVENT_ID_KEY, eventId || '');
+    } catch(e){}
+}
+
+function getWalMateLogs(){
+    try {
+        const raw = localStorage.getItem(WALMATE_MESSAGE_LOG_KEY);
+        const logs = raw ? JSON.parse(raw) : [];
+        return Array.isArray(logs) ? logs.slice(0, 5) : [];
+    } catch(e){
+        return [];
+    }
+}
+
+function saveWalMateLogs(logs){
+    try { localStorage.setItem(WALMATE_MESSAGE_LOG_KEY, JSON.stringify((Array.isArray(logs) ? logs : []).slice(0, 5))); } catch(e){}
+}
+
+function addWalMateLog(textJa, textEn, type = 'story', meta = {}){
+    const logs = getWalMateLogs();
+    const text = currentLang === 'ja' ? textJa : textEn;
+    if(text && logs[0]?.text === text && logs[0]?.dateKey === getLocalDateKey()) return;
+    logs.unshift({
+        id: meta.id || `${type}:${Date.now()}`,
+        type,
+        textJa,
+        textEn,
+        text,
+        ts: Date.now(),
+        dateKey: meta.dateKey || getLocalDateKey()
+    });
+    saveWalMateLogs(logs);
+    renderWalMateLogs?.();
+}
+
+function getStoredStoryStage(){
+    try { return Math.max(0, Number(localStorage.getItem(WALMATE_STORY_STAGE_KEY)) || 0); } catch(e){ return 0; }
+}
+
+function setStoredStoryStage(stage){
+    try { localStorage.setItem(WALMATE_STORY_STAGE_KEY, String(Math.max(0, Number(stage) || 0))); } catch(e){}
+}
 
 function animPet(cls){
     const el = document.getElementById('petStage');
@@ -924,6 +979,7 @@ function checkLevelUp(){
                 hydrateProfileDeckEditor();
             }, 700);
         }
+        syncStoryProgress?.(true);
         return true;
     }
     return false;

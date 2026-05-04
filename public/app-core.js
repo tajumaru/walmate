@@ -433,6 +433,127 @@ const DAILY_PATHS = {
     }
 };
 
+const dailyEvents = [
+    {
+        id: 'morning_glow',
+        condition: 'morning',
+        titleJa: '朝のひげが光っている',
+        titleEn: 'Whiskers glowing at dawn',
+        messageJa: '朝の光で、Walrusのひげが少し光っている…',
+        messageEn: 'In the morning light, the Walrus whiskers shimmer a little...',
+        hintJa: '朝だけ少し機嫌がいい',
+        hintEn: 'A softer morning mood',
+        moodDelta: 5,
+        expDelta: 5,
+        zone: 'beach',
+        emoji: '🌅'
+    },
+    {
+        id: 'midnight_whisper',
+        condition: 'night',
+        titleJa: '知らない海の夢',
+        titleEn: 'A dream from an unknown sea',
+        messageJa: 'Walrusが、知らない海の夢を見ていた…',
+        messageEn: 'The Walrus seemed to dream of an unknown sea...',
+        hintJa: '夜は少しだけ不穏',
+        hintEn: 'Night leans a little uncanny',
+        moodDelta: 2,
+        expDelta: 8,
+        zone: 'ruins',
+        emoji: '🌌'
+    },
+    {
+        id: 'rain_memory',
+        condition: 'rain',
+        titleJa: '雨粒の記憶',
+        titleEn: 'Memory in raindrops',
+        messageJa: '雨粒ごしに、Walrusが何かを思い出しかけている。',
+        messageEn: 'Through the rain, the Walrus seems close to remembering something.',
+        hintJa: '雨の日用の分岐',
+        hintEn: 'Reserved for rainy branches',
+        moodDelta: 4,
+        expDelta: 6,
+        zone: 'beach',
+        emoji: '🌧'
+    },
+    {
+        id: 'rare_visitor',
+        condition: 'random_1_percent',
+        titleJa: '1% 別のWalrusの影',
+        titleEn: '1% shadow of another Walrus',
+        messageJa: '一瞬だけ、別のWalrusの影が見えた。',
+        messageEn: 'For a moment, you saw the shadow of another Walrus.',
+        hintJa: 'とてもまれな訪問',
+        hintEn: 'A very rare visit',
+        moodDelta: 10,
+        expDelta: 20,
+        zone: 'ruins',
+        emoji: '🫧'
+    },
+    {
+        id: 'calm_current',
+        condition: 'always',
+        titleJa: '静かな海流',
+        titleEn: 'Calm current',
+        messageJa: '海は静かで、Walrusだけがこちらを見ている。',
+        messageEn: 'The sea is quiet, and only the Walrus is watching you.',
+        hintJa: '今日は自由に過ごせる',
+        hintEn: 'A day to drift freely',
+        moodDelta: 4,
+        expDelta: 0,
+        zone: 'beach',
+        emoji: '🌊'
+    }
+];
+
+const STORY_PHASES = [
+    {
+        stage: 1,
+        titleJa: '卵の殻が、まだ少しあたたかい。',
+        titleEn: 'The shell is still a little warm.',
+        copyJa: '卵の中から、小さな音がした。生まれたばかりのWalrusは、海の名前をまだ知らない。',
+        copyEn: 'A tiny sound came from inside the shell. The newborn Walrus still does not know the sea by name.',
+        logJa: '卵の中から、小さな音がした',
+        logEn: 'A tiny sound came from inside the shell'
+    },
+    {
+        stage: 2,
+        titleJa: '言葉の前の音を覚え始めた。',
+        titleEn: 'It started learning sounds before words.',
+        copyJa: '同じ響きを何度もまねしている。言葉を覚え始めたのかもしれない。',
+        copyEn: 'It keeps imitating the same tones. It may be beginning to learn words.',
+        logJa: 'Walrusは、言葉の前の音を集め始めた',
+        logEn: 'The Walrus began collecting sounds that come before words'
+    },
+    {
+        stage: 3,
+        titleJa: '勝手に、どこかへ行きたがっている。',
+        titleEn: 'It wants to go somewhere on its own.',
+        copyJa: '最近は海の向こうを気にしている。こちらの知らない道を、もう見つけているのかもしれない。',
+        copyEn: 'Lately it keeps looking beyond the sea. It may already know paths you do not.',
+        logJa: 'Walrusは何かを思い出しかけている',
+        logEn: 'The Walrus seems close to remembering something'
+    },
+    {
+        stage: 4,
+        titleJa: '眠る前に、きみを呼んだ気がした。',
+        titleEn: 'Before sleeping, it sounded like it called for you.',
+        copyJa: '深夜のあいだだけ、Walrusの声にこちらを呼ぶ響きが混じる。',
+        copyEn: 'Only late at night, its voice seems to carry a sound meant for you.',
+        logJa: 'Walrusが、こちらを呼ぶ響きを覚えた',
+        logEn: 'The Walrus learned a sound that calls for you'
+    },
+    {
+        stage: 5,
+        titleJa: '秘密は、もう海の底だけのものじゃない。',
+        titleEn: 'The secret no longer belongs only to the deep sea.',
+        copyJa: 'ときどき、Walrusは知らない記憶を話し始める。まだ全部は聞き取れない。',
+        copyEn: 'Sometimes the Walrus starts speaking of memories you do not know. You still cannot catch all of it.',
+        logJa: '知らない記憶を見た…',
+        logEn: 'You glimpsed an unfamiliar memory...'
+    }
+];
+
 function hashStringToSeed(text){
     let hash = 2166136261;
     for(let i = 0; i < text.length; i += 1){
@@ -505,23 +626,51 @@ function pickDailyLimitedSound(context){
     return candidates[Math.floor(rng() * candidates.length)] || candidates[0];
 }
 
-function pickDailyEventId(context, streak){
-    const rng = createSeededRandom(`event:${context.dateKey}:${G.lv}:${streak}`);
-    if(rng() < 0.01) return 'legend_bubble';
-    if(streak > 0 && streak % 7 === 0) return 'streak_accessory';
-    const pool = [];
-    if(context.timeBand === 'dawn') pool.push('morning_sleepy');
-    if(context.timeBand === 'night') pool.push('night_deep');
-    if(context.weather === 'rain') pool.push('rain_sound');
-    if(context.isFullMoon) pool.push('full_moon_branch');
-    if(!pool.length) pool.push('calm_current');
-    return pool[Math.floor(rng() * pool.length)] || pool[0];
+function getDailyEventById(eventId){
+    return dailyEvents.find(event => event.id === eventId) || dailyEvents.find(event => event.id === 'calm_current') || dailyEvents[0];
+}
+
+function pickDailyEvent(context, streak){
+    const rareEvent = dailyEvents.find(event => event.condition === 'random_1_percent');
+    const rareRng = createSeededRandom(`daily-rare:${context.dateKey}:${G.lv}:${streak}`);
+    if(rareEvent && rareRng() < 0.01) return rareEvent;
+
+    const conditions = getDailyConditionAliases(context);
+    const pool = dailyEvents.filter(event => {
+        if(event.condition === 'random_1_percent') return false;
+        return !!conditions[event.condition];
+    });
+    const fallback = getDailyEventById('calm_current');
+    const candidates = pool.length ? pool : [fallback];
+    const rng = createSeededRandom(`daily-event:${context.dateKey}:${G.lv}:${streak}`);
+    return candidates[Math.floor(rng() * candidates.length)] || fallback;
+}
+
+function applyDailyEventRewards(event, dateKey){
+    const appliedDate = getStoredDailyEventDate?.();
+    if(!event || appliedDate === dateKey) return false;
+    if(event.moodDelta) G.happy = Math.min(100, G.happy + event.moodDelta);
+    if(event.expDelta) G.exp += event.expDelta;
+    setStoredDailyEventSnapshot?.(dateKey, event.id);
+    addWalMateLog?.(event.messageJa, event.messageEn, 'daily', { id: event.id, dateKey });
+    return true;
 }
 
 function ensureDailyState(){
     G.daily = normalizeDailyState(G.daily);
     const today = getLocalDateKey();
-    if(G.daily.dateKey === today) return G.daily;
+    if(G.daily.dateKey === today){
+        const knownEvent = dailyEvents.some(event => event.id === G.daily.eventId);
+        if(!knownEvent){
+            const context = getTodayDailyContext();
+            G.daily.eventId = pickDailyEvent(context, G.daily.streak)?.id || 'calm_current';
+        }
+        if(getStoredDailyEventDate?.() !== today){
+            applyDailyEventRewards(getDailyEventById(G.daily.eventId), today);
+            saveG();
+        }
+        return G.daily;
+    }
 
     const prevLogin = G.daily.lastLoginDate;
     const diff = prevLogin ? getDateKeyDiff(prevLogin, today) : 0;
@@ -529,12 +678,13 @@ function ensureDailyState(){
     const streak = !prevLogin ? 1 : diff === 1 ? G.daily.streak + 1 : 1;
     const context = getTodayDailyContext();
 
+    const pickedEvent = pickDailyEvent(context, streak);
     G.daily = normalizeDailyState({
         dateKey: today,
         lastLoginDate: today,
         streak,
         shownDateKey: '',
-        eventId: pickDailyEventId(context, streak),
+        eventId: pickedEvent?.id || 'calm_current',
         choiceId: '',
         limitedSoundId: pickDailyLimitedSound(context),
         limitedSoundCollected: false,
@@ -546,99 +696,39 @@ function ensureDailyState(){
         isFullMoon: context.isFullMoon
     });
 
-    if(G.daily.eventId === 'legend_bubble'){
-        G.exp += 22;
-    } else if(G.daily.eventId === 'full_moon_branch'){
-        G.happy = Math.min(100, G.happy + 10);
-    } else if(G.daily.eventId === 'streak_accessory'){
-        G.happy = Math.min(100, G.happy + 10);
-        G.exp += 12;
+    if(streak > 0 && streak % 7 === 0){
+        G.happy = Math.min(100, G.happy + 8);
         if(G.lv >= 4 && G.custom?.accessory === 'none'){
             G.custom.accessory = 'pearl';
         }
-    } else if(G.daily.eventId === 'calm_current'){
-        G.happy = Math.min(100, G.happy + 4);
+        addWalMateLog?.(
+            '7日目のしるしとして、真珠の気配が残った。',
+            'A pearl-like trace remained as the seventh-day sign.',
+            'streak',
+            { id: `streak:${today}`, dateKey: today }
+        );
     }
+    applyDailyEventRewards(pickedEvent, today);
 
     saveG();
     return G.daily;
 }
 
 function getDailyEventMeta(daily = G.daily){
-    const eventId = daily?.eventId || 'calm_current';
-    const map = {
-        morning_sleepy: {
-            emoji: '😪',
-            titleJa: '朝だけ 眠そうなWalrus',
-            titleEn: 'Morning sleepy Walrus',
-            copyJa: '今朝はまだ半分夢の中。やさしい海流でゆっくり起こしてあげよう。',
-            copyEn: 'It is still half-dreaming this morning. A gentle start feels best.',
-            hintJa: '朝限定ムード',
-            hintEn: 'Morning-only mood',
-            zone: 'beach'
-        },
-        night_deep: {
-            emoji: '🌌',
-            titleJa: '夜だけ 深海モード',
-            titleEn: 'Night deep-sea mode',
-            copyJa: '今夜は深海の潮が強め。廃墟ゾーンに寄ると不思議な音が混じりやすい。',
-            copyEn: 'The deep current is stronger tonight. Ruins are extra tempting.',
-            hintJa: '深海寄りの一日',
-            hintEn: 'Deep-sea leaning day',
-            zone: 'ruins'
-        },
-        rain_sound: {
-            emoji: '🌧',
-            titleJa: '雨の日 水色の音',
-            titleEn: 'Rainy pale-blue sound',
-            copyJa: '今日は水色の音がまざる日。海辺の低音に限定音が紛れ込みやすい。',
-            copyEn: 'Pale-blue tones are drifting in today. Beach bass may hide the daily sound.',
-            hintJa: '雨で限定音チャンス',
-            hintEn: 'Rain boosts daily sound',
-            zone: 'beach'
-        },
-        legend_bubble: {
-            emoji: '🫧',
-            titleJa: '1% 伝説の泡',
-            titleEn: '1% legendary bubble',
-            copyJa: 'とても珍しい泡が漂着。今日はログインしただけで少し経験値をもらえた。',
-            copyEn: 'An ultra-rare bubble drifted in. You earned a little EXP just by logging in.',
-            hintJa: 'EXP ボーナス発生',
-            hintEn: 'EXP bonus activated',
-            zone: 'beach'
-        },
-        full_moon_branch: {
-            emoji: '🌕',
-            titleJa: '満月 進化分岐',
-            titleEn: 'Full moon evolution branch',
-            copyJa: '満月の夜は進化の気配が濃い。今日は少し機嫌がよく、選択が未来に残りやすい。',
-            copyEn: 'Full moon nights feel evolutionary. Today’s choice lingers a little longer.',
-            hintJa: '満月の加護',
-            hintEn: 'Full moon blessing',
-            zone: 'ruins'
-        },
-        streak_accessory: {
-            emoji: '🎀',
-            titleJa: '7日目 限定アクセ',
-            titleEn: 'Day 7 limited accessory',
-            copyJa: '連続ログイン7日目。今週のしるしとして、真珠アクセの気配をまとったよ。',
-            copyEn: 'Seventh straight login. A pearl-style accessory mood arrived as this week’s reward.',
-            hintJa: '連続ログイン報酬',
-            hintEn: 'Streak reward',
-            zone: 'beach'
-        },
-        calm_current: {
-            emoji: '🌊',
-            titleJa: '静かな海流',
-            titleEn: 'Calm current',
-            copyJa: '今日は穏やかな流れ。好きなルートを選ぶのにちょうどいい日。',
-            copyEn: 'The current is calm today. A good day to pick your own route.',
-            hintJa: '自由に泳げる日',
-            hintEn: 'A free-swim kind of day',
-            zone: 'beach'
-        }
+    const event = getDailyEventById(daily?.eventId || 'calm_current');
+    return {
+        id: event.id,
+        emoji: event.emoji,
+        titleJa: event.titleJa,
+        titleEn: event.titleEn,
+        copyJa: event.messageJa,
+        copyEn: event.messageEn,
+        hintJa: event.hintJa,
+        hintEn: event.hintEn,
+        zone: event.zone,
+        moodDelta: event.moodDelta,
+        expDelta: event.expDelta
     };
-    return map[eventId] || map.calm_current;
 }
 
 function refreshDailyDerivedState(overrides = {}){
@@ -656,7 +746,7 @@ function refreshDailyDerivedState(overrides = {}){
     G.daily.timeBand = merged.timeBand;
     G.daily.weekday = merged.weekday;
     G.daily.isFullMoon = merged.isFullMoon;
-    G.daily.eventId = pickDailyEventId(merged, G.daily.streak);
+    G.daily.eventId = pickDailyEvent(merged, G.daily.streak)?.id || 'calm_current';
     if(!G.daily.limitedSoundCollected){
         G.daily.limitedSoundId = pickDailyLimitedSound(merged);
     }
@@ -744,6 +834,12 @@ function chooseDailyPath(choiceId){
     const choice = DAILY_PATHS[choiceId];
     const reward = currentLang === 'ja' ? choice.rewardJa : choice.rewardEn;
     setMsg(`${choice.emoji} ${currentLang === 'ja' ? choice.labelJa : choice.labelEn} · ${reward}`);
+    addWalMateLog?.(
+        `${choice.emoji} ${choice.labelJa}を選んだ。`,
+        `${choice.emoji} Chose ${choice.labelEn}.`,
+        'choice',
+        { id: `choice:${G.daily.dateKey}` }
+    );
     showToast(currentLang === 'ja' ? '今日のルートを決めたよ' : 'Today’s route is set');
 }
 
@@ -1802,6 +1898,7 @@ function renderDailyBoard(){
             </div>
             <div class="daily-event-copy">${isJa ? event.copyJa : event.copyEn}</div>
             <div class="daily-event-hint">${isJa ? event.hintJa : event.hintEn}</div>
+            <div class="daily-event-reward">${isJa ? `気分 +${event.moodDelta} / EXP +${event.expDelta}` : `Mood +${event.moodDelta} / EXP +${event.expDelta}`}</div>
         </div>
         <div class="daily-choice-card">
             <div class="daily-choice-title">${isJa ? '今日のWalrusは何したい？' : 'What does today’s Walrus want?'}</div>
@@ -1879,6 +1976,15 @@ function getIdleRandomEventMeta(idleEvent = getActiveIdleRandomEvent?.()){
     };
 }
 
+function getDailyConditionAliases(context){
+    return {
+        morning: context.timeBand === 'dawn',
+        night: context.timeBand === 'night',
+        rain: context.weather === 'rain',
+        always: true
+    };
+}
+
 function applyIdleRandomEventVisuals(){
     const idleMeta = getIdleRandomEventMeta();
     const stage = document.getElementById('petStage');
@@ -1926,11 +2032,13 @@ function getOriginPathCopy(path, isJa = currentLang === 'ja'){
 
 function showDailyLoginMoment(){
     const daily = ensureDailyState();
-    if(daily.shownDateKey === daily.dateKey) return;
+    if(daily.shownDateKey === daily.dateKey && getStoredDailyEventDate?.() === daily.dateKey) return;
     const event = getDailyEventMeta(daily);
     const sound = getDailyLimitedSoundDef(daily.limitedSoundId);
     syncDailyActiveZone();
-    setMsg(`${event.emoji} ${currentLang === 'ja' ? event.titleJa : event.titleEn}`);
+    triggerDailyEventAnimation();
+    setMsg(`${event.emoji} ${currentLang === 'ja' ? event.copyJa : event.copyEn}`);
+    showToast(currentLang === 'ja' ? `今日の気配: ${event.titleJa}` : `Today’s sign: ${event.titleEn}`);
     if(sound){
         showToast(currentLang === 'ja'
             ? `🎵 今日の限定音: ${sound.nameJa}`
@@ -1939,6 +2047,95 @@ function showDailyLoginMoment(){
     G.daily.shownDateKey = daily.dateKey;
     saveG();
     renderDailyBoard();
+    syncStoryProgress(false);
+}
+
+function triggerDailyEventAnimation(){
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || document.hidden) return;
+    const stage = document.getElementById('petStage');
+    if(!stage) return;
+    stage.classList.remove('daily-awaken');
+    void stage.offsetWidth;
+    stage.classList.add('daily-awaken');
+    window.setTimeout(() => stage.classList.remove('daily-awaken'), 900);
+}
+
+function getStoryPhase(){
+    const stage = G.lv >= 4 && G.exp >= 360 ? 5 : G.lv >= 4 ? 4 : G.lv >= 3 ? 3 : G.lv >= 2 ? 2 : 1;
+    return STORY_PHASES.find(item => item.stage === stage) || STORY_PHASES[0];
+}
+
+function renderStoryPanel(){
+    const panel = document.getElementById('storyPanel');
+    if(!panel) return;
+    const phase = getStoryPhase();
+    const isJa = currentLang === 'ja';
+    const kickerEl = document.getElementById('storyPanelKicker');
+    const stageEl = document.getElementById('storyPanelStage');
+    const titleEl = document.getElementById('storyPanelTitle');
+    const copyEl = document.getElementById('storyPanelCopy');
+    if(kickerEl) kickerEl.textContent = 'STORY SIGNAL';
+    if(stageEl) stageEl.textContent = `PHASE ${phase.stage}`;
+    if(titleEl) titleEl.textContent = isJa ? phase.titleJa : phase.titleEn;
+    if(copyEl) copyEl.textContent = isJa ? phase.copyJa : phase.copyEn;
+}
+
+function renderWalMateLogs(){
+    const list = document.getElementById('messageLogList');
+    if(!list) return;
+    const title = document.getElementById('messageLogTitle');
+    const sub = document.getElementById('messageLogSub');
+    if(title) title.textContent = 'WALRUS LOG';
+    if(sub) sub.textContent = currentLang === 'ja' ? '直近5件' : 'Last 5';
+    const logs = getWalMateLogs?.() || [];
+    if(!logs.length){
+        list.innerHTML = `<div class="message-log-empty">${currentLang === 'ja' ? 'まだ記録はありません。' : 'No records yet.'}</div>`;
+        return;
+    }
+    list.innerHTML = logs.slice(0, 5).map(item => {
+        const text = currentLang === 'ja' ? item.textJa : item.textEn;
+        const date = item.dateKey || getLocalDateKey(new Date(item.ts || Date.now()));
+        return `<div class="message-log-item"><span class="message-log-date">${date}</span><span class="message-log-text">${escapeHtml(text || item.text || '')}</span></div>`;
+    }).join('');
+}
+
+function syncStoryProgress(announce = false){
+    const phase = getStoryPhase();
+    const storedStage = getStoredStoryStage?.();
+    if(phase.stage > storedStage){
+        setStoredStoryStage?.(phase.stage);
+        addWalMateLog?.(phase.logJa, phase.logEn, 'story', { id: `story:${phase.stage}` });
+        if(announce){
+            setMsg(currentLang === 'ja' ? phase.titleJa : phase.titleEn);
+        }
+    }
+    renderStoryPanel();
+    renderWalMateLogs();
+}
+
+function applyMotionPreferenceState(){
+    const paused = document.hidden || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.documentElement.classList.toggle('motion-paused', !!paused);
+    if(paused){
+        clearSoundReactiveStage?.();
+        if(soundVizFrame){
+            cancelAnimationFrame(soundVizFrame);
+            soundVizFrame = 0;
+        }
+    } else if(isTrackPlaying){
+        startSoundReactiveStage?.();
+    }
+}
+
+function initMotionPreferenceControls(){
+    applyMotionPreferenceState();
+    document.addEventListener('visibilitychange', applyMotionPreferenceState, { passive: true });
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if(media?.addEventListener){
+        media.addEventListener('change', applyMotionPreferenceState);
+    } else if(media?.addListener){
+        media.addListener(applyMotionPreferenceState);
+    }
 }
 
 // ===== HAPTIC =====
@@ -1976,8 +2173,8 @@ const I18N_LEGACY = {
         hatch_step_1: '揺れを見守る',
         hatch_step_2: 'ヒビを待つ',
         hatch_step_3: '連打で孵化',
-        newborn_guide_title: 'FIRST STEP',
-        newborn_guide_copy: 'まずは <strong>散歩</strong> に行こう。<strong>満腹50%以上</strong> なら出発できて、歩くと <strong>音</strong> と <strong>経験値</strong> が集まるよ。',
+        newborn_guide_title: "TODAY'S SIGNAL",
+        newborn_guide_copy: '今日は <strong>散歩だけ</strong> じゃなくていい。まずは <strong>タップ</strong> したり、<strong>ごはん</strong> や <strong>あそぶ</strong> で様子を見よう。',
         main_title: 'WalMate',
         main_sub: '散歩して音を集めて、Walrusを進化させよう',
         sound_lab_title: '🎵 サウンドキッチン',
@@ -2153,8 +2350,8 @@ const I18N_LEGACY = {
         hatch_step_1: 'Watch it shake',
         hatch_step_2: 'Wait for cracks',
         hatch_step_3: 'Tap to hatch',
-        newborn_guide_title: 'FIRST STEP',
-        newborn_guide_copy: 'Start with a <strong>walk</strong>. You can leave only when <strong>hunger is 50%+</strong>, and walking collects <strong>sounds</strong> plus <strong>EXP</strong>.',
+        newborn_guide_title: "TODAY'S SIGNAL",
+        newborn_guide_copy: 'Today does not have to begin with a <strong>walk</strong>. First try a <strong>tap</strong>, <strong>feeding</strong>, or <strong>play</strong> and see what mood appears.',
         main_title: "WalMate",
         main_sub: 'Walk, collect sounds, and evolve your Walrus',
         sound_lab_title: '🎵 Sound Kitchen',

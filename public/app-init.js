@@ -20,6 +20,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     applyTheme();
     applyLanguage();
     applyBabyMode();
+    initMotionPreferenceControls();
     ensureDailyState();
     // ミュートボタンの初期状態を反映
     const muteBtn = document.getElementById('muteSwitch');
@@ -41,6 +42,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
         if(hasSave){
             document.getElementById('mainScreen').classList.remove('hidden');
             updateUI(); 
+            syncStoryProgress(false);
             startDecay();
             startRandomEvents();           // ← ここは変更なし
             renderWalkLogs();
@@ -68,6 +70,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
             renderSoundSlots();
             renderSoundMemory();
             renderDailyBoard();
+            syncStoryProgress(false);
             syncDailyWeatherFromGPS({ silent:true });
             
             // 画面トランジションが終わるのを待ってから孵化アニメ開始
