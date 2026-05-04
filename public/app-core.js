@@ -2151,7 +2151,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-05-friend-qr-visit-flow';
+const APP_VERSION = '2026-05-05-cache-bust-sw-refresh';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -3293,12 +3293,20 @@ function buildVersionedUrl(){
     return url.toString();
 }
 
+function versionedAssetUrl(path){
+    const base = new URL(path, window.location.href);
+    base.searchParams.set('v', APP_VERSION);
+    return `${base.pathname}${base.search}`;
+}
+
 function registerServiceWorker(){
     if(!('serviceWorker' in navigator)) return;
     if(window.location.protocol !== 'http:' && window.location.protocol !== 'https:') return;
 
     const register = () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
+        navigator.serviceWorker.register(versionedAssetUrl('./sw.js'), { updateViaCache: 'none' }).then(reg => {
+            reg.update().catch(() => {});
+        }).catch(err => {
             console.warn('Service worker registration failed:', err);
         });
     };
@@ -3423,15 +3431,29 @@ async function clearCacheAndReload(){
     window.location.replace(buildVersionedUrl());
 }
 
+async function clearRuntimeCaches({ unregisterServiceWorkers = false } = {}){
+    try {
+        if('caches' in window){
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+        }
+        if(unregisterServiceWorkers && 'serviceWorker' in navigator){
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(reg => reg.unregister()));
+        }
+    } catch(e){
+        console.warn('Runtime cache clear failed:', e);
+    }
+}
+
 function ensureFreshVersion(){
     try{
         const savedVersion = localStorage.getItem(APP_VERSION_STORAGE_KEY);
-        // バージョンが変わったときだけリダイレクト。
-        // 旧: URLの ?v= パラメータも毎回チェックしていたため
-        //     ホーム画面起動のたびに不要なリダイレクトが発生していた。
         if(savedVersion !== APP_VERSION){
             localStorage.setItem(APP_VERSION_STORAGE_KEY, APP_VERSION);
-            window.location.replace(buildVersionedUrl());
+            clearRuntimeCaches({ unregisterServiceWorkers: true }).finally(() => {
+                window.location.replace(buildVersionedUrl());
+            });
             return true;
         }
     } catch(e){

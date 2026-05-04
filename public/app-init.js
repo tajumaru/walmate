@@ -4,12 +4,11 @@
 window.addEventListener('DOMContentLoaded', ()=>{
     if(isIosDevice()) document.documentElement.classList.add('ios-device');
     window.__setBootPhase?.('アセットを準備しています…', 0.18);
-    registerServiceWorker();
-    
     if(ensureFreshVersion()) {
-        location.reload();  // 明示的にリロード
         return;
     }
+    registerServiceWorker();
+    
     window.__setBootPhase?.('セーブデータを読んでいます…', 0.34);
     loadG();
     ensureWalMateUserId();
