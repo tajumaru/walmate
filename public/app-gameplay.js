@@ -1037,51 +1037,6 @@ function spawnBabyBubbles(x, y){
     }
 }
 
-let babyDelightLocked = false;
-function babyDelightBurst(fromTap = false){
-    if(document.getElementById('mainScreen')?.classList.contains('hidden')) return;
-    if(!babyModeEnabled) return;
-    if(babyDelightLocked) return;
-    babyDelightLocked = true;
-    setTimeout(()=>{ babyDelightLocked = false; }, 360);
-
-    const stage = document.getElementById('petStage');
-    if(!stage) return;
-    const c = getStageCenter();
-    renderWalrusMarkup(stage, G.lv, 'happy', 'baby', true);
-    stage.style.animation = 'none';
-    void stage.offsetWidth;
-    stage.className = 'pet-stage baby-delight' + (G.lv===4 ? ' legend-pet' : '');
-
-    G.happy = Math.min(100, G.happy + (fromTap ? 4 : 2));
-    G.exp += fromTap ? 2 : 1;
-    setBabyMsg(currentLang === 'ja' ? 'ぴょんぴょん！ クー♪' : 'Boing boing! Kuu♪');
-    spawnBabyBubbles(c.x, c.y + 18);
-    spawnParticles(['💗','💛','💙','💚','✨','🫧'], c.x, c.y);
-    showPrimaryFlash();
-    sfxKuu();
-    haptic([18, 20, 38]);
-
-    setTimeout(()=>{
-        if(stage.classList.contains('baby-delight')) stage.className = getPetClasses();
-        updateUI();
-        checkLevelUp();
-    }, 1080);
-}
-
-function setupBabyTapReactions(){
-    const main = document.getElementById('mainScreen');
-    if(!main || main.dataset.babyTapReady === '1') return;
-    main.dataset.babyTapReady = '1';
-    main.addEventListener('click', (e)=>{
-        if(main.classList.contains('hidden')) return;
-        if(!babyModeEnabled) return;
-        if(e.target.closest('#petStage')) return;
-        if(e.target.closest('.diary-modal, .exchange-modal, .blob-preview-modal, .social-popup, .mini-result-modal, #miniGameScreen')) return;
-        babyDelightBurst(false);
-    }, { passive: true });
-}
-
 function createHatchBaby(){
     return makeWalrus(1, 'happy', 'baby');
 }
@@ -1363,10 +1318,6 @@ function doPet(){ syncWithWalrus(); }
 function doPlay(){ driftWalrus(); }
 function tapPet(){
     if(getMood()==='sleepy'){ setMsg(currentLang === 'ja' ? 'お腹空いてて元気ない…🐟' : 'Too hungry to move...🐟',true); haptic(30); return; }
-    if(babyModeEnabled){
-        babyDelightBurst(true);
-        return;
-    }
     recordBehaviorAction('tapCount');
     haptic(10);
     G.happy=Math.min(100,G.happy+4); G.exp+=2;

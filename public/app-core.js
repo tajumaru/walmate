@@ -2155,7 +2155,6 @@ const APP_VERSION = '2026-05-05-cache-bust-sw-refresh';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
-const BABY_MODE_STORAGE_KEY = 'walrus_baby_mode';
 const PWA_INSTALL_BANNER_KEY = 'walrus_pwa_install_banner_seen';
 const PORTFOLIO_ORDER_KEY = 'walrus_portfolio_order';
 const PORTFOLIO_BLOB_KEY = 'walrus_portfolio_blobs';
@@ -2184,16 +2183,20 @@ const I18N_LEGACY = {
         pet: 'SYNC',
         play: 'DRIFT',
         bubble_pop: 'バブルポップ',
-        walrus_save: 'Walrus保存',
-        walrus_load: 'Walrus復元',
+        walrus_save: '記憶に沈める',
+        walrus_load: '呼び戻す',
         walrus_exchange: 'Walrus交流',
-        walrus_diary: 'Walrus日記',
+        walrus_diary: '記憶の断片',
+        memory_actions_title: '記憶の水面',
+        memory_actions_copy: '漂流のあとに、必要な記憶だけそっと扱う',
+        walrus_save_sub: 'いまのWalrusを海に記録する',
+        walrus_load_sub: '海に眠る記憶からWalrusを戻す',
         stat_hunger: '◇ ENERGY',
         stat_happy: '✦ BOND',
         stat_exp: '◎ MEMORY',
         unlock2_tag: 'Lv.2 解禁',
         unlock2_title: 'あなたの自己紹介',
-        unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">ここに、あなたの自己紹介をWalrusが紹介します。</div></div></div></div></div><div id=\"profileDeckModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeProfileDeckModal()\"><div class=\"profile-deck-modal-inner\"><div class=\"diary-modal-header\"><span id=\"profileDeckModalTitle\">プロフィールを編集</span><button class=\"diary-close-btn\" onclick=\"closeProfileDeckModal()\">✕</button></div><div id=\"profileDeckModalEditor\"></div></div></div><div id=\"walrusLogModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeWalrusLogModal()\"><div class=\"profile-deck-modal-inner walrus-log-modal-inner\"><div class=\"diary-modal-header\"><span id=\"walrusLogModalTitle\">Walrus Log</span><button class=\"diary-close-btn\" onclick=\"closeWalrusLogModal()\">✕</button></div><div id=\"walrusLogList\" class=\"walrus-log-list\"></div></div></div></div>",
+        unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">ここに、あなたの自己紹介をWalrusが紹介します。</div></div></div></div></div><div id=\"profileDeckModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeProfileDeckModal()\"><div class=\"profile-deck-modal-inner\"><div class=\"diary-modal-header\"><span id=\"profileDeckModalTitle\">プロフィールを編集</span><button class=\"diary-close-btn\" onclick=\"closeProfileDeckModal()\">✕</button></div><div id=\"profileDeckModalEditor\"></div></div></div></div>",
         unlock2_body2: "<div class=\"intro-card\"><div class=\"section-caption\">Portfolio Projects</div><div id=\"profileDeckMount\"></div><div class=\"walrus-projects\"><div class=\"walrus-project-card active\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></div><div class=\"walrus-project-card\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></div><div class=\"walrus-project-card\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></div></div><div class=\"walrus-about-note\" id=\"profileAboutNote\"></div><div class=\"social-pills\" id=\"profileSocialPills\"></div></div>",
         intro_saved_local: 'この端末に自己紹介を保存したよ',
         intro_saved_walrus: '自己紹介をWalrusに保存したよ！',
@@ -2285,26 +2288,27 @@ const I18N_LEGACY = {
         visiting_happy: '💗 ハッピー +15',
         visiting_exp: '⭐ 経験値 +10',
         visiting_done: 'やったー！ 🦭',
-        diary_title: '📔 今日の日記',
-        diary_placeholder: '今日の思い出を書いてね… 🦭',
-        diary_save: '💾 保存する',
-        diary_update: '✏️ 上書き保存',
-        diary_view: '📖 日記帳を見る',
-        diary_book: '📔 Walrus日記帳',
-        diary_save_walrus: '🌐 Walrusに保存',
-        diary_load_walrus: '📥 Walrusから復元',
+        diary_title: '✨ 記憶の断片',
+        diary_placeholder: '今日の出来事を、ひと粒だけ残してみてね… 🫧',
+        diary_save: '✨ 断片を残す',
+        diary_update: '✨ 断片を書き直す',
+        diary_view: '🌙 断片をたどる',
+        diary_book: '🫧 記憶の断片',
+        diary_save_walrus: '🌊 海に沈める',
+        diary_load_walrus: '🫧 海から呼び戻す',
         exchange_sub_no_code: 'コードを発行して繋がろう！',
         exchange_sub_ready: '友達と繋がろう！',
-        walrus_load_modal_title: '📥 Walrusから復元',
-        walrus_load_hint: '読み込みたい BlobId を入力してね。<br>前回保存した ID もそのまま呼び出せるよ 🦭',
-        walrus_load_saved_label: 'LAST SAVE',
-        walrus_load_saved_empty: 'まだ保存がありません',
-        walrus_load_input_label: '読み込む BlobId',
-        walrus_load_placeholder: 'BlobId を貼り付けてね…',
-        walrus_load_preview_empty: 'BlobId を入力するとここに表示されます',
-        walrus_load_confirm: '<span>📥</span> この BlobId で復元する',
-        walrus_load_use_saved: '🫧 前回保存した BlobId を使う',
-        diary_sub_write: '今日の思い出を書く',
+        walrus_load_modal_title: '🫧 呼び戻す',
+        walrus_load_hint: '海に眠る記憶の BlobId をたどって、Walrus を呼び戻せます。<br>前に沈めた記憶も、そのまま辿れます 🦭',
+        walrus_load_saved_label: 'LAST MEMORY',
+        walrus_load_saved_empty: 'まだ沈めた記憶はありません',
+        walrus_load_input_label: 'たどる BlobId',
+        walrus_load_placeholder: '海に眠る BlobId を貼り付けてね…',
+        walrus_load_preview_empty: 'BlobId を入れると、ここに記憶の手がかりが浮かびます',
+        walrus_load_confirm: '<span>🫧</span> この記憶を呼び戻す',
+        walrus_load_use_saved: '✨ 前に沈めた BlobId を使う',
+        diary_sub_write: '今日の出来事が、断片として残る',
+        diary_fragment_note: '今日の出来事を、ひと粒だけ残してみてね。',
         theme_toggle_deep: '🌙 深海',
         theme_toggle_lagoon: '☀ 海中ラグーン',
         theme_toggle_ukiyo: '🎏 和モード',
@@ -2361,16 +2365,20 @@ const I18N_LEGACY = {
         pet: 'SYNC',
         play: 'DRIFT',
         bubble_pop: 'Bubble Pop',
-        walrus_save: 'Save to Walrus',
-        walrus_load: 'Load from Walrus',
+        walrus_save: 'Sink Memory',
+        walrus_load: 'Call Back',
         walrus_exchange: 'Walrus Exchange',
-        walrus_diary: 'Walrus Diary',
+        walrus_diary: 'Memory Fragments',
+        memory_actions_title: 'Memory Lagoon',
+        memory_actions_copy: 'Handle only the memories you want to keep close after drifting.',
+        walrus_save_sub: 'Record the current Walrus into the sea',
+        walrus_load_sub: 'Bring Walrus back from the memory sleeping in the sea',
         stat_hunger: '◇ ENERGY',
         stat_happy: '✦ BOND',
         stat_exp: '◎ MEMORY',
         unlock2_tag: 'Lv.2 Unlock',
         unlock2_title: 'Your Intro',
-        unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">Your Walrus will introduce you here.</div></div></div></div></div><div id=\"profileDeckModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeProfileDeckModal()\"><div class=\"profile-deck-modal-inner\"><div class=\"diary-modal-header\"><span id=\"profileDeckModalTitle\">Edit profile</span><button class=\"diary-close-btn\" onclick=\"closeProfileDeckModal()\">✕</button></div><div id=\"profileDeckModalEditor\"></div></div></div><div id=\"walrusLogModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeWalrusLogModal()\"><div class=\"profile-deck-modal-inner walrus-log-modal-inner\"><div class=\"diary-modal-header\"><span id=\"walrusLogModalTitle\">Walrus Log</span><button class=\"diary-close-btn\" onclick=\"closeWalrusLogModal()\">✕</button></div><div id=\"walrusLogList\" class=\"walrus-log-list\"></div></div></div></div>",
+        unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">Your Walrus will introduce you here.</div></div></div></div></div><div id=\"profileDeckModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeProfileDeckModal()\"><div class=\"profile-deck-modal-inner\"><div class=\"diary-modal-header\"><span id=\"profileDeckModalTitle\">Edit profile</span><button class=\"diary-close-btn\" onclick=\"closeProfileDeckModal()\">✕</button></div><div id=\"profileDeckModalEditor\"></div></div></div></div>",
         unlock2_body2: "<div class=\"intro-card\"><div class=\"section-caption\">Portfolio Projects</div><div id=\"profileDeckMount\"></div><div class=\"walrus-projects\"><div class=\"walrus-project-card active\"><span class=\"walrus-project-icon\">🎮</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></div><div class=\"walrus-project-card\"><span class=\"walrus-project-icon\">📝</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></div><div class=\"walrus-project-card\"><span class=\"walrus-project-icon\">🖼</span><span class=\"walrus-project-title\">Project</span><span class=\"walrus-project-meta\">Meta</span></div></div><div class=\"walrus-about-note\" id=\"profileAboutNote\"></div><div class=\"social-pills\" id=\"profileSocialPills\"></div></div>",
         intro_saved_local: 'Saved your intro on this device',
         intro_saved_walrus: 'Saved your intro to Walrus!',
@@ -2462,26 +2470,27 @@ const I18N_LEGACY = {
         visiting_happy: '💗 Happy +15',
         visiting_exp: '⭐ EXP +10',
         visiting_done: 'Yay! 🦭',
-        diary_title: "📔 Today's Diary",
-        diary_placeholder: 'Write down today’s memory... 🦭',
-        diary_save: '💾 Save',
-        diary_update: '✏️ Update',
-        diary_view: '📖 Open Diary',
-        diary_book: '📔 Walrus Diary',
-        diary_save_walrus: '🌐 Save to Walrus',
-        diary_load_walrus: '📥 Load from Walrus',
+        diary_title: '✨ Memory Fragments',
+        diary_placeholder: 'Leave just one small fragment from today... 🫧',
+        diary_save: '✨ Keep Fragment',
+        diary_update: '✨ Rewrite Fragment',
+        diary_view: '🌙 Trace Fragments',
+        diary_book: '🫧 Memory Fragments',
+        diary_save_walrus: '🌊 Sink into Sea',
+        diary_load_walrus: '🫧 Call from Sea',
         exchange_sub_no_code: 'Generate a code and connect!',
         exchange_sub_ready: 'Connect with friends!',
-        walrus_load_modal_title: '📥 Load from Walrus',
-        walrus_load_hint: 'Enter the BlobId you want to restore.<br>You can also pull in your last saved ID instantly 🦭',
-        walrus_load_saved_label: 'LAST SAVE',
-        walrus_load_saved_empty: 'No Walrus save yet',
-        walrus_load_input_label: 'BlobId to Load',
-        walrus_load_placeholder: 'Paste a BlobId...',
-        walrus_load_preview_empty: 'The BlobId preview appears here',
-        walrus_load_confirm: '<span>📥</span> Restore from this BlobId',
-        walrus_load_use_saved: '🫧 Use the last saved BlobId',
-        diary_sub_write: "Write today's memory",
+        walrus_load_modal_title: '🫧 Call Back',
+        walrus_load_hint: 'Trace the BlobId of a memory sleeping in the sea to bring your Walrus back.<br>You can also follow the last sunken memory instantly 🦭',
+        walrus_load_saved_label: 'LAST MEMORY',
+        walrus_load_saved_empty: 'No memory has been sunk yet',
+        walrus_load_input_label: 'BlobId to trace',
+        walrus_load_placeholder: 'Paste a BlobId sleeping in the sea...',
+        walrus_load_preview_empty: 'A memory clue appears here once you enter a BlobId',
+        walrus_load_confirm: '<span>🫧</span> Call back this memory',
+        walrus_load_use_saved: '✨ Use the last sunken BlobId',
+        diary_sub_write: 'Today can remain here as a fragment',
+        diary_fragment_note: 'Leave just one small fragment from today.',
         theme_toggle_deep: '🌙 DEEP',
         theme_toggle_lagoon: '☀ LAGOON',
         theme_toggle_ukiyo: '🎏 UKIYO',
@@ -2589,7 +2598,6 @@ const I18N = {
 };
 let currentLang = 'ja';
 let currentTheme = 'deep';
-let babyModeEnabled = false;
 let socialPopupPending = false;
 let activeCollectorSpeechId = '';
 let portfolioDragState = null;
@@ -2628,11 +2636,6 @@ function detectTheme(){
         if(saved === 'deep' || saved === 'lagoon' || saved === 'ukiyo') return saved;
     } catch(e){}
     return 'deep';
-}
-
-function detectBabyMode(){
-    try { return localStorage.getItem(BABY_MODE_STORAGE_KEY) === '1'; } catch(e){}
-    return false;
 }
 
 function getLvName(lv){
@@ -3256,36 +3259,6 @@ function toggleTheme(){
     setTheme(nextTheme);
 }
 
-function applyBabyMode(){
-    const btn = document.getElementById('babyModeSwitch');
-    if(!btn) return;
-    btn.classList.toggle('active', babyModeEnabled);
-    btn.textContent = currentLang === 'ja'
-        ? (babyModeEnabled ? 'BABY ON' : 'BABY OFF')
-        : (babyModeEnabled ? 'BABY ON' : 'BABY OFF');
-    btn.setAttribute('aria-pressed', babyModeEnabled ? 'true' : 'false');
-    btn.title = currentLang === 'ja'
-        ? (babyModeEnabled ? '赤ちゃんモード中：タップで派手に反応' : '赤ちゃんモードOFF：通常の反応')
-        : (babyModeEnabled ? 'Baby mode on: taps trigger big reactions' : 'Baby mode off: normal reactions');
-}
-
-function setBabyMode(enabled){
-    babyModeEnabled = !!enabled;
-    try { localStorage.setItem(BABY_MODE_STORAGE_KEY, babyModeEnabled ? '1' : '0'); } catch(e){}
-    applyBabyMode();
-    if(!babyModeEnabled){
-        const stage = document.getElementById('petStage');
-        if(stage && stage.classList.contains('baby-delight')) updateUI();
-    }
-}
-
-function toggleBabyMode(){
-    setBabyMode(!babyModeEnabled);
-    setMsg(currentLang === 'ja'
-        ? (babyModeEnabled ? '赤ちゃんモード ON！ 画面をタップしてね' : '赤ちゃんモード OFF。通常モードだよ')
-        : (babyModeEnabled ? 'Baby mode ON! Tap the screen' : 'Baby mode OFF. Back to normal'));
-}
-
 function buildVersionedUrl(){
     const url = new URL(window.location.href);
     url.searchParams.set('v', APP_VERSION);
@@ -3508,10 +3481,12 @@ function applyLanguage(){
     if(document.getElementById('btnPetVerb')) document.getElementById('btnPetVerb').textContent = t('pet');
     if(document.getElementById('btnPlayVerb')) document.getElementById('btnPlayVerb').textContent = t('play');
     setButtonHTML('btnMiniGame', `<span class="act-icon">🫧</span>${t('bubble_pop')}`);
-    setButtonHTML('btnSave', `<span class="act-icon">🌐</span>${t('walrus_save')}`);
-    setButtonHTML('btnLoad', `<span class="act-icon">📥</span>${t('walrus_load')}`);
+    setButtonHTML('btnSave', `<span class="act-main"><span class="act-icon">🌊</span><span class="act-copy"><span class="act-title">${t('walrus_save')}</span><span class="act-sub">SINK</span></span></span><span class="act-hint">${t('walrus_save_sub')}</span>`);
+    setButtonHTML('btnLoad', `<span class="act-main"><span class="act-icon">🫧</span><span class="act-copy"><span class="act-title">${t('walrus_load')}</span><span class="act-sub">CALL</span></span></span><span class="act-hint">${t('walrus_load_sub')}</span>`);
     if(document.getElementById('btnExchangeOpenLabel')) document.getElementById('btnExchangeOpenLabel').textContent = t('walrus_exchange');
     if(document.getElementById('btnDiaryLabel')) document.getElementById('btnDiaryLabel').textContent = t('walrus_diary');
+    if(document.querySelector('#memoryActionsShell .memory-actions-title')) document.querySelector('#memoryActionsShell .memory-actions-title').textContent = t('memory_actions_title');
+    if(document.querySelector('#memoryActionsShell .memory-actions-copy')) document.querySelector('#memoryActionsShell .memory-actions-copy').textContent = t('memory_actions_copy');
     const statNames = document.querySelectorAll('.stat-name');
     if(statNames[0]) statNames[0].innerHTML = `◇ ENERGY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? 'エネルギー' : 'Energy'}</span>`;
     if(statNames[1]) statNames[1].innerHTML = `✦ BOND<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? '共鳴' : 'Bond'}</span>`;
@@ -3581,6 +3556,7 @@ function applyLanguage(){
 
     if(document.getElementById('diaryModalTitle')) document.getElementById('diaryModalTitle').textContent = t('diary_title');
     if(document.getElementById('diaryInput')) document.getElementById('diaryInput').placeholder = t('diary_placeholder');
+    if(document.getElementById('diaryFragmentNote')) document.getElementById('diaryFragmentNote').textContent = t('diary_fragment_note');
     const diaryBtns = document.querySelectorAll('#diaryModal .diary-btn-row button');
     if(diaryBtns[0]) diaryBtns[0].textContent = t('diary_save');
     if(diaryBtns[1]) diaryBtns[1].textContent = t('diary_view');
@@ -3638,7 +3614,6 @@ function applyLanguage(){
 
     updatePwaInstallBannerCopy();
     initAboutWalrusNarrator();
-    applyBabyMode();
     applyWalkLanguage();
     updateUI();
 }
@@ -3802,7 +3777,6 @@ function renderSec1HeaderAction(){
     ];
     if(hasProfileDeckSetup()){
         buttons.unshift(`<button class="intro-btn intro-btn-compact" type="button" onclick="openProfileDeckModal()">${copy.editProfile}</button>`);
-        buttons.push(`<button class="intro-btn alt intro-btn-compact" type="button" onclick="openWalrusLogModal()">🪵 Walrus Log</button>`);
     }
     actions.innerHTML = buttons.join('');
 }
@@ -3820,27 +3794,10 @@ function closeProfileDeckModal(){
     modal.style.display = 'none';
 }
 
-function openWalrusLogModal(){
-    const modal = document.getElementById('walrusLogModal');
-    if(!modal) return;
-    modal.style.display = 'flex';
-    renderWalrusLogModal();
-}
-
-function closeWalrusLogModal(){
-    const modal = document.getElementById('walrusLogModal');
-    if(!modal) return;
-    modal.style.display = 'none';
-}
-
-function renderWalrusLogModal(){
-    const list = document.getElementById('walrusLogList');
-    const title = document.getElementById('walrusLogModalTitle');
-    if(title) title.textContent = 'Walrus Log';
-    if(!list) return;
+function getWalrusLogItems(){
     const items = [];
     if((G?.userIntro || '').trim()){
-        items.push({ kicker: 'INTRO SAVE', text: getUserIntroStatusText() });
+        items.push({ kicker: currentLang === 'ja' ? 'INTRO SAVE' : 'INTRO SAVE', text: getUserIntroStatusText() });
     }
     if(
         (G?.profileDeck?.about || '').trim()
@@ -3860,11 +3817,47 @@ function renderWalrusLogModal(){
             });
         }
     }catch(e){}
+    const walmateLogs = getWalMateLogs?.() || [];
+    walmateLogs.forEach(item => {
+        const text = currentLang === 'ja' ? item.textJa : item.textEn;
+        if(!text) return;
+        items.push({
+            kicker: currentLang === 'ja' ? 'DRIFT MEMORY' : 'DRIFT MEMORY',
+            text: `${item.dateKey || ''} · ${text}`.trim()
+        });
+    });
+    return items;
+}
+
+function toggleWalrusLogList(){
+    const list = document.getElementById('walrusLogListInline');
+    const btn = document.getElementById('toggleWalrusLogBtn');
+    if(!list || !btn) return;
+    list.classList.toggle('expanded');
+    btn.textContent = list.classList.contains('expanded')
+        ? (currentLang === 'ja' ? '現在に戻る' : 'Back to Present')
+        : (currentLang === 'ja' ? '記憶を辿る' : 'Trace Memories');
+}
+
+function renderWalrusLogInline(){
+    const wrap = document.getElementById('walrusLogInlineMount');
+    if(!wrap) return;
+    const items = getWalrusLogItems();
     if(!items.length){
-        list.innerHTML = `<div class="walrus-log-empty">${currentLang === 'ja' ? 'まだログはありません。' : 'No Walrus logs yet.'}</div>`;
+        wrap.innerHTML = `<div class="walrus-log-container"><div class="walrus-log-header"><div class="walrus-log-title">${currentLang === 'ja' ? '記憶の潮跡' : 'Memory Wake'}</div><div class="walrus-log-sub">${currentLang === 'ja' ? 'ここに残るのは、Walrus が拾ってきた記憶たち。' : 'These are the memories your Walrus has gathered.'}</div></div><div class="walrus-log-empty">${currentLang === 'ja' ? 'まだ辿れる記憶はありません。' : 'There are no memories to trace yet.'}</div></div>`;
         return;
     }
-    list.innerHTML = items.map(item => `<div class="walrus-log-item"><div class="walrus-log-kicker">${item.kicker}</div><div class="walrus-log-copy">${escapeHtml(item.text)}</div></div>`).join('');
+    wrap.innerHTML = `
+        <div class="walrus-log-container">
+            <div class="walrus-log-header">
+                <div class="walrus-log-title">${currentLang === 'ja' ? '記憶の潮跡' : 'Memory Wake'}</div>
+                <div class="walrus-log-sub">${currentLang === 'ja' ? 'ここに残るのは、Walrus が拾ってきた記憶たち。' : 'These are the memories your Walrus has gathered.'}</div>
+            </div>
+            <div class="walrus-log-list-inline" id="walrusLogListInline">
+                ${items.map(item => `<div class="walrus-log-item"><div class="walrus-log-kicker">${item.kicker}</div><div class="walrus-log-copy">${escapeHtml(item.text)}</div></div>`).join('')}
+            </div>
+            ${items.length > 5 ? `<button class="toggle-log" id="toggleWalrusLogBtn" type="button" onclick="toggleWalrusLogList()">${currentLang === 'ja' ? '記憶を辿る' : 'Trace Memories'}</button>` : ''}
+        </div>`;
 }
 
 function renderProfileDeckSurface(){
@@ -3878,8 +3871,7 @@ function renderProfileDeckSurface(){
         renderSec1HeaderAction();
         return;
     }
-    mount.innerHTML = `
-        <div class="profile-summary-logs"></div>`;
+    mount.innerHTML = ``;
     renderSec1HeaderAction();
     renderIntroPreview();
 }

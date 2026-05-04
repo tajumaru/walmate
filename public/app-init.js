@@ -14,12 +14,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
     ensureWalMateUserId();
     currentLang = detectLanguage();
     currentTheme = detectTheme();
-    babyModeEnabled = detectBabyMode();
     isMuted = detectMute();
     window.__setBootPhase?.('画面を組み立てています…', 0.58);
     applyTheme();
     applyLanguage();
-    applyBabyMode();
     initMotionPreferenceControls();
     ensureDailyState();
     // ミュートボタンの初期状態を反映
@@ -28,7 +26,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
         muteBtn.textContent = isMuted ? '🔇' : '🔊';
         muteBtn.classList.toggle('muted', isMuted);
     }
-    setupBabyTapReactions();
     setupPwaInstallPrompt();
     const hasSave = G.lv>1 || G.exp>0 || Math.round(G.hunger)!==70;
     const awayMins = hasSave ? applyTimeDecay() : 0;

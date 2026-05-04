@@ -6,6 +6,7 @@ const AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space";
 let legendCertShareUrl = '';
 let saveMomentHideTimer = null;
 const FRIEND_VISIT_LOG_KEY = 'walmate_friend_visit_log';
+const MEMORY_POOL_HISTORY_KEY = 'walmate_memory_pool_history';
 const FRIEND_VISIT_PLAY = {
     key: 'friend-visit',
     icon: '🫧',
@@ -38,6 +39,148 @@ function setBtnLoading(id, loading, label){
     if(!btn) return;
     if(loading){ btn.classList.add('loading'); btn.disabled = true; btn.innerHTML = `<div class="btn-spinner"></div>${label}`; }
     else { btn.classList.remove('loading'); btn.disabled = false; }
+}
+
+function awakenMemorySurface(target){
+    const el = typeof target === 'string' ? document.getElementById(target) : target;
+    if(!el) return;
+    el.classList.remove('memory-awake');
+    void el.offsetWidth;
+    el.classList.add('memory-awake');
+    setTimeout(() => el.classList.remove('memory-awake'), 1300);
+}
+
+function getMemoryLagoonContainer(){
+    return document.getElementById('memoryLagoonContainer');
+}
+
+function getMemoryPoolHistory(){
+    try{
+        const raw = JSON.parse(localStorage.getItem(MEMORY_POOL_HISTORY_KEY) || '[]');
+        return Array.isArray(raw) ? raw.filter(item => item && typeof item === 'object') : [];
+    }catch(e){
+        return [];
+    }
+}
+
+function saveMemoryPoolHistory(items){
+    try{
+        localStorage.setItem(MEMORY_POOL_HISTORY_KEY, JSON.stringify((items || []).slice(0, 6)));
+    }catch(e){}
+}
+
+function addMemoryPoolEntry(blobId, meta={}){
+    if(!blobId) return;
+    const history = getMemoryPoolHistory().filter(item => item.blobId !== blobId);
+    history.unshift({
+        blobId,
+        label: meta.label || (currentLang === 'ja' ? 'いまのWalrus' : 'Current Walrus'),
+        note: meta.note || (currentLang === 'ja' ? '海へ沈んだ記憶' : 'A memory sunk into the sea'),
+        ts: meta.ts || Date.now()
+    });
+    saveMemoryPoolHistory(history);
+}
+
+function ensureMemoryPoolEntry(blobId){
+    if(!blobId) return;
+    const history = getMemoryPoolHistory();
+    if(history.some(item => item.blobId === blobId)) return;
+    addMemoryPoolEntry(blobId);
+}
+
+function formatMemoryPoolTime(ts){
+    try{
+        return new Date(ts || Date.now()).toLocaleTimeString(localeCode(), { hour: '2-digit', minute: '2-digit' });
+    }catch(e){
+        return '';
+    }
+}
+
+function renderMemoryPoolItems(){
+    const list = document.getElementById('memoryPoolItems');
+    if(!list) return;
+    const currentBlobId = (localStorage.getItem('walrus_blobid') || '').trim();
+    if(currentBlobId) ensureMemoryPoolEntry(currentBlobId);
+    const items = getMemoryPoolHistory().slice(0, 4);
+    list.innerHTML = items.map(item => {
+        const title = escapeHtml(item.label || (currentLang === 'ja' ? 'いまのWalrus' : 'Current Walrus'));
+        const note = escapeHtml(item.note || '');
+        const time = formatMemoryPoolTime(item.ts);
+        return `<div class="memory-pool-item"><div><strong>${title}</strong><span>${note}${time ? ` · ${time}` : ''}</span></div><code>${escapeHtml(shortBlobId(item.blobId))}</code></div>`;
+    }).join('');
+    const container = getMemoryLagoonContainer();
+    if(container){
+        container.classList.toggle('has-memory', items.length > 0);
+    }
+}
+
+function setMemoryPoolReveal(revealed=true){
+    const container = getMemoryLagoonContainer();
+    if(!container) return;
+    container.classList.toggle('revealed', !!revealed);
+}
+
+function revealMemoryPool(){
+    setMemoryPoolReveal(true);
+    awakenMemorySurface('walrusStoragePanel');
+}
+
+function setupMemoryLagoonInteractions(){
+    const container = getMemoryLagoonContainer();
+    if(!container || container.dataset.ready === '1') return;
+    container.dataset.ready = '1';
+    let touchStartY = null;
+    container.addEventListener('wheel', (event) => {
+        if(event.deltaY < -10){
+            setMemoryPoolReveal(true);
+        }
+    }, { passive: true });
+    container.addEventListener('touchstart', (event) => {
+        touchStartY = event.touches?.[0]?.clientY ?? null;
+    }, { passive: true });
+    container.addEventListener('touchend', (event) => {
+        const endY = event.changedTouches?.[0]?.clientY ?? null;
+        if(touchStartY !== null && endY !== null && touchStartY - endY > 24){
+            setMemoryPoolReveal(true);
+        }
+        touchStartY = null;
+    }, { passive: true });
+    renderMemoryPoolItems();
+}
+
+async function animateMemorySink(blobId){
+    const container = getMemoryLagoonContainer();
+    const layer = document.getElementById('memoryDescentLayer');
+    const source = document.getElementById('btnSave');
+    const pool = document.getElementById('memoryPoolShell');
+    if(!container || !layer || !source || !pool) return;
+    const containerRect = container.getBoundingClientRect();
+    const sourceRect = source.getBoundingClientRect();
+    const poolRect = pool.getBoundingClientRect();
+    const node = document.createElement('div');
+    node.className = 'memory-sink-item';
+    node.style.left = `${Math.max(12, sourceRect.left - containerRect.left)}px`;
+    node.style.top = `${sourceRect.top - containerRect.top + 8}px`;
+    node.style.setProperty('--sink-distance', `${Math.max(110, poolRect.top - sourceRect.top + 78)}px`);
+    node.innerHTML = `<strong>${escapeHtml(currentLang === 'ja' ? '記憶を沈めています' : 'Sinking memory')}</strong><span>${escapeHtml(shortBlobId(blobId) || (currentLang === 'ja' ? '海へ向かう途中…' : 'On the way to the sea...'))}</span>`;
+    for(let i = 0; i < 4; i++){
+        const bubble = document.createElement('i');
+        bubble.className = 'bubble';
+        bubble.style.left = `${16 + i * 18}px`;
+        bubble.style.setProperty('--dx', `${(i % 2 === 0 ? -1 : 1) * (8 + i * 2)}px`);
+        bubble.style.animationDelay = `${i * 0.08}s`;
+        node.appendChild(bubble);
+    }
+    layer.appendChild(node);
+    void node.offsetWidth;
+    node.style.setProperty('--sink-distance', `${Math.max(110, poolRect.top - sourceRect.top + 96)}px`);
+    node.classList.add('sinking');
+    return new Promise(resolve => {
+        setTimeout(() => {
+            node.remove();
+            resolve();
+        }, 980);
+    });
 }
 
 async function copyText(text){
@@ -146,21 +289,21 @@ function renderWalrusStorageStatus(state='idle', blobIdOverride=''){
     if(state === 'error') panel.classList.add('error');
     if(mini) mini.classList.toggle('saved-ok', hasBlob && state !== 'saving' && state !== 'error');
 
-    setStorageText('storageMiniTitle', isJa ? 'Walrus Storage' : 'Walrus Storage');
+    setStorageText('storageMiniTitle', isJa ? '記憶の潮だまり' : 'Memory Pool');
     setStorageText('chainOnLabel', isJa ? 'ON-CHAIN' : 'ON-CHAIN');
-    setStorageText('chainOnCopy', isJa ? 'BlobIdだけ見る' : 'BlobId points to it');
+    setStorageText('chainOnCopy', isJa ? '記憶のしるし' : 'Memory marker');
     setStorageText('chainOffLabel', isJa ? 'OFF-CHAIN' : 'OFF-CHAIN');
-    setStorageText('chainOffCopy', isJa ? '中身はWalrus Blob' : 'Data sits in Walrus');
+    setStorageText('chainOffCopy', isJa ? '海に眠る中身' : 'What sleeps in the sea');
 
     if(status){
         if(state === 'saving'){
-            status.textContent = isJa ? 'Walrusへ送信中… 完了するとBlobIdをコピーできます' : 'Sending to Walrus... BlobId copy appears when done';
+            status.textContent = isJa ? '記憶を海に沈めています… 終わるとBlobIdとQRが現れます' : 'Sinking this memory into the sea... BlobId and QR appear when it settles';
         }else if(state === 'error'){
-            status.textContent = isJa ? 'Walrus保存失敗。ローカルは保存済み' : 'Walrus failed. Local save kept';
+            status.textContent = isJa ? '海へ沈めるのに失敗しました。端末の記憶は残っています' : 'The sea could not keep it, but the local memory remains';
         }else if(hasBlob){
-            status.textContent = `${isJa ? 'Walrus保存完了！コピー・QR共有できます' : 'Saved to Walrus! Copy or share QR'} · ${shortBlobId(blobId)}`;
+            status.textContent = `${isJa ? '記憶が海に沈みました。BlobIdとQRを辿れます' : 'The memory has sunk into the sea. BlobId and QR are ready'} · ${shortBlobId(blobId)}`;
         }else{
-            status.textContent = isJa ? 'まだWalrus未保存。保存するとBlobIdとQRが出ます' : 'Not saved to Walrus yet. Save to get BlobId and QR';
+            status.textContent = isJa ? 'まだ記憶は海に沈んでいません。記録するとBlobIdとQRが現れます' : 'No memory has sunk into the sea yet. Record one to reveal a BlobId and QR';
         }
     }
     if(link){
@@ -177,6 +320,13 @@ function renderWalrusStorageStatus(state='idle', blobIdOverride=''){
         copyBtn.title = isJa ? 'BlobIdをコピー' : 'Copy BlobId';
         copyBtn.setAttribute('aria-label', copyBtn.title);
     }
+    const peek = document.getElementById('memoryPoolPeekCopy');
+    if(peek){
+        peek.textContent = isJa
+            ? '上へなぞると、潮だまりが浮かび上がる'
+            : 'Swipe or scroll up to reveal the pool';
+    }
+    renderMemoryPoolItems();
 }
 
 async function copySavedWalrusBlobId(){
@@ -423,13 +573,13 @@ function closeWalrusBlobPreview(){
 
 function setSaveMomentText(){
     const isJa = currentLang === 'ja';
-    setStorageText('saveMomentTitle', isJa ? 'Walrusへ保存中' : 'Saving to Walrus');
-    setStorageText('saveMomentLocal', isJa ? 'DATA' : 'DATA');
-    setStorageText('saveMomentStorage', isJa ? 'WALRUS' : 'WALRUS');
+    setStorageText('saveMomentTitle', isJa ? '記憶を海に沈めています…' : 'Sinking memory into the sea...');
+    setStorageText('saveMomentLocal', isJa ? 'MEMORY' : 'MEMORY');
+    setStorageText('saveMomentStorage', isJa ? 'SEA' : 'SEA');
     setStorageText('saveOnChainLabel', 'ON-CHAIN');
-    setStorageText('saveOnChainText', isJa ? 'FRAGMENT' : 'FRAGMENT');
+    setStorageText('saveOnChainText', isJa ? '記憶のしるし' : 'Memory marker');
     setStorageText('saveOffChainLabel', 'OFF-CHAIN');
-    setStorageText('saveOffChainText', isJa ? 'ABSORB' : 'ABSORB');
+    setStorageText('saveOffChainText', isJa ? '海に眠る中身' : 'What sleeps in the sea');
     setStorageText('saveMomentResult', '');
 }
 
@@ -479,8 +629,8 @@ function finishSaveMoment(blobId, ok=true){
         saveMomentHideTimer = null;
     }
     if(moment) moment.classList.toggle('done', ok);
-    setStorageText('saveMomentTitle', ok ? (isJa ? '保存された！' : 'Saved!') : (isJa ? 'Walrus保存失敗' : 'Save failed'));
-    setStorageText('saveMomentResult', ok ? `BlobId: ${shortBlobId(blobId)}` : (isJa ? 'ローカル保存は残っています' : 'Local save is kept'));
+    setStorageText('saveMomentTitle', ok ? (isJa ? '記憶が海に沈んだよ' : 'The memory sank into the sea') : (isJa ? '海に沈められなかった' : 'The sea could not keep it'));
+    setStorageText('saveMomentResult', ok ? `BlobId: ${shortBlobId(blobId)}` : (isJa ? '端末の記憶はそのまま残っています' : 'Your local memory is still here'));
     //saveMomentHideTimer = setTimeout(() => {
     //    if(overlay) overlay.classList.remove('show');
     //    if(moment) moment.classList.remove('done');
@@ -542,6 +692,7 @@ function openWalrusLoadModal(){
     }
     syncWalrusLoadPreview();
     document.getElementById('walrusLoadModal').style.display = 'flex';
+    awakenMemorySurface('memoryLagoonContainer');
 }
 
 function closeWalrusLoadModal(){
@@ -551,7 +702,7 @@ function closeWalrusLoadModal(){
 function useSavedWalrusBlob(){
     const savedId = localStorage.getItem('walrus_blobid');
     if(!savedId){
-        showToast(currentLang === 'ja' ? 'まだWalrus保存がありません' : 'No Walrus save found yet', true);
+        showToast(currentLang === 'ja' ? 'まだ海に沈めた記憶がありません' : 'No sunken memory found yet', true);
         return;
     }
     const input = document.getElementById('walrusLoadBlobInput');
@@ -570,26 +721,29 @@ function confirmLoadFromWalrus(){
 }
 
 async function saveToWalrus(){
-    showSaveMoment();
+    awakenMemorySurface('memoryLagoonContainer');
     renderWalrusStorageStatus('saving');
-    setBtnLoading('btnSave', true, currentLang === 'ja' ? 'Walrus保存中…' : 'Saving to Walrus...');
+    setBtnLoading('btnSave', true, currentLang === 'ja' ? '記憶を沈めています…' : 'Sinking memory...');
+    const sinkAnimation = animateMemorySink('');
     saveG();
     const blobId = await uploadToWalrus(JSON.stringify(G));
     if(blobId){
         localStorage.setItem('walrus_blobid', blobId);
+        await sinkAnimation;
+        addMemoryPoolEntry(blobId);
+        setMemoryPoolReveal(true);
         renderWalrusStorageStatus('saved', blobId);
-        finishSaveMoment(blobId, true);
-        showToast(currentLang === 'ja' ? '✅ Walrusに保存完了！' : '✅ Saved to Walrus!');
-        setMsg(currentLang === 'ja' ? '保存完了！BlobIdでいつでも呼び戻せるよ' : 'Saved! The BlobId can bring this back anytime');
+        awakenMemorySurface('walrusStoragePanel');
+        showToast(currentLang === 'ja' ? '✅ 記憶を海に沈めたよ！' : '✅ Memory sunk into the sea!');
+        setMsg(currentLang === 'ja' ? '海に沈めた記憶から、いつでも呼び戻せるよ' : 'You can call this Walrus back from the sea whenever you want');
         updateUI();
     } else {
         renderWalrusStorageStatus('error');
-        finishSaveMoment('', false);
-        showToast(currentLang === 'ja' ? '⚠ Walrus保存失敗（ローカルは保存済）' : '⚠ Walrus save failed (local save kept)', true);
-        setMsg(currentLang === 'ja' ? 'Walrus保存失敗… ローカルには保存したよ' : 'Walrus save failed... local data is still safe', true);
+        showToast(currentLang === 'ja' ? '⚠ 海に沈められませんでした（端末の記憶は残っています）' : '⚠ Could not sink it into the sea (local memory kept)', true);
+        setMsg(currentLang === 'ja' ? '海への記録は失敗したけれど、端末の記憶は残っています' : 'The sea record failed, but your local memory is still safe', true);
     }
     setBtnLoading('btnSave', false, '');
-    document.getElementById('btnSave').innerHTML = `<span class="act-icon">🌐</span>${t('walrus_save')}`;
+    document.getElementById('btnSave').innerHTML = `<span class="act-main"><span class="act-icon">🌊</span><span class="act-copy"><span class="act-title">${t('walrus_save')}</span><span class="act-sub">SINK</span></span></span><span class="act-hint">${t('walrus_save_sub')}</span>`;
 }
 
 async function saveUserIntroToWalrus(){
@@ -688,13 +842,13 @@ async function saveProfileDeckToWalrus(){
 async function loadFromWalrus(blobIdOverride){
     const savedId = localStorage.getItem('walrus_blobid');
     const blobId = (blobIdOverride || '').trim() || savedId;
-    if(!blobId){ showToast(currentLang === 'ja' ? 'BlobId を入力してね' : 'Please enter a BlobId', true); return; }
-    if(!confirm(currentLang === 'ja' ? 'Walrusから復元しますか？ 現在の進行状況は上書きされます' : 'Load from Walrus? Your current progress will be overwritten.')) return;
-    setBtnLoading('btnLoad', true, currentLang === 'ja' ? 'Walrus復元中…' : 'Loading from Walrus...');
+    if(!blobId){ showToast(currentLang === 'ja' ? '呼び戻したい BlobId を入れてね' : 'Enter the BlobId you want to call back', true); return; }
+    if(!confirm(currentLang === 'ja' ? '海に眠る記憶から呼び戻しますか？ いまの進行状況は上書きされます' : 'Call this Walrus back from the sea? Your current progress will be overwritten.')) return;
+    setBtnLoading('btnLoad', true, currentLang === 'ja' ? '呼び戻しています…' : 'Calling it back...');
     const modalBtn = document.getElementById('btnWalrusLoadConfirm');
     if(modalBtn){
         modalBtn.disabled = true;
-        modalBtn.innerHTML = currentLang === 'ja' ? '<span>🫧</span> 復元中…' : '<span>🫧</span> Restoring...';
+        modalBtn.innerHTML = currentLang === 'ja' ? '<span>🫧</span> 呼び戻しています…' : '<span>🫧</span> Calling back...';
     }
     try{
         const res = await fetch(`${AGGREGATOR}/v1/blobs/${blobId}`, { method: 'GET', headers: { 'Accept': 'application/octet-stream, */*' } });
@@ -707,8 +861,8 @@ async function loadFromWalrus(blobIdOverride){
         localStorage.setItem('walrus_blobid', blobId);
         saveG(); updateUI();
         closeWalrusLoadModal();
-        showToast(currentLang === 'ja' ? '📥 Walrusから復元完了！' : '📥 Restored from Walrus!');
-        setMsg(currentLang === 'ja' ? '📥 Walrusから復元したよ！ おかえり〜 🦭' : '📥 Restored from Walrus! Welcome back 🦭');
+        showToast(currentLang === 'ja' ? '🫧 海から呼び戻したよ！' : '🫧 Called back from the sea!');
+        setMsg(currentLang === 'ja' ? '海に眠っていた記憶から、Walrusが戻ってきたよ 🦭' : 'Your Walrus came back from the memory sleeping in the sea 🦭');
     }catch(e){
         console.warn("Walrus load error:", e);
         try{
@@ -719,22 +873,22 @@ async function loadFromWalrus(blobIdOverride){
                 updateUI();
                 showToast(
                     currentLang === 'ja'
-                        ? '⚠ Walrus復元に失敗したため、ローカル保存から復元しました'
-                        : '⚠ Walrus restore failed, so local data was restored instead',
+                        ? '⚠ 海から呼び戻せなかったため、端末の記憶を開きました'
+                        : '⚠ Could not call it back from the sea, so local memory was opened instead',
                     true
                 );
                 setMsg(
                     currentLang === 'ja'
-                        ? '⚠ 指定したBlobIdは復元できなかったため、ローカルデータを開いたよ'
-                        : '⚠ The requested BlobId could not be restored, so local data was opened instead',
+                        ? '⚠ 指定したBlobIdは辿れなかったため、端末の記憶を開いたよ'
+                        : '⚠ That BlobId could not be traced, so local memory was opened instead',
                     true
                 );
             }
             else throw new Error(currentLang === 'ja' ? 'ローカルデータなし' : 'No local data');
-        }catch(e2){ showToast(currentLang === 'ja' ? '⚠ 復元に失敗しました' : '⚠ Restore failed', true); setMsg(currentLang === 'ja' ? '復元失敗… 保存データが見つかりません' : 'Restore failed... no save data found', true); }
+        }catch(e2){ showToast(currentLang === 'ja' ? '⚠ 呼び戻しに失敗しました' : '⚠ Call back failed', true); setMsg(currentLang === 'ja' ? '呼び戻せる記憶が見つかりませんでした' : 'No memory could be called back', true); }
     }
     setBtnLoading('btnLoad', false, '');
-    document.getElementById('btnLoad').innerHTML = `<span class="act-icon">📥</span>${t('walrus_load')}`;
+    document.getElementById('btnLoad').innerHTML = `<span class="act-main"><span class="act-icon">🫧</span><span class="act-copy"><span class="act-title">${t('walrus_load')}</span><span class="act-sub">CALL</span></span></span><span class="act-hint">${t('walrus_load_sub')}</span>`;
     if(modalBtn){
         modalBtn.disabled = false;
         modalBtn.innerHTML = t('walrus_load_confirm');
@@ -888,7 +1042,7 @@ function openDiaryWrite(){
     const isLegend = G.lv >= 4;
     const inner = document.getElementById('diaryModalInner');
     inner.className = 'diary-modal-inner' + (isLegend?' legend':'');
-    document.getElementById('diaryModalTitle').textContent = isLegend ? '✦ Legend Diary' : t('diary_title');
+    document.getElementById('diaryModalTitle').textContent = isLegend ? '✦ Legend Fragments' : t('diary_title');
     const now = new Date();
     const dateStr = now.toLocaleDateString(localeCode(), {year:'numeric',month:'long',day:'numeric',weekday:'long'});
     document.getElementById('diaryDateLabel').textContent = dateStr;
@@ -900,6 +1054,7 @@ function openDiaryWrite(){
     updateDiaryCharCount();
     document.querySelector('.diary-save-btn').textContent = todayEntry ? t('diary_update') : t('diary_save');
     document.getElementById('diaryModal').style.display = 'flex';
+    awakenMemorySurface(inner);
     setTimeout(()=>ta.focus(), 380);
 }
 
@@ -912,7 +1067,7 @@ function closeDiaryModal(){ document.getElementById('diaryModal').style.display 
 
 function saveDiaryEntry(){
     const text = document.getElementById('diaryInput').value.trim();
-    if(!text){ showToast(currentLang === 'ja' ? '日記を書いてから保存してね！' : 'Write something before saving your diary!', true); return; }
+    if(!text){ showToast(currentLang === 'ja' ? '断片に残したいことを少し書いてみてね' : 'Write a little fragment before keeping it', true); return; }
     const entries = getDiaryEntries();
     const todayKey = getLocalDateKey();
     const idx = entries.findIndex(e => e.date === todayKey);
@@ -920,10 +1075,10 @@ function saveDiaryEntry(){
     if(idx >= 0) entries[idx] = entry;
     else entries.unshift(entry);
     saveDiaryEntries(entries);
-    showToast(currentLang === 'ja' ? '📔 今日の日記を保存したよ！' : '📔 Saved today’s diary!');
+    showToast(currentLang === 'ja' ? '✨ 今日の断片を残したよ！' : '✨ Today’s fragment was kept!');
     setMsg(G.lv>=4
-        ? (currentLang === 'ja' ? '✦ Legend Diaryに今日の思い出を刻んだよ！' : '✦ Today’s memory was etched into the Legend Diary!')
-        : (currentLang === 'ja' ? '📔 今日の思い出を記録したよ！' : '📔 Today’s memory was recorded!'));
+        ? (currentLang === 'ja' ? '✦ Legend Fragments に今日の記憶を刻んだよ！' : '✦ Today’s memory was etched into Legend Fragments!')
+        : (currentLang === 'ja' ? '🫧 今日の出来事が、断片として残ったよ' : '🫧 Today stayed behind as a fragment'));
     closeDiaryModal();
     G.exp += 5;
     checkLevelUp(); updateUI();
@@ -935,7 +1090,7 @@ function updateDiaryBtnSub(){
     const todayKey = getLocalDateKey();
     const hasToday = getDiaryEntries().some(e => e.date === todayKey);
     sub.textContent = hasToday
-        ? (currentLang === 'ja' ? '✏️ 今日は記入済み — タップで編集' : '✏️ Already written today — tap to edit')
+        ? (currentLang === 'ja' ? '✨ 今日は残してある — タップで揺らぎを足す' : '✨ A fragment already rests here — tap to reshape it')
         : t('diary_sub_write');
 }
 
@@ -1002,9 +1157,10 @@ function openDiaryView(){
     closeDiaryModal();
     const isLegend = G.lv >= 4;
     document.getElementById('diaryViewInner').className = 'diary-view-inner' + (isLegend?' legend':'');
-    document.getElementById('diaryViewTitle').textContent = isLegend ? '✦ Legend Diary' : t('diary_book');
+    document.getElementById('diaryViewTitle').textContent = isLegend ? '✦ Legend Fragments' : t('diary_book');
     renderDiaryEntries();
     document.getElementById('diaryViewModal').style.display = 'flex';
+    awakenMemorySurface('diaryViewInner');
 }
 
 function renderDiaryEntries(){
@@ -1012,8 +1168,8 @@ function renderDiaryEntries(){
     const list = document.getElementById('diaryEntriesList');
     if(!entries.length){
         list.innerHTML = currentLang === 'ja'
-            ? '<div class="diary-empty">まだ日記がありません 📔<br>最初の思い出を書いてみよう！🦭</div>'
-            : '<div class="diary-empty">No diary entries yet 📔<br>Write your first memory! 🦭</div>';
+            ? '<div class="diary-empty">まだ断片は漂っていません 🫧<br>今日のひとかけらを残してみよう！</div>'
+            : '<div class="diary-empty">No fragments are drifting here yet 🫧<br>Leave your first small memory!</div>';
         return;
     }
     list.innerHTML = entries.map(e => {
@@ -1042,20 +1198,20 @@ function closeDiaryViewModal(){ document.getElementById('diaryViewModal').style.
 async function saveDiaryToWalrus(){
     const btn = document.getElementById('btnDiarySave');
     const entries = getDiaryEntries();
-    if(!entries.length){ showToast(currentLang === 'ja' ? '日記がまだありません' : 'No diary entries yet', true); return; }
-    btn.disabled = true; btn.textContent = currentLang === 'ja' ? '🌐 保存中…' : '🌐 Saving...';
+    if(!entries.length){ showToast(currentLang === 'ja' ? 'まだ海に沈める断片がありません' : 'There are no fragments to sink yet', true); return; }
+    btn.disabled = true; btn.textContent = currentLang === 'ja' ? '🌊 沈めています…' : '🌊 Sinking...';
     const blobId = await uploadToWalrus(JSON.stringify({ walrus_diary: entries, version: 1 }), 'walrus-diary.json');
-    if(blobId){ localStorage.setItem('walrus_diary_blobid', blobId); showToast(currentLang === 'ja' ? '✅ 日記をWalrusに永久保存！' : '✅ Diary saved permanently on Walrus!'); setMsg(currentLang === 'ja' ? '🌐 日記をWalrusに保存したよ！ 永久記録 🦭' : '🌐 Diary saved to Walrus! Permanent record 🦭'); }
-    else { showToast(currentLang === 'ja' ? '⚠ Walrus保存失敗' : '⚠ Walrus save failed', true); }
+    if(blobId){ localStorage.setItem('walrus_diary_blobid', blobId); showToast(currentLang === 'ja' ? '✅ 断片を海に沈めたよ！' : '✅ The fragments were sunk into the sea!'); setMsg(currentLang === 'ja' ? '🌊 記憶の断片を海へ預けたよ 🦭' : '🌊 Your memory fragments were entrusted to the sea 🦭'); }
+    else { showToast(currentLang === 'ja' ? '⚠ 断片を海に沈められませんでした' : '⚠ Could not sink the fragments into the sea', true); }
     btn.disabled = false; btn.textContent = t('diary_save_walrus');
 }
 
 async function loadDiaryFromWalrus(){
     const blobId = localStorage.getItem('walrus_diary_blobid');
-    if(!blobId){ showToast(currentLang === 'ja' ? 'Walrusの日記データがありません' : 'No Walrus diary data found', true); return; }
-    if(!confirm(currentLang === 'ja' ? 'Walrusから日記を復元しますか？ ローカルの日記は上書きされます' : 'Load diary from Walrus? Your local diary will be overwritten.')) return;
+    if(!blobId){ showToast(currentLang === 'ja' ? '海に眠る断片がまだありません' : 'No fragments are sleeping in the sea yet', true); return; }
+    if(!confirm(currentLang === 'ja' ? '海に眠る断片を呼び戻しますか？ 端末の断片は上書きされます' : 'Call back the fragments from the sea? Your local fragments will be overwritten.')) return;
     const btn = document.getElementById('btnDiaryLoad');
-    btn.disabled = true; btn.textContent = currentLang === 'ja' ? '📥 復元中…' : '📥 Loading...';
+    btn.disabled = true; btn.textContent = currentLang === 'ja' ? '🫧 呼び戻しています…' : '🫧 Calling back...';
     try{
         const res = await fetch(`${AGGREGATOR}/v1/blobs/${blobId}`,{method:'GET',headers:{'Accept':'application/octet-stream,*/*'}});
         if(!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1067,9 +1223,9 @@ async function loadDiaryFromWalrus(){
             const normalizedEntries = normalizeDiaryEntries(data.walrus_diary);
             if(!normalizedEntries.length) throw new Error('No valid diary entries');
             saveDiaryEntries(normalizedEntries); renderDiaryEntries(); updateUI();
-            showToast(currentLang === 'ja' ? '📥 日記をWalrusから復元！' : '📥 Diary restored from Walrus!');
+            showToast(currentLang === 'ja' ? '🫧 断片を海から呼び戻したよ！' : '🫧 Fragments called back from the sea!');
         } else throw new Error('Invalid format');
-    } catch(e){ console.warn('Diary load error:', e); showToast(currentLang === 'ja' ? '⚠ 復元に失敗しました' : '⚠ Restore failed', true); }
+    } catch(e){ console.warn('Diary load error:', e); showToast(currentLang === 'ja' ? '⚠ 断片を呼び戻せませんでした' : '⚠ Could not call the fragments back', true); }
     btn.disabled = false; btn.textContent = t('diary_load_walrus');
 }
 
@@ -1917,4 +2073,8 @@ function runHatching(){
             : 'Tap repeatedly to break the shell!';
     }),5200);
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+    setupMemoryLagoonInteractions();
+});
 
