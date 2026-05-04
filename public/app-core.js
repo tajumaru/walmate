@@ -342,6 +342,413 @@ const SOUND_DEF = {
 };
 const ZONE_EMOJI = { beach:'🌊', forest:'🌿', city:'🏙', ruins:'🏚' };
 const SLOT_KEYS = ['drum','bass','melody','fx'];
+const DAILY_SPECIAL_SOUNDS = {
+    rain_bass: {
+        id: 'rain_bass',
+        slotType: 'bass',
+        zone: 'beach',
+        emoji: '☔',
+        nameJa: 'Rain Bass',
+        nameEn: 'Rain Bass',
+        noteJa: '雨の日だけ深海に落ちる、低くてやわらかい濡れ音。',
+        noteEn: 'A soft low-end drop that only falls on rainy days.',
+        condJa: '雨の日 / 音ルートで出会いやすい',
+        condEn: 'Rainy day / easier on the sound path'
+    },
+    moon_ping: {
+        id: 'moon_ping',
+        slotType: 'melody',
+        zone: 'ruins',
+        emoji: '🌙',
+        nameJa: 'Moon Ping',
+        nameEn: 'Moon Ping',
+        noteJa: '夜と満月にだけ反応する、きらっと跳ねる旋律。',
+        noteEn: 'A bright melodic ping that wakes up at night and under full moons.',
+        condJa: '夜 or 満月 / 深海イベントで出会いやすい',
+        condEn: 'Night or full moon / easier during deep-sea nights'
+    },
+    dawn_bubble: {
+        id: 'dawn_bubble',
+        slotType: 'fx',
+        zone: 'beach',
+        emoji: '🌅',
+        nameJa: 'Dawn Bubble',
+        nameEn: 'Dawn Bubble',
+        noteJa: '朝焼けの海面でだけ拾える、消えそうで残る泡の粒。',
+        noteEn: 'A bubble-like FX you can only catch around daybreak.',
+        condJa: '朝 / レベル3以上で出やすい',
+        condEn: 'Morning / more common from level 3'
+    }
+};
+const DAILY_PATHS = {
+    sea: {
+        emoji: '🌊',
+        labelJa: '海を見に行く',
+        labelEn: 'Watch the sea',
+        rewardJa: 'ハッピー +16',
+        rewardEn: 'Happy +16'
+    },
+    sound: {
+        emoji: '🎧',
+        labelJa: '音を拾いに行く',
+        labelEn: 'Collect sounds',
+        rewardJa: '限定音が出やすくなる',
+        rewardEn: 'Daily sound gets easier to find'
+    },
+    bubble: {
+        emoji: '🫧',
+        labelJa: '泡を追いかける',
+        labelEn: 'Chase bubbles',
+        rewardJa: '経験値 +18',
+        rewardEn: 'EXP +18'
+    }
+};
+
+function hashStringToSeed(text){
+    let hash = 2166136261;
+    for(let i = 0; i < text.length; i += 1){
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
+
+function createSeededRandom(seedText){
+    let state = hashStringToSeed(seedText) || 1;
+    return function(){
+        state = Math.imul(state ^ (state >>> 15), state | 1);
+        state ^= state + Math.imul(state ^ (state >>> 7), state | 61);
+        return ((state ^ (state >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function getMoonPhaseRatio(date = new Date()){
+    const knownNewMoonUtc = Date.UTC(2000, 0, 6, 18, 14, 0);
+    const synodicMonth = 29.530588853;
+    const daysSince = (date.getTime() - knownNewMoonUtc) / 86400000;
+    const phase = ((daysSince % synodicMonth) + synodicMonth) % synodicMonth;
+    return phase / synodicMonth;
+}
+
+function isFullMoonNight(date = new Date()){
+    return Math.abs(getMoonPhaseRatio(date) - 0.5) < 0.06;
+}
+
+function getDailyTimeBand(hour = new Date().getHours()){
+    if(hour >= 5 && hour <= 10) return 'dawn';
+    if(hour >= 18 || hour <= 3) return 'night';
+    return 'day';
+}
+
+function getDailyWeather(dateKey = getLocalDateKey()){
+    const rng = createSeededRandom(`weather:${dateKey}`);
+    return rng() < 0.32 ? 'rain' : 'clear';
+}
+
+function getTodayDailyContext(date = new Date()){
+    const dateKey = getLocalDateKey(date);
+    return {
+        dateKey,
+        hour: date.getHours(),
+        weekday: date.getDay(),
+        timeBand: getDailyTimeBand(date.getHours()),
+        weather: getDailyWeather(dateKey),
+        isFullMoon: isFullMoonNight(date)
+    };
+}
+
+function isRainWeatherCode(code){
+    const n = Number(code);
+    return [51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(n);
+}
+
+function getDailyLimitedSoundDef(soundId = G?.daily?.limitedSoundId){
+    return DAILY_SPECIAL_SOUNDS[soundId] || null;
+}
+
+function pickDailyLimitedSound(context){
+    const candidates = [];
+    if(context.weather === 'rain') candidates.push('rain_bass');
+    if(context.timeBand === 'night' || context.isFullMoon) candidates.push('moon_ping');
+    if(context.timeBand === 'dawn' || context.weekday === 0 || G.lv >= 3) candidates.push('dawn_bubble');
+    if(!candidates.length) candidates.push('dawn_bubble');
+    const rng = createSeededRandom(`limited:${context.dateKey}:${G.lv}`);
+    return candidates[Math.floor(rng() * candidates.length)] || candidates[0];
+}
+
+function pickDailyEventId(context, streak){
+    const rng = createSeededRandom(`event:${context.dateKey}:${G.lv}:${streak}`);
+    if(rng() < 0.01) return 'legend_bubble';
+    if(streak > 0 && streak % 7 === 0) return 'streak_accessory';
+    const pool = [];
+    if(context.timeBand === 'dawn') pool.push('morning_sleepy');
+    if(context.timeBand === 'night') pool.push('night_deep');
+    if(context.weather === 'rain') pool.push('rain_sound');
+    if(context.isFullMoon) pool.push('full_moon_branch');
+    if(!pool.length) pool.push('calm_current');
+    return pool[Math.floor(rng() * pool.length)] || pool[0];
+}
+
+function ensureDailyState(){
+    G.daily = normalizeDailyState(G.daily);
+    const today = getLocalDateKey();
+    if(G.daily.dateKey === today) return G.daily;
+
+    const prevLogin = G.daily.lastLoginDate;
+    const diff = prevLogin ? getDateKeyDiff(prevLogin, today) : 0;
+    const streak = !prevLogin ? 1 : diff === 1 ? G.daily.streak + 1 : 1;
+    const context = getTodayDailyContext();
+
+    G.daily = normalizeDailyState({
+        dateKey: today,
+        lastLoginDate: today,
+        streak,
+        shownDateKey: '',
+        eventId: pickDailyEventId(context, streak),
+        choiceId: '',
+        limitedSoundId: pickDailyLimitedSound(context),
+        limitedSoundCollected: false,
+        weather: context.weather,
+        weatherSource: 'seed',
+        weatherSyncAt: 0,
+        timeBand: context.timeBand,
+        weekday: context.weekday,
+        isFullMoon: context.isFullMoon
+    });
+
+    if(G.daily.eventId === 'legend_bubble'){
+        G.exp += 22;
+    } else if(G.daily.eventId === 'full_moon_branch'){
+        G.happy = Math.min(100, G.happy + 10);
+    } else if(G.daily.eventId === 'streak_accessory'){
+        G.happy = Math.min(100, G.happy + 10);
+        G.exp += 12;
+        if(G.lv >= 4 && G.custom?.accessory === 'none'){
+            G.custom.accessory = 'pearl';
+        }
+    } else if(G.daily.eventId === 'calm_current'){
+        G.happy = Math.min(100, G.happy + 4);
+    }
+
+    saveG();
+    return G.daily;
+}
+
+function getDailyEventMeta(daily = G.daily){
+    const eventId = daily?.eventId || 'calm_current';
+    const map = {
+        morning_sleepy: {
+            emoji: '😪',
+            titleJa: '朝だけ 眠そうなWalrus',
+            titleEn: 'Morning sleepy Walrus',
+            copyJa: '今朝はまだ半分夢の中。やさしい海流でゆっくり起こしてあげよう。',
+            copyEn: 'It is still half-dreaming this morning. A gentle start feels best.',
+            hintJa: '朝限定ムード',
+            hintEn: 'Morning-only mood',
+            zone: 'beach'
+        },
+        night_deep: {
+            emoji: '🌌',
+            titleJa: '夜だけ 深海モード',
+            titleEn: 'Night deep-sea mode',
+            copyJa: '今夜は深海の潮が強め。廃墟ゾーンに寄ると不思議な音が混じりやすい。',
+            copyEn: 'The deep current is stronger tonight. Ruins are extra tempting.',
+            hintJa: '深海寄りの一日',
+            hintEn: 'Deep-sea leaning day',
+            zone: 'ruins'
+        },
+        rain_sound: {
+            emoji: '🌧',
+            titleJa: '雨の日 水色の音',
+            titleEn: 'Rainy pale-blue sound',
+            copyJa: '今日は水色の音がまざる日。海辺の低音に限定音が紛れ込みやすい。',
+            copyEn: 'Pale-blue tones are drifting in today. Beach bass may hide the daily sound.',
+            hintJa: '雨で限定音チャンス',
+            hintEn: 'Rain boosts daily sound',
+            zone: 'beach'
+        },
+        legend_bubble: {
+            emoji: '🫧',
+            titleJa: '1% 伝説の泡',
+            titleEn: '1% legendary bubble',
+            copyJa: 'とても珍しい泡が漂着。今日はログインしただけで少し経験値をもらえた。',
+            copyEn: 'An ultra-rare bubble drifted in. You earned a little EXP just by logging in.',
+            hintJa: 'EXP ボーナス発生',
+            hintEn: 'EXP bonus activated',
+            zone: 'beach'
+        },
+        full_moon_branch: {
+            emoji: '🌕',
+            titleJa: '満月 進化分岐',
+            titleEn: 'Full moon evolution branch',
+            copyJa: '満月の夜は進化の気配が濃い。今日は少し機嫌がよく、選択が未来に残りやすい。',
+            copyEn: 'Full moon nights feel evolutionary. Today’s choice lingers a little longer.',
+            hintJa: '満月の加護',
+            hintEn: 'Full moon blessing',
+            zone: 'ruins'
+        },
+        streak_accessory: {
+            emoji: '🎀',
+            titleJa: '7日目 限定アクセ',
+            titleEn: 'Day 7 limited accessory',
+            copyJa: '連続ログイン7日目。今週のしるしとして、真珠アクセの気配をまとったよ。',
+            copyEn: 'Seventh straight login. A pearl-style accessory mood arrived as this week’s reward.',
+            hintJa: '連続ログイン報酬',
+            hintEn: 'Streak reward',
+            zone: 'beach'
+        },
+        calm_current: {
+            emoji: '🌊',
+            titleJa: '静かな海流',
+            titleEn: 'Calm current',
+            copyJa: '今日は穏やかな流れ。好きなルートを選ぶのにちょうどいい日。',
+            copyEn: 'The current is calm today. A good day to pick your own route.',
+            hintJa: '自由に泳げる日',
+            hintEn: 'A free-swim kind of day',
+            zone: 'beach'
+        }
+    };
+    return map[eventId] || map.calm_current;
+}
+
+function refreshDailyDerivedState(overrides = {}){
+    ensureDailyState();
+    const merged = {
+        dateKey: G.daily.dateKey,
+        weather: overrides.weather || G.daily.weather,
+        timeBand: overrides.timeBand || G.daily.timeBand,
+        weekday: typeof overrides.weekday === 'number' ? overrides.weekday : G.daily.weekday,
+        isFullMoon: typeof overrides.isFullMoon === 'boolean' ? overrides.isFullMoon : G.daily.isFullMoon
+    };
+    G.daily.weather = merged.weather;
+    G.daily.weatherSource = overrides.weatherSource === 'gps' ? 'gps' : G.daily.weatherSource;
+    G.daily.weatherSyncAt = Number(overrides.weatherSyncAt) || G.daily.weatherSyncAt;
+    G.daily.timeBand = merged.timeBand;
+    G.daily.weekday = merged.weekday;
+    G.daily.isFullMoon = merged.isFullMoon;
+    G.daily.eventId = pickDailyEventId(merged, G.daily.streak);
+    if(!G.daily.limitedSoundCollected){
+        G.daily.limitedSoundId = pickDailyLimitedSound(merged);
+    }
+    saveG();
+}
+
+let dailyWeatherRequestInFlight = false;
+let dailyWeatherLastCoord = null;
+
+async function syncDailyWeatherFromCoords(lat, lon, options = {}){
+    ensureDailyState();
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const now = Date.now();
+    const roundedLat = Math.round(lat * 100) / 100;
+    const roundedLon = Math.round(lon * 100) / 100;
+    if(!options.force && G.daily.weatherSource === 'gps' && (now - (G.daily.weatherSyncAt || 0)) < 45 * 60 * 1000){
+        if(dailyWeatherLastCoord && Math.abs(dailyWeatherLastCoord.lat - roundedLat) < 0.02 && Math.abs(dailyWeatherLastCoord.lon - roundedLon) < 0.02){
+            return;
+        }
+    }
+    if(dailyWeatherRequestInFlight) return;
+    dailyWeatherRequestInFlight = true;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? window.setTimeout(() => controller.abort(), 9000) : 0;
+    try{
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current=weather_code,is_day,precipitation&timezone=auto&forecast_days=1`;
+        const res = await fetch(url, { signal: controller?.signal });
+        if(!res.ok) throw new Error(`weather ${res.status}`);
+        const data = await res.json();
+        const current = data?.current || {};
+        const weather = (Number(current.precipitation) > 0 || isRainWeatherCode(current.weather_code)) ? 'rain' : 'clear';
+        const timeBand = Number(current.is_day) === 0 ? 'night' : getDailyTimeBand(new Date().getHours());
+        refreshDailyDerivedState({
+            weather,
+            weatherSource: 'gps',
+            weatherSyncAt: now,
+            timeBand,
+            weekday: new Date().getDay(),
+            isFullMoon: isFullMoonNight(new Date())
+        });
+        dailyWeatherLastCoord = { lat: roundedLat, lon: roundedLon };
+        renderDailyBoard();
+        if(options.announce){
+            showToast(currentLang === 'ja'
+                ? `📍 GPS天気を同期したよ: ${weather === 'rain' ? '雨' : '晴れ'}`
+                : `📍 GPS weather synced: ${weather === 'rain' ? 'rain' : 'clear'}`);
+        }
+    }catch(err){
+        if(!options.silent){
+            console.warn('Weather sync failed:', err);
+        }
+    }finally{
+        if(timer) clearTimeout(timer);
+        dailyWeatherRequestInFlight = false;
+    }
+}
+
+function syncDailyWeatherFromGPS(options = {}){
+    if(!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const { latitude, longitude, accuracy } = pos.coords;
+            if(accuracy > 120) return;
+            syncDailyWeatherFromCoords(latitude, longitude, options);
+        },
+        (err) => {
+            if(!options.silent) console.warn('GPS weather sync error:', err);
+        },
+        { enableHighAccuracy: false, maximumAge: 10 * 60 * 1000, timeout: 10000 }
+    );
+}
+
+function chooseDailyPath(choiceId){
+    ensureDailyState();
+    if(!DAILY_PATHS[choiceId] || G.daily.choiceId) return;
+    G.daily.choiceId = choiceId;
+    if(choiceId === 'sea'){
+        G.happy = Math.min(100, G.happy + 16);
+    } else if(choiceId === 'bubble'){
+        G.exp += 18;
+    }
+    checkLevelUp?.();
+    saveG();
+    updateUI();
+    const choice = DAILY_PATHS[choiceId];
+    const reward = currentLang === 'ja' ? choice.rewardJa : choice.rewardEn;
+    setMsg(`${choice.emoji} ${currentLang === 'ja' ? choice.labelJa : choice.labelEn} · ${reward}`);
+    showToast(currentLang === 'ja' ? '今日のルートを決めたよ' : 'Today’s route is set');
+}
+
+function getDailyLimitedSpawnChance(){
+    let chance = G.daily?.choiceId === 'sound' ? 0.5 : 0.24;
+    if(G.daily?.eventId === 'rain_sound') chance += 0.12;
+    if(G.daily?.eventId === 'night_deep' && G.daily?.limitedSoundId === 'moon_ping') chance += 0.1;
+    return Math.min(0.78, chance);
+}
+
+function maybeRollDailyLimitedPiece(slotType){
+    ensureDailyState();
+    const dailySound = getDailyLimitedSoundDef();
+    if(!dailySound || G.daily.limitedSoundCollected || dailySound.slotType !== slotType) return null;
+    if(Math.random() > getDailyLimitedSpawnChance()) return null;
+    G.daily.limitedSoundCollected = true;
+    saveG();
+    return {
+        area: dailySound.zone,
+        type: dailySound.slotType,
+        name: currentLang === 'ja' ? dailySound.nameJa : dailySound.nameEn,
+        emoji: dailySound.emoji,
+        ts: Date.now(),
+        specialId: dailySound.id
+    };
+}
+
+function syncDailyActiveZone(){
+    const daily = ensureDailyState();
+    const eventZone = getDailyEventMeta(daily).zone;
+    if(!eventZone) return;
+    if(document.getElementById('zone_' + eventZone)){
+        setActiveZone(eventZone);
+    }
+}
 
 function createEmptySoundDiet(dateKey = getLocalDateKey()){
     return {
@@ -500,10 +907,18 @@ function renderSoundSlots(){
         el.classList.toggle('playing', isTrackPlaying && !!piece);
         if(piece){
             anyFilled = true;
-            const def = SOUND_DEF[piece.area]?.[slotType] || {};
+            const def = piece.specialId
+                ? getDailyLimitedSoundDef(piece.specialId)
+                : (SOUND_DEF[piece.area]?.[slotType] || {});
+            const pieceName = piece.specialId
+                ? (currentLang === 'ja' ? def?.nameJa : def?.nameEn)
+                : (def.name || piece.name);
+            const areaLabel = piece.specialId
+                ? (currentLang === 'ja' ? '今日限定' : 'DAILY ONLY')
+                : piece.area;
             contentEl.innerHTML = `<span class="slot-emoji">${def.emoji||'🎵'}</span>
-                <div><div class="slot-name">${def.name||piece.name}</div>
-                <div class="slot-area-tag">${piece.area}</div></div>`;
+                <div><div class="slot-name">${pieceName}</div>
+                <div class="slot-area-tag">${areaLabel}</div></div>`;
         } else {
             const hint = currentLang === 'ja' ? '130mごとに集まるよ' : 'collect while walking';
             contentEl.innerHTML = `<span class="slot-empty-hint">${hint}</span>`;
@@ -695,26 +1110,27 @@ function collectWalkSoundPiece(){
 
     const slotType = SLOT_KEYS[Math.floor(Math.random() * SLOT_KEYS.length)];
     const zone = activeZone;
-    const def = SOUND_DEF[zone][slotType];
-
-    // BGM用：最大4枠だけ。増やさず上書きする
-    soundSlots[slotType] = {
+    const specialPiece = maybeRollDailyLimitedPiece(slotType);
+    const def = specialPiece || {
         area: zone,
         type: slotType,
-        name: def.name,
-        emoji: def.emoji,
+        name: SOUND_DEF[zone][slotType].name,
+        emoji: SOUND_DEF[zone][slotType].emoji,
         ts: Date.now()
     };
 
+    // BGM用：最大4枠だけ。増やさず上書きする
+    soundSlots[slotType] = { ...def };
+
     saveSoundSlots();
     renderSoundSlots();
-    registerSoundMeal(slotType, zone);
+    registerSoundMeal(slotType, def.area || zone);
 
     // 履歴用：最大20件まで
     walkState.collected = walkState.collected || [];
     walkState.collected.unshift({
         slot: slotType,
-        zone,
+        zone: def.area || zone,
         name: def.name,
         emoji: def.emoji,
         meters: Math.floor(walkState.totalMeters),
@@ -1303,6 +1719,91 @@ function renderSoundMemory(){
     }).join('');
 }
 
+function renderDailyBoard(){
+    const board = document.getElementById('dailyBoard');
+    if(!board) return;
+    const daily = ensureDailyState();
+    const event = getDailyEventMeta(daily);
+    const sound = getDailyLimitedSoundDef(daily.limitedSoundId);
+    const isJa = currentLang === 'ja';
+    const streakLabel = isJa ? `${daily.streak}日連続ログイン` : `${daily.streak}-day streak`;
+    const weatherLabel = daily.weather === 'rain'
+        ? (isJa ? '雨の潮' : 'Rain current')
+        : (isJa ? '晴れの潮' : 'Clear current');
+    const weatherSourceLabel = daily.weatherSource === 'gps'
+        ? (isJa ? 'GPS天気' : 'GPS weather')
+        : (isJa ? '仮の天気' : 'seed weather');
+    const timeLabel = daily.timeBand === 'dawn'
+        ? (isJa ? '朝の海' : 'Morning sea')
+        : daily.timeBand === 'night'
+            ? (isJa ? '夜の深海' : 'Night sea')
+            : (isJa ? '昼の潮' : 'Day tide');
+    const choiceMarkup = Object.entries(DAILY_PATHS).map(([key, choice]) => {
+        const selected = daily.choiceId === key;
+        const disabled = daily.choiceId ? 'disabled' : '';
+        const label = isJa ? choice.labelJa : choice.labelEn;
+        const reward = isJa ? choice.rewardJa : choice.rewardEn;
+        return `<button class="daily-choice-btn ${selected ? 'selected' : ''}" type="button" onclick="chooseDailyPath('${key}')" ${disabled}>
+            <span class="daily-choice-emoji">${choice.emoji}</span>
+            <span class="daily-choice-copy">
+                <strong>${label}</strong>
+                <small>${reward}</small>
+            </span>
+        </button>`;
+    }).join('');
+    const soundTitle = sound ? (isJa ? sound.nameJa : sound.nameEn) : (isJa ? '今日の限定音' : 'Daily sound');
+    const soundNote = sound ? (isJa ? sound.noteJa : sound.noteEn) : '';
+    const soundCond = sound ? (isJa ? sound.condJa : sound.condEn) : '';
+    const soundState = daily.limitedSoundCollected
+        ? (isJa ? 'COLLECTED' : 'COLLECTED')
+        : (isJa ? '未発見' : 'UNFOUND');
+    const soundStateClass = daily.limitedSoundCollected ? 'found' : '';
+    board.innerHTML = `<div class="daily-board-head">
+            <div>
+                <div class="daily-board-kicker">${isJa ? 'DAILY CURRENT' : 'DAILY CURRENT'}</div>
+                <div class="daily-board-title">${isJa ? '今日の海流イベント' : 'Today’s current event'}</div>
+            </div>
+            <div class="daily-streak-chip">${streakLabel}</div>
+        </div>
+        <div class="daily-event-card">
+            <div class="daily-event-topline">
+                <span class="daily-event-badge">${event.emoji} ${isJa ? event.titleJa : event.titleEn}</span>
+                <span class="daily-event-meta">${weatherSourceLabel} · ${weatherLabel} · ${timeLabel}</span>
+            </div>
+            <div class="daily-event-copy">${isJa ? event.copyJa : event.copyEn}</div>
+            <div class="daily-event-hint">${isJa ? event.hintJa : event.hintEn}</div>
+        </div>
+        <div class="daily-choice-card">
+            <div class="daily-choice-title">${isJa ? '今日のWalrusは何したい？' : 'What does today’s Walrus want?'}</div>
+            <div class="daily-choice-grid">${choiceMarkup}</div>
+        </div>
+        <div class="daily-sound-card">
+            <div class="daily-sound-topline">
+                <div class="daily-sound-title">${sound?.emoji || '🎵'} ${soundTitle}</div>
+                <div class="daily-sound-state ${soundStateClass}">${soundState}</div>
+            </div>
+            <div class="daily-sound-copy">${soundNote}</div>
+            <div class="daily-sound-hint">${soundCond}</div>
+        </div>`;
+}
+
+function showDailyLoginMoment(){
+    const daily = ensureDailyState();
+    if(daily.shownDateKey === daily.dateKey) return;
+    const event = getDailyEventMeta(daily);
+    const sound = getDailyLimitedSoundDef(daily.limitedSoundId);
+    syncDailyActiveZone();
+    setMsg(`${event.emoji} ${currentLang === 'ja' ? event.titleJa : event.titleEn}`);
+    if(sound){
+        showToast(currentLang === 'ja'
+            ? `🎵 今日の限定音: ${sound.nameJa}`
+            : `🎵 Daily sound: ${sound.nameEn}`);
+    }
+    G.daily.shownDateKey = daily.dateKey;
+    saveG();
+    renderDailyBoard();
+}
+
 // ===== HAPTIC =====
 function haptic(ms=20){ try{ if(userGestureReady && navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
@@ -1316,7 +1817,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-04-sound-collection';
+const APP_VERSION = '2026-05-04-gps-weather-daily';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';

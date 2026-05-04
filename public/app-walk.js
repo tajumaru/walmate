@@ -109,6 +109,7 @@ function restoreWalkState() {
                 (pos) => {
                     const { latitude: lat, longitude: lon, accuracy } = pos.coords;
                     if(accuracy > 35) return;
+                    syncDailyWeatherFromCoords(lat, lon, { silent:true });
                     if(walkState.lastCoord) {
                         const d = haversineMeters(walkState.lastCoord.lat, walkState.lastCoord.lon, lat, lon);
                         if(d > 2 && d < 200) {
@@ -318,6 +319,7 @@ function startWalk() {
         (pos) => {
             const { latitude: lat, longitude: lon, accuracy } = pos.coords;
             if(accuracy > 35) return; // ignore low accuracy
+            syncDailyWeatherFromCoords(lat, lon, { silent:true });
             if(walkState.lastCoord) {
                 const d = haversineMeters(walkState.lastCoord.lat, walkState.lastCoord.lon, lat, lon);
                 if(d > 2 && d < 200) { // filter noise & teleports
@@ -356,6 +358,7 @@ function startWalk() {
                     (pos) => {
                         const { latitude: lat, longitude: lon, accuracy } = pos.coords;
                         if(accuracy > 35) return; // ignore low accuracy
+                        syncDailyWeatherFromCoords(lat, lon, { silent:true });
                         if(walkState.lastCoord) {
                             const d = haversineMeters(walkState.lastCoord.lat, walkState.lastCoord.lon, lat, lon);
                             if(d > 2 && d < 200) { // filter noise & teleports

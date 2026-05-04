@@ -20,6 +20,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     applyTheme();
     applyLanguage();
     applyBabyMode();
+    ensureDailyState();
     // ミュートボタンの初期状態を反映
     const muteBtn = document.getElementById('muteSwitch');
     if(muteBtn){
@@ -46,6 +47,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
             loadSoundSlots();
             renderSoundSlots();
             renderSoundMemory();
+            renderDailyBoard();
+            showDailyLoginMoment();
+            syncDailyWeatherFromGPS({ silent:true });
             if(awayMins>1){
                 const h=Math.floor(awayMins/60), m=awayMins%60;
                 const label = currentLang === 'ja'
@@ -61,6 +65,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
             hatchScreen.classList.remove('hidden');
             renderSoundSlots();
             renderSoundMemory();
+            renderDailyBoard();
+            syncDailyWeatherFromGPS({ silent:true });
             
             // 画面トランジションが終わるのを待ってから孵化アニメ開始
             setTimeout(() => {

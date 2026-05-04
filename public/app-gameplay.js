@@ -5,6 +5,46 @@ const DECAY_PER_MIN = { hunger: 1.8, happy: 1.2 };
 const COOLDOWNS = { feed: 8000, pet: 5000, play: 12000 };
 const GAME_STORAGE_KEY = 'walrus_taju4';
 const SAKURA_PETALS_REQUIRED = 5;
+
+function createDefaultDailyState(dateKey = '1970-01-01'){
+    return {
+        dateKey,
+        lastLoginDate: '',
+        streak: 0,
+        shownDateKey: '',
+        eventId: '',
+        choiceId: '',
+        limitedSoundId: '',
+        limitedSoundCollected: false,
+        weather: 'clear',
+        weatherSource: 'seed',
+        weatherSyncAt: 0,
+        timeBand: 'day',
+        weekday: 0,
+        isFullMoon: false
+    };
+}
+
+function normalizeDailyState(daily){
+    const base = createDefaultDailyState();
+    const next = (daily && typeof daily === 'object') ? daily : {};
+    base.dateKey = typeof next.dateKey === 'string' ? next.dateKey : base.dateKey;
+    base.lastLoginDate = typeof next.lastLoginDate === 'string' ? next.lastLoginDate : '';
+    base.streak = Math.max(0, Number(next.streak) || 0);
+    base.shownDateKey = typeof next.shownDateKey === 'string' ? next.shownDateKey : '';
+    base.eventId = typeof next.eventId === 'string' ? next.eventId : '';
+    base.choiceId = typeof next.choiceId === 'string' ? next.choiceId : '';
+    base.limitedSoundId = typeof next.limitedSoundId === 'string' ? next.limitedSoundId : '';
+    base.limitedSoundCollected = !!next.limitedSoundCollected;
+    base.weather = next.weather === 'rain' ? 'rain' : 'clear';
+    base.weatherSource = next.weatherSource === 'gps' ? 'gps' : 'seed';
+    base.weatherSyncAt = Number(next.weatherSyncAt) || 0;
+    base.timeBand = ['dawn', 'day', 'night'].includes(next.timeBand) ? next.timeBand : 'day';
+    base.weekday = Math.max(0, Math.min(6, Number(next.weekday) || 0));
+    base.isFullMoon = !!next.isFullMoon;
+    return base;
+}
+
 const DEFAULT_GAME_STATE = Object.freeze({
     hunger: 70,
     happy: 50,
@@ -23,7 +63,8 @@ const DEFAULT_GAME_STATE = Object.freeze({
     profileDeckBlobId: '',
     profileDeckSavedAt: 0,
     custom: { color: 'gold', accessory: 'none' },
-    soundDiet: createEmptySoundDiet('1970-01-01')
+    soundDiet: createEmptySoundDiet('1970-01-01'),
+    daily: createDefaultDailyState()
 });
 
 function createGameState(overrides = {}){
@@ -35,7 +76,8 @@ function createGameState(overrides = {}){
             ...DEFAULT_GAME_STATE.custom,
             ...(overrides.custom || {})
         },
-        soundDiet: normalizeSoundDiet(overrides.soundDiet || DEFAULT_GAME_STATE.soundDiet)
+        soundDiet: normalizeSoundDiet(overrides.soundDiet || DEFAULT_GAME_STATE.soundDiet),
+        daily: normalizeDailyState(overrides.daily || DEFAULT_GAME_STATE.daily)
     };
     return normalizeGameState(merged);
 }
@@ -54,6 +96,7 @@ function normalizeGameState(state){
     state.profileDeckBlobId = typeof state.profileDeckBlobId === 'string' ? state.profileDeckBlobId : '';
     state.profileDeckSavedAt = Number(state.profileDeckSavedAt) || 0;
     state.soundDiet = normalizeSoundDiet(state.soundDiet);
+    state.daily = normalizeDailyState(state.daily);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -119,6 +162,19 @@ function getLocalDateKey(date = new Date()){
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+function parseLocalDateKey(dateKey){
+    if(typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
+    const [year, month, day] = dateKey.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+
+function getDateKeyDiff(fromKey, toKey){
+    const from = parseLocalDateKey(fromKey);
+    const to = parseLocalDateKey(toKey);
+    if(!from || !to) return 0;
+    return Math.round((to.getTime() - from.getTime()) / 86400000);
 }
 
 function getMood(){
@@ -210,6 +266,7 @@ function updateUI(){
     }
     syncSoundReactiveStage();
     renderSoundDietCard();
+    renderDailyBoard();
 
     document.getElementById('zzzWrap').style.display = mood==='sleepy' ? 'block':'none';
     const showRing = G.lv >= 4;
