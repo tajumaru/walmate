@@ -12,6 +12,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     }
     window.__setBootPhase?.('セーブデータを読んでいます…', 0.34);
     loadG();
+    ensureWalMateUserId();
     currentLang = detectLanguage();
     currentTheme = detectTheme();
     babyModeEnabled = detectBabyMode();
@@ -54,6 +55,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
             showDailyLoginMoment();
             showIdleRandomEventMoment();
             syncDailyWeatherFromGPS({ silent:true });
+            setTimeout(() => handlePendingFriendInviteFromUrl(), 180);
             if(awayMins>1){
                 const h=Math.floor(awayMins/60), m=awayMins%60;
                 const label = currentLang === 'ja'
@@ -72,6 +74,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
             renderDailyBoard();
             syncStoryProgress(false);
             syncDailyWeatherFromGPS({ silent:true });
+            setTimeout(() => handlePendingFriendInviteFromUrl(), 220);
             
             // 画面トランジションが終わるのを待ってから孵化アニメ開始
             setTimeout(() => {

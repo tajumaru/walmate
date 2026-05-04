@@ -376,6 +376,172 @@ function renderWalrusMarkup(target, lv, mood = 'normal', expression = getExpress
     target.dataset.walrusSignature = signature;
 }
 
+const ACTION_CARD_DEFS = Object.freeze([
+    {
+        key: 'feed',
+        buttonId: 'btnFeed',
+        titleId: 'btnFeedLabel',
+        verbId: 'btnFeedVerb',
+        hintId: 'btnFeedHint',
+        lowThreshold: 42,
+        urgentThreshold: 24,
+        copy: {
+            ja: {
+                defaultTitle: '今日のごはん',
+                needyTitle: 'おなかすいた…',
+                verb: '餌やり',
+                defaultHint: 'おなかを満たす',
+                recommendedHint: '今はごはんがいちばん効く',
+                success: 'もぐもぐ…うまい！'
+            },
+            en: {
+                defaultTitle: 'Meal time',
+                needyTitle: 'So hungry...',
+                verb: 'Feed',
+                defaultHint: 'Fill that belly',
+                recommendedHint: 'Food will help the most now',
+                success: 'Nom nom... tasty!'
+            }
+        }
+    },
+    {
+        key: 'pet',
+        buttonId: 'btnPet',
+        titleId: 'btnPetLabel',
+        verbId: 'btnPetVerb',
+        hintId: 'btnPetHint',
+        lowThreshold: 45,
+        urgentThreshold: 28,
+        copy: {
+            ja: {
+                defaultTitle: 'なでてみる',
+                needyTitle: 'さみしそう…',
+                verb: 'なでなで',
+                defaultHint: 'きげんアップ',
+                recommendedHint: 'やさしく触れると落ち着きそう',
+                success: 'クー…うれしい'
+            },
+            en: {
+                defaultTitle: 'Gentle pat',
+                needyTitle: 'Looks lonely...',
+                verb: 'Pet',
+                defaultHint: 'Boost the mood',
+                recommendedHint: 'A soft pat should calm it down',
+                success: 'Kuu... happy'
+            }
+        }
+    },
+    {
+        key: 'play',
+        buttonId: 'btnPlay',
+        titleId: 'btnPlayLabel',
+        verbId: 'btnPlayVerb',
+        hintId: 'btnPlayHint',
+        lowThreshold: 40,
+        urgentThreshold: 20,
+        copy: {
+            ja: {
+                defaultTitle: '遊びたがってる！',
+                needyTitle: 'うずうずしてる！',
+                verb: '遊ぶ',
+                defaultHint: '元気にあそぶ',
+                recommendedHint: '遊ぶと経験値もぐんと伸びる',
+                success: 'もっと遊ぶ！'
+            },
+            en: {
+                defaultTitle: 'Ready to play!',
+                needyTitle: 'Full of energy!',
+                verb: 'Play',
+                defaultHint: 'Burn bright together',
+                recommendedHint: 'Playtime boosts EXP the most',
+                success: 'More play!'
+            }
+        }
+    }
+]);
+
+function getActionCardCopy(def){
+    return currentLang === 'ja' ? def.copy.ja : def.copy.en;
+}
+
+function getRecommendedAction(){
+    const expInLv = G.exp - (G.lv - 1) * 100;
+    const candidates = [
+        {
+            key: 'feed',
+            score: G.hunger < 42 ? 120 + (42 - G.hunger) : 20,
+            urgency: G.hunger < 24 ? 'urgent' : 'normal'
+        },
+        {
+            key: 'pet',
+            score: G.happy < 45 ? 110 + (45 - G.happy) : 24,
+            urgency: G.happy < 28 ? 'urgent' : 'normal'
+        },
+        {
+            key: 'play',
+            score: (G.hunger >= 42 && G.happy >= 45 ? 90 : 28) + Math.max(0, 42 - expInLv) * 0.6,
+            urgency: expInLv < 20 && G.hunger >= 42 ? 'urgent' : 'normal'
+        }
+    ];
+    const available = candidates.filter(candidate => {
+        const def = ACTION_CARD_DEFS.find(item => item.key === candidate.key);
+        const btn = def ? document.getElementById(def.buttonId) : null;
+        return !btn || !btn.disabled;
+    });
+    const pool = available.length ? available : candidates;
+    pool.sort((a, b) => b.score - a.score);
+    return pool[0];
+}
+
+function updateActionCards(){
+    const recommendation = getRecommendedAction();
+    const guidance = document.getElementById('actionGuidance');
+    const guidanceKicker = document.getElementById('actionGuidanceKicker');
+    const guidanceText = document.getElementById('actionGuidanceText');
+    const guidanceSub = document.getElementById('actionGuidanceSub');
+    if(guidance){
+        guidance.dataset.recommend = recommendation.key;
+        if(guidanceKicker) guidanceKicker.textContent = currentLang === 'ja' ? 'WALRUS SIGNAL' : 'WALRUS SIGNAL';
+        if(guidanceText){
+            guidanceText.textContent =
+                recommendation.key === 'feed' ? (currentLang === 'ja' ? 'いまはごはんをあげたい気分。' : 'It really wants food right now.') :
+                recommendation.key === 'pet' ? (currentLang === 'ja' ? 'いまはやさしく触れてほしそう。' : 'It wants gentle attention right now.') :
+                (currentLang === 'ja' ? 'いまは一緒に遊ぶと喜びそう。' : 'It looks ready to play with you.');
+        }
+        if(guidanceSub){
+            guidanceSub.textContent =
+                recommendation.key === 'feed' ? (currentLang === 'ja' ? '先に満腹にしてあげると落ち着く。' : 'A quick meal will settle it down.') :
+                recommendation.key === 'pet' ? (currentLang === 'ja' ? 'まずは安心させてあげよう。' : 'A calm touch should help first.') :
+                (currentLang === 'ja' ? '元気なうちに経験値も伸ばそう。' : 'Make the most of that energy for EXP.');
+        }
+    }
+    ACTION_CARD_DEFS.forEach(def => {
+        const copy = getActionCardCopy(def);
+        const titleEl = document.getElementById(def.titleId);
+        const verbEl = document.getElementById(def.verbId);
+        const hintEl = document.getElementById(def.hintId);
+        const btn = document.getElementById(def.buttonId);
+        if(!btn) return;
+
+        const isFeedNeed = def.key === 'feed' && G.hunger < def.lowThreshold;
+        const isPetNeed = def.key === 'pet' && G.happy < def.lowThreshold;
+        const isPlayNeed = def.key === 'play' && G.hunger >= 42 && G.happy >= 45;
+        const title =
+            def.key === 'feed' ? (isFeedNeed ? copy.needyTitle : copy.defaultTitle) :
+            def.key === 'pet' ? (isPetNeed ? copy.needyTitle : copy.defaultTitle) :
+            (isPlayNeed ? copy.needyTitle : copy.defaultTitle);
+        if(titleEl) titleEl.textContent = title;
+        if(verbEl) verbEl.textContent = copy.verb;
+        if(hintEl) hintEl.textContent = recommendation.key === def.key ? copy.recommendedHint : copy.defaultHint;
+
+        const isRecommended = recommendation.key === def.key;
+        btn.classList.toggle('is-recommended', isRecommended);
+        btn.classList.toggle('is-muted', !isRecommended);
+        btn.classList.toggle('is-urgent', isRecommended && recommendation.urgency === 'urgent');
+        btn.dataset.recommendation = isRecommended ? 'true' : 'false';
+    });
+}
+
 function updateUI(){
     const mood = getMood();
     const expression = getExpressionState(mood);
@@ -459,6 +625,7 @@ function updateUI(){
     updateTamaDevice();
     updateDiaryBtnSub();
     updateExchangeBtnSub();
+    updateActionCards();
     refreshMyShareCode();
     renderWalrusStorageStatus();
     updateWalkHero();
@@ -644,6 +811,61 @@ function spawnActionFx(type){
     }
 }
 
+function spawnActionCourier(type, emoji, endX, endY){
+    const btn = document.getElementById(type === 'feed' ? 'btnFeed' : type === 'pet' ? 'btnPet' : 'btnPlay');
+    if(!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const startX = rect.left + rect.width / 2;
+    const startY = rect.top + rect.height / 2;
+    const el = document.createElement('div');
+    el.className = `action-courier ${type}`;
+    el.textContent = emoji;
+    el.style.left = `${startX}px`;
+    el.style.top = `${startY}px`;
+    el.style.setProperty('--dx', `${endX - startX}px`);
+    el.style.setProperty('--dy', `${endY - startY}px`);
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+}
+
+function spawnWalrusReactionBursts(type){
+    const center = getStageCenter();
+    const palette = type === 'feed'
+        ? [{ text: '✦', cls: 'sparkle' }, { text: '🍣', cls: 'sparkle' }, { text: '✦', cls: 'sparkle' }]
+        : type === 'pet'
+            ? [{ text: '❤', cls: 'heart' }, { text: '✦', cls: 'sparkle' }, { text: '❤', cls: 'heart' }]
+            : [{ text: '⚽', cls: 'ball' }, { text: '✦', cls: 'sparkle' }, { text: '✦', cls: 'ball' }];
+    palette.forEach((item, index) => {
+        const el = document.createElement('div');
+        el.className = `walrus-react-burst ${item.cls}`;
+        el.textContent = item.text;
+        el.style.left = `${center.x + (index - 1) * 18}px`;
+        el.style.top = `${center.y - 14 + (Math.random() * 10 - 5)}px`;
+        el.style.setProperty('--dx', `${(index - 1) * 22}px`);
+        el.style.setProperty('--dy', `${-34 - Math.random() * 20}px`);
+        el.style.setProperty('--dur', `${0.58 + Math.random() * 0.24}s`);
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 900);
+    });
+}
+
+function triggerWalrusActionResponse(type){
+    const center = getStageCenter();
+    const mouthX = center.x + 4;
+    const mouthY = center.y + 22;
+    if(type === 'feed'){
+        spawnActionCourier('feed', '🍣', mouthX, mouthY);
+        setTimeout(() => spawnWalrusReactionBursts('feed'), 180);
+        return;
+    }
+    if(type === 'pet'){
+        setTimeout(() => spawnWalrusReactionBursts('pet'), 60);
+        return;
+    }
+    spawnActionCourier('play', '⚽', center.x + 8, center.y + 8);
+    setTimeout(() => spawnWalrusReactionBursts('play'), 180);
+}
+
 function createActionFx(kind, x, y, cfg, vars = {}, text = ''){
     const el = document.createElement('div');
     el.className = `action-fx action-fx-${kind}`;
@@ -776,6 +998,11 @@ function getStageCenter(){
     return {x:r.left+r.width/2, y:r.top+r.height/2};
 }
 
+function isMiniGameOpen(){
+    const miniScreen = document.getElementById('miniGameScreen');
+    return !!(miniScreen && !miniScreen.classList.contains('hidden'));
+}
+
 /* ===== COOLDOWN ===== */
 function startCD(btnId, fillId, lblId, ms){
     const btn  = document.getElementById(btnId);
@@ -789,6 +1016,7 @@ function startCD(btnId, fillId, lblId, ms){
             fill.style.width='0%';
             if(lbl) lbl.textContent='';
             btn.disabled=false;
+            if(typeof updateActionCards === 'function') updateActionCards();
             return;
         }
         fill.style.width=(remain/ms*100)+'%';
@@ -1012,8 +1240,9 @@ function doFeed(){
     recordBehaviorAction('feedCount');
     pulseActionButtons('#btnFeed', '.tama-btn-a');
     sfxFeed(); haptic(15);
+    triggerWalrusActionResponse('feed');
     G.hunger=Math.min(100,G.hunger+28); G.exp+=15;
-    setMsg(currentLang === 'ja' ? 'おいしい！ 満腹になった 🐟' : 'Yum! Nice and full 🐟');
+    setMsg(getActionCardCopy(ACTION_CARD_DEFS[0]).success);
     animPet('action-feed');
     const c=getStageCenter(); spawnParticles(['💚','⭐','💚','🐟'],c.x,c.y);
     spawnActionFx('feed');
@@ -1025,8 +1254,9 @@ function doPet(){
     recordBehaviorAction('petCount');
     pulseActionButtons('#btnPet', '.tama-btn-b');
     sfxPet(); haptic(12);
+    triggerWalrusActionResponse('pet');
     G.happy=Math.min(100,G.happy+22); G.exp+=10;
-    setMsg(currentLang === 'ja' ? 'クゥゥ〜 気持ちいい〜 💙' : 'Kuuu... that feels good 💙');
+    setMsg(getActionCardCopy(ACTION_CARD_DEFS[1]).success);
     animPet('action-pet');
     const c=getStageCenter(); spawnParticles(['💙','💙','💙'],c.x,c.y);
     spawnActionFx('pet');
@@ -1038,8 +1268,9 @@ function doPlay(){
     recordBehaviorAction('playCount');
     pulseActionButtons('#btnPlay', '.tama-btn-c');
     sfxPlay(); haptic(20);
+    triggerWalrusActionResponse('play');
     G.happy=Math.min(100,G.happy+18); G.hunger=Math.max(0,G.hunger-10); G.exp+=20;
-    setMsg(currentLang === 'ja' ? 'わーい！ 一緒に遊んだよ ⚡' : 'Yay! We played together ⚡');
+    setMsg(getActionCardCopy(ACTION_CARD_DEFS[2]).success);
     animPet('action-play');
     const c=getStageCenter(); spawnParticles(['⭐','💫','⭐','💫'],c.x,c.y);
     spawnActionFx('play');
@@ -1149,7 +1380,7 @@ function isSakuraEventActive(date = new Date()){
 }
 
 function triggerGoldenFish() {
-    if (!document.getElementById('miniGameScreen').classList.contains('hidden')) return;
+    if (isMiniGameOpen()) return;
     const wrap = document.querySelector('.pet-stage-wrap');
     const fish = document.createElement('div');
     fish.className = 'golden-fish';
@@ -1182,7 +1413,7 @@ function triggerGoldenFish() {
 
 function triggerSakuraPetal() {
     if (!isSakuraEventActive() || G.sakuraPink) return;
-    if (!document.getElementById('miniGameScreen').classList.contains('hidden')) return;
+    if (isMiniGameOpen()) return;
     if (document.getElementById('mainScreen').classList.contains('hidden')) return;
     const petal = document.createElement('div');
     petal.className = 'sakura-petal';
@@ -1244,8 +1475,13 @@ const MINI_PERFECT_SCORE = 650;
 const MINI_PERFECT_EXP_MULTIPLIER = 1.5;
 
 function startMiniGame(){
+    const miniScreen = document.getElementById('miniGameScreen');
+    if(!miniScreen){
+        setMsg(currentLang === 'ja' ? '🫧 バブルポップはこのバージョンでは終了しました' : '🫧 Bubble Pop has been retired in this build', true);
+        return;
+    }
     document.getElementById('mainScreen').classList.add('hidden');
-    document.getElementById('miniGameScreen').classList.remove('hidden');
+    miniScreen.classList.remove('hidden');
     document.getElementById('miniResult').style.display='none';
 
     const canvas=document.getElementById('gameCanvas');

@@ -2645,6 +2645,242 @@ function localeCode(){
     return currentLang === 'ja' ? 'ja-JP' : 'en-US';
 }
 
+const WALMATE_USER_ID_KEY = 'walmate_user_id';
+const WALMATE_FRIENDS_KEY = 'walmate_friends';
+let friendQrCodeInstance = null;
+
+function generateWalMateUserId(){
+    if(window.crypto?.randomUUID){
+        return `wm_${window.crypto.randomUUID().replace(/-/g, '')}`;
+    }
+    return `wm_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getWalMateUserId(){
+    try {
+        const userId = localStorage.getItem(WALMATE_USER_ID_KEY) || '';
+        return userId.trim();
+    } catch(e){
+        return '';
+    }
+}
+
+function ensureWalMateUserId(){
+    const existing = getWalMateUserId();
+    if(existing) return existing;
+    const nextId = generateWalMateUserId();
+    try { localStorage.setItem(WALMATE_USER_ID_KEY, nextId); } catch(e){}
+    return nextId;
+}
+
+function normalizeWalMateFriendEntry(entry){
+    if(!entry || typeof entry !== 'object') return null;
+    const userId = typeof entry.userId === 'string' ? entry.userId.trim() : '';
+    if(!userId) return null;
+    const addedAt = typeof entry.addedAt === 'string' && entry.addedAt.trim()
+        ? entry.addedAt.trim()
+        : new Date().toISOString();
+    const normalized = { userId, addedAt };
+    if(typeof entry.profileName === 'string' && entry.profileName.trim()) normalized.profileName = entry.profileName.trim().slice(0, 80);
+    if(typeof entry.walrusName === 'string' && entry.walrusName.trim()) normalized.walrusName = entry.walrusName.trim().slice(0, 80);
+    if(Number.isFinite(Number(entry.level))) normalized.level = Math.max(1, Math.min(999, Number(entry.level) || 1));
+    return normalized;
+}
+
+function getWalMateFriends(){
+    try {
+        const raw = JSON.parse(localStorage.getItem(WALMATE_FRIENDS_KEY) || '[]');
+        if(!Array.isArray(raw)) return [];
+        return raw.map(normalizeWalMateFriendEntry).filter(Boolean);
+    } catch(e){
+        return [];
+    }
+}
+
+function saveWalMateFriends(friends){
+    try {
+        localStorage.setItem(
+            WALMATE_FRIENDS_KEY,
+            JSON.stringify((Array.isArray(friends) ? friends : []).map(normalizeWalMateFriendEntry).filter(Boolean))
+        );
+    } catch(e){}
+}
+
+function getWalMateFriendProfile(){
+    return {
+        userId: ensureWalMateUserId(),
+        walrusName: (G?.petName || '').trim() || 'Walrus',
+        level: Math.max(1, Number(G?.lv) || 1)
+    };
+}
+
+function addWalMateFriend(userId, profile = {}){
+    const friendUserId = typeof userId === 'string' ? userId.trim() : '';
+    if(!friendUserId) return { ok:false, reason:'invalid' };
+    const myUserId = ensureWalMateUserId();
+    if(friendUserId === myUserId) return { ok:false, reason:'self' };
+    const friends = getWalMateFriends();
+    if(friends.some(friend => friend.userId === friendUserId)) return { ok:false, reason:'duplicate' };
+    const entry = normalizeWalMateFriendEntry({
+        userId: friendUserId,
+        addedAt: new Date().toISOString(),
+        profileName: profile.profileName,
+        walrusName: profile.walrusName,
+        level: profile.level
+    });
+    friends.unshift(entry);
+    saveWalMateFriends(friends);
+    return { ok:true, reason:'added', friend:entry };
+}
+
+function getFriendInviteUrl(userId = ensureWalMateUserId()){
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('friend', userId);
+    return url.toString();
+}
+
+function getFriendQrCopy(){
+    return currentLang === 'ja'
+        ? {
+            openButton: '📷 友達QR',
+            title: 'FRIEND QR',
+            subtitle: 'このQRを読み込むと友達になれるよ',
+            close: '閉じる',
+            myId: 'YOUR ID',
+            friendCount: 'FRIENDS',
+            qrError: 'QRの表示に失敗しました',
+            addedToast: '✨ FRIEND ADDED ✨',
+            duplicateToast: '👯 すでに友達だよ',
+            selfToast: '🪞 自分自身は追加できないよ',
+            invalidToast: '⚠ 友達QRを読み取れなかったよ',
+            addedMsg: '🦭 新しい友達ができたよ！',
+            duplicateMsg: '🦭 もう友達リストにいるよ',
+            selfMsg: 'そのQRはあなた自身のものだよ'
+        }
+        : {
+            openButton: '📷 Friend QR',
+            title: 'FRIEND QR',
+            subtitle: 'Scan this QR to become friends',
+            close: 'Close',
+            myId: 'YOUR ID',
+            friendCount: 'FRIENDS',
+            qrError: 'Could not render the QR code',
+            addedToast: '✨ FRIEND ADDED ✨',
+            duplicateToast: '👯 Already friends',
+            selfToast: '🪞 That is your own QR',
+            invalidToast: '⚠ Could not read that friend QR',
+            addedMsg: '🦭 You made a new friend!',
+            duplicateMsg: '🦭 This friend is already saved',
+            selfMsg: 'That QR belongs to you'
+        };
+}
+
+function formatFriendId(userId){
+    const value = typeof userId === 'string' ? userId.trim() : '';
+    if(!value) return '--';
+    return value.length > 22 ? `${value.slice(0, 10)}…${value.slice(-6)}` : value;
+}
+
+function refreshFriendQrMeta(){
+    const meta = document.getElementById('friendQrMeta');
+    if(!meta) return;
+    const copy = getFriendQrCopy();
+    const profile = getWalMateFriendProfile();
+    meta.innerHTML = `<span><strong>${copy.myId}</strong> ${escapeHtml(formatFriendId(profile.userId))}</span><span><strong>${copy.friendCount}</strong> ${getWalMateFriends().length}</span>`;
+}
+
+function updateFriendQrModalCopy(){
+    const copy = getFriendQrCopy();
+    const title = document.getElementById('friendQrModalTitle');
+    const subtitle = document.getElementById('friendQrModalCopy');
+    const closeBtn = document.getElementById('friendQrCloseBtn');
+    if(title) title.textContent = copy.title;
+    if(subtitle) subtitle.textContent = copy.subtitle;
+    if(closeBtn) closeBtn.textContent = copy.close;
+    refreshFriendQrMeta();
+}
+
+function renderFriendQrCode(){
+    const mount = document.getElementById('friendQrCanvas');
+    const urlLabel = document.getElementById('friendQrUrl');
+    if(!mount) return;
+    const copy = getFriendQrCopy();
+    const inviteUrl = getFriendInviteUrl();
+    const size = Math.max(196, Math.min(248, window.innerWidth - 120));
+    mount.innerHTML = '';
+    if(urlLabel) urlLabel.textContent = inviteUrl;
+    refreshFriendQrMeta();
+    if(!window.QRCode){
+        mount.innerHTML = `<div class="friend-qr-fallback">${escapeHtml(copy.qrError)}</div>`;
+        return;
+    }
+    friendQrCodeInstance = new QRCode(mount, {
+        text: inviteUrl,
+        width: size,
+        height: size,
+        colorDark: '#081c30',
+        colorLight: '#ffffff',
+        correctLevel: window.QRCode.CorrectLevel.H
+    });
+    const img = mount.querySelector('img');
+    const canvas = mount.querySelector('canvas');
+    if(img){
+        img.alt = 'WalMate friend QR';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+    }
+    if(canvas){
+        canvas.setAttribute('aria-label', 'WalMate friend QR');
+        canvas.style.display = 'block';
+        canvas.style.margin = '0 auto';
+    }
+}
+
+function openFriendQrModal(){
+    ensureWalMateUserId();
+    const modal = document.getElementById('friendQrModal');
+    if(!modal) return;
+    modal.style.display = 'flex';
+    updateFriendQrModalCopy();
+    renderFriendQrCode();
+}
+
+function closeFriendQrModal(){
+    const modal = document.getElementById('friendQrModal');
+    if(!modal) return;
+    modal.style.display = 'none';
+}
+
+function removeFriendParamFromUrl(){
+    const url = new URL(window.location.href);
+    if(!url.searchParams.has('friend')) return;
+    url.searchParams.delete('friend');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function handlePendingFriendInviteFromUrl(){
+    const url = new URL(window.location.href);
+    const friendUserId = (url.searchParams.get('friend') || '').trim();
+    if(!friendUserId) return null;
+    const result = addWalMateFriend(friendUserId);
+    removeFriendParamFromUrl();
+    const copy = getFriendQrCopy();
+    if(result?.ok){
+        showToast(copy.addedToast);
+        if(typeof setMsg === 'function') setMsg(copy.addedMsg);
+    } else if(result?.reason === 'duplicate'){
+        showToast(copy.duplicateToast, true);
+        if(typeof setMsg === 'function') setMsg(copy.duplicateMsg, true);
+    } else if(result?.reason === 'self'){
+        showToast(copy.selfToast, true);
+        if(typeof setMsg === 'function') setMsg(copy.selfMsg, true);
+    } else {
+        showToast(copy.invalidToast, true);
+    }
+    refreshFriendQrMeta();
+    return result;
+}
+
 function getProfileEditorCopy(){
     return currentLang === 'ja'
         ? {
@@ -3094,9 +3330,9 @@ function applyLanguage(){
     if(document.getElementById('soundLabTitle')) document.getElementById('soundLabTitle').textContent = t('sound_lab_title');
     if(document.getElementById('soundDietLabel')) document.getElementById('soundDietLabel').textContent = t('sound_memory_title');
     if(document.getElementById('soundTrackLabel')) document.getElementById('soundTrackLabel').textContent = t('sound_track_title');
-    if(document.getElementById('btnFeedLabel')) document.getElementById('btnFeedLabel').textContent = t('feed');
-    if(document.getElementById('btnPetLabel')) document.getElementById('btnPetLabel').textContent = t('pet');
-    if(document.getElementById('btnPlayLabel')) document.getElementById('btnPlayLabel').textContent = t('play');
+    if(document.getElementById('btnFeedVerb')) document.getElementById('btnFeedVerb').textContent = t('feed');
+    if(document.getElementById('btnPetVerb')) document.getElementById('btnPetVerb').textContent = t('pet');
+    if(document.getElementById('btnPlayVerb')) document.getElementById('btnPlayVerb').textContent = t('play');
     setButtonHTML('btnMiniGame', `<span class="act-icon">🫧</span>${t('bubble_pop')}`);
     setButtonHTML('btnSave', `<span class="act-icon">🌐</span>${t('walrus_save')}`);
     setButtonHTML('btnLoad', `<span class="act-icon">📥</span>${t('walrus_load')}`);
@@ -3106,6 +3342,8 @@ function applyLanguage(){
     if(statNames[0]) statNames[0].textContent = t('stat_hunger');
     if(statNames[1]) statNames[1].textContent = t('stat_happy');
     if(statNames[2]) statNames[2].textContent = t('stat_exp');
+    if(typeof updateActionCards === 'function') updateActionCards();
+    updateFriendQrModalCopy();
 
     const sec1 = document.getElementById('sec1');
     if(sec1){
@@ -3384,9 +3622,15 @@ function renderSec1HeaderAction(){
         row.appendChild(actions);
     }
     const copy = getProfileEditorCopy();
-    actions.innerHTML = hasProfileDeckSetup()
-        ? `<button class="intro-btn intro-btn-compact" type="button" onclick="openProfileDeckModal()">${copy.editProfile}</button><button class="intro-btn alt intro-btn-compact" type="button" onclick="openWalrusLogModal()">🪵 Walrus Log</button>`
-        : '';
+    const friendCopy = getFriendQrCopy();
+    const buttons = [
+        `<button class="intro-btn alt intro-btn-compact" type="button" onclick="openFriendQrModal()">${friendCopy.openButton}</button>`
+    ];
+    if(hasProfileDeckSetup()){
+        buttons.unshift(`<button class="intro-btn intro-btn-compact" type="button" onclick="openProfileDeckModal()">${copy.editProfile}</button>`);
+        buttons.push(`<button class="intro-btn alt intro-btn-compact" type="button" onclick="openWalrusLogModal()">🪵 Walrus Log</button>`);
+    }
+    actions.innerHTML = buttons.join('');
 }
 
 function openProfileDeckModal(){
