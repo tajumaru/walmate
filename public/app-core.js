@@ -2151,7 +2151,7 @@ function showToast(msg, error=false){
 }
 
 // ===== I18N =====
-const APP_VERSION = '2026-05-04-idle-mystery-event';
+const APP_VERSION = '2026-05-05-friend-qr-visit-flow';
 const APP_VERSION_STORAGE_KEY = 'walrus_app_version';
 const LANG_STORAGE_KEY = 'walrus_lang';
 const THEME_STORAGE_KEY = 'walrus_theme';
@@ -2174,23 +2174,23 @@ const I18N_LEGACY = {
         hatch_step_2: 'ヒビを待つ',
         hatch_step_3: '連打で孵化',
         newborn_guide_title: "TODAY'S SIGNAL",
-        newborn_guide_copy: '今日は <strong>散歩だけ</strong> じゃなくていい。まずは <strong>タップ</strong> したり、<strong>ごはん</strong> や <strong>あそぶ</strong> で様子を見よう。',
+        newborn_guide_copy: '今日は <strong>散歩だけ</strong> じゃなくていい。まずは <strong>タップ</strong>、<strong>OFFER</strong>、<strong>SYNC</strong>、<strong>DRIFT</strong> で信号を見てみよう。',
         main_title: 'WalMate',
         main_sub: '散歩して音を集めて、Walrusを進化させよう',
         sound_lab_title: '🎵 サウンドキッチン',
         sound_memory_title: '④ 音の記憶',
         sound_track_title: '📦 音のコレクション',
-        feed: '餌やり',
-        pet: 'なでなで',
-        play: '遊ぶ',
+        feed: 'OFFER',
+        pet: 'SYNC',
+        play: 'DRIFT',
         bubble_pop: 'バブルポップ',
         walrus_save: 'Walrus保存',
         walrus_load: 'Walrus復元',
         walrus_exchange: 'Walrus交流',
         walrus_diary: 'Walrus日記',
-        stat_hunger: '🐟 満腹',
-        stat_happy: '💗 ハッピー',
-        stat_exp: '⭐ 経験値',
+        stat_hunger: '◇ ENERGY',
+        stat_happy: '✦ BOND',
+        stat_exp: '◎ MEMORY',
         unlock2_tag: 'Lv.2 解禁',
         unlock2_title: 'あなたの自己紹介',
         unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">ここに、あなたの自己紹介をWalrusが紹介します。</div></div></div></div></div><div id=\"profileDeckModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeProfileDeckModal()\"><div class=\"profile-deck-modal-inner\"><div class=\"diary-modal-header\"><span id=\"profileDeckModalTitle\">プロフィールを編集</span><button class=\"diary-close-btn\" onclick=\"closeProfileDeckModal()\">✕</button></div><div id=\"profileDeckModalEditor\"></div></div></div><div id=\"walrusLogModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeWalrusLogModal()\"><div class=\"profile-deck-modal-inner walrus-log-modal-inner\"><div class=\"diary-modal-header\"><span id=\"walrusLogModalTitle\">Walrus Log</span><button class=\"diary-close-btn\" onclick=\"closeWalrusLogModal()\">✕</button></div><div id=\"walrusLogList\" class=\"walrus-log-list\"></div></div></div></div>",
@@ -2335,9 +2335,9 @@ const I18N_LEGACY = {
         portfolio_saved: 'ポートフォリオカードをWalrusで配布できるようにしたよ！',
         portfolio_copied: 'Portfolio BlobIdをコピーしたよ！',
         portfolio_blob_missing: '先に配布Blob化してね',
-        action_feed_title: '餌やり',
-        action_pet_title: 'なでなで',
-        action_play_title: '遊ぶ'
+        action_feed_title: 'OFFER / おそなえ',
+        action_pet_title: 'SYNC / シンク',
+        action_play_title: 'DRIFT / 漂流'
     },
     en: {
         cache_refresh: 'Refresh',
@@ -2351,23 +2351,23 @@ const I18N_LEGACY = {
         hatch_step_2: 'Wait for cracks',
         hatch_step_3: 'Tap to hatch',
         newborn_guide_title: "TODAY'S SIGNAL",
-        newborn_guide_copy: 'Today does not have to begin with a <strong>walk</strong>. First try a <strong>tap</strong>, <strong>feeding</strong>, or <strong>play</strong> and see what mood appears.',
+        newborn_guide_copy: 'Today does not have to begin with a <strong>walk</strong>. First try a <strong>tap</strong>, <strong>OFFER</strong>, <strong>SYNC</strong>, or <strong>DRIFT</strong> and see what signal appears.',
         main_title: "WalMate",
         main_sub: 'Walk, collect sounds, and evolve your Walrus',
         sound_lab_title: '🎵 Sound Kitchen',
         sound_memory_title: '④ Sound Memory',
         sound_track_title: '📦 Sound Collection',
-        feed: 'Feed',
-        pet: 'Pet',
-        play: 'Play',
+        feed: 'OFFER',
+        pet: 'SYNC',
+        play: 'DRIFT',
         bubble_pop: 'Bubble Pop',
         walrus_save: 'Save to Walrus',
         walrus_load: 'Load from Walrus',
         walrus_exchange: 'Walrus Exchange',
         walrus_diary: 'Walrus Diary',
-        stat_hunger: '🐟 Hunger',
-        stat_happy: '💗 Happy',
-        stat_exp: '⭐ EXP',
+        stat_hunger: '◇ ENERGY',
+        stat_happy: '✦ BOND',
+        stat_exp: '◎ MEMORY',
         unlock2_tag: 'Lv.2 Unlock',
         unlock2_title: 'Your Intro',
         unlock2_body1: "<div class=\"intro-builder\"><div class=\"intro-card walrus-about\"><div class=\"walrus-talk\"><div class=\"walrus-avatar\" id=\"aboutWalrusAvatar\" aria-hidden=\"true\"></div><div class=\"walrus-speech\" id=\"aboutWalrusSpeech\"><span class=\"walrus-speech-kicker\">ABOUT FROM WALRUS</span><div class=\"intro-preview-copy\" id=\"introPreviewCopy\">Your Walrus will introduce you here.</div></div></div></div></div><div id=\"profileDeckModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeProfileDeckModal()\"><div class=\"profile-deck-modal-inner\"><div class=\"diary-modal-header\"><span id=\"profileDeckModalTitle\">Edit profile</span><button class=\"diary-close-btn\" onclick=\"closeProfileDeckModal()\">✕</button></div><div id=\"profileDeckModalEditor\"></div></div></div><div id=\"walrusLogModal\" class=\"profile-deck-modal\" onclick=\"if(event.target===this) closeWalrusLogModal()\"><div class=\"profile-deck-modal-inner walrus-log-modal-inner\"><div class=\"diary-modal-header\"><span id=\"walrusLogModalTitle\">Walrus Log</span><button class=\"diary-close-btn\" onclick=\"closeWalrusLogModal()\">✕</button></div><div id=\"walrusLogList\" class=\"walrus-log-list\"></div></div></div></div>",
@@ -2512,9 +2512,9 @@ const I18N_LEGACY = {
         portfolio_saved: 'Portfolio card is now distributable via Walrus!',
         portfolio_copied: 'Portfolio BlobId copied!',
         portfolio_blob_missing: 'Publish this card first',
-        action_feed_title: 'Feed',
-        action_pet_title: 'Pet',
-        action_play_title: 'Play'
+        action_feed_title: 'OFFER',
+        action_pet_title: 'SYNC',
+        action_play_title: 'DRIFT'
     }
 };
 
@@ -2647,6 +2647,8 @@ function localeCode(){
 
 const WALMATE_USER_ID_KEY = 'walmate_user_id';
 const WALMATE_FRIENDS_KEY = 'walmate_friends';
+const WALMATE_FRIEND_SHARE_KEY = 'walmate_friend_share';
+const WALMATE_FRIEND_RESOLVE_MAP_KEY = 'walmate_friend_resolve_map';
 let friendQrCodeInstance = null;
 
 function generateWalMateUserId(){
@@ -2733,22 +2735,127 @@ function addWalMateFriend(userId, profile = {}){
     return { ok:true, reason:'added', friend:entry };
 }
 
-function getFriendInviteUrl(userId = ensureWalMateUserId()){
+function getFriendResolveMap(){
+    try {
+        const raw = JSON.parse(localStorage.getItem(WALMATE_FRIEND_RESOLVE_MAP_KEY) || '{}');
+        return raw && typeof raw === 'object' ? raw : {};
+    } catch(e){
+        return {};
+    }
+}
+
+function saveFriendResolveMap(map){
+    try {
+        localStorage.setItem(WALMATE_FRIEND_RESOLVE_MAP_KEY, JSON.stringify(map && typeof map === 'object' ? map : {}));
+    } catch(e){}
+}
+
+function base64UrlEncode(text){
+    try {
+        return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    } catch(e){
+        return '';
+    }
+}
+
+function base64UrlDecode(text){
+    try {
+        const normalized = String(text || '').replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+        return atob(padded);
+    } catch(e){
+        return '';
+    }
+}
+
+function generateFriendId(blobId){
+    const cleanBlobId = typeof blobId === 'string' ? blobId.trim() : '';
+    if(!cleanBlobId) return '';
+    const payload = {
+        v: 1,
+        b: cleanBlobId,
+        t: Date.now(),
+        n: Math.random().toString(36).slice(2, 10)
+    };
+    const encoded = base64UrlEncode(JSON.stringify(payload));
+    return encoded ? `wf1_${encoded}` : '';
+}
+
+function decodeFriendIdPayload(friendId){
+    const raw = typeof friendId === 'string' ? friendId.trim() : '';
+    if(!raw.startsWith('wf1_')) return null;
+    const decoded = base64UrlDecode(raw.slice(4));
+    if(!decoded) return null;
+    try {
+        const payload = JSON.parse(decoded);
+        const blobId = typeof payload?.b === 'string' ? payload.b.trim() : '';
+        if(!blobId) return null;
+        return payload;
+    } catch(e){
+        return null;
+    }
+}
+
+function getStoredFriendShare(){
+    try {
+        const raw = JSON.parse(localStorage.getItem(WALMATE_FRIEND_SHARE_KEY) || 'null');
+        return raw && typeof raw === 'object' ? raw : null;
+    } catch(e){
+        return null;
+    }
+}
+
+function saveStoredFriendShare(friendShare){
+    try {
+        localStorage.setItem(WALMATE_FRIEND_SHARE_KEY, JSON.stringify(friendShare));
+    } catch(e){}
+}
+
+function getOrCreateFriendIdForCurrentWalrus(){
+    const blobId = (localStorage.getItem('walrus_blobid') || '').trim();
+    if(!blobId) return '';
+    const stored = getStoredFriendShare();
+    if(stored?.friendId && stored?.blobId === blobId) return stored.friendId;
+    const friendId = generateFriendId(blobId);
+    if(!friendId) return '';
+    saveStoredFriendShare({ friendId, blobId, updatedAt: Date.now() });
+    const map = getFriendResolveMap();
+    map[friendId] = { blobId, updatedAt: Date.now() };
+    saveFriendResolveMap(map);
+    return friendId;
+}
+
+function resolveFriendId(friendId){
+    const cleanFriendId = typeof friendId === 'string' ? friendId.trim() : '';
+    if(!cleanFriendId) return '';
+    const map = getFriendResolveMap();
+    const mappedBlobId = typeof map?.[cleanFriendId]?.blobId === 'string' ? map[cleanFriendId].blobId.trim() : '';
+    if(mappedBlobId) return mappedBlobId;
+    const payload = decodeFriendIdPayload(cleanFriendId);
+    return typeof payload?.b === 'string' ? payload.b.trim() : '';
+}
+
+function getFriendInviteUrl(friendId = getOrCreateFriendIdForCurrentWalrus()){
     const url = new URL(window.location.origin + window.location.pathname);
-    url.searchParams.set('friend', userId);
+    if(friendId) url.searchParams.set('friendId', friendId);
     return url.toString();
 }
 
 function getFriendQrCopy(){
     return currentLang === 'ja'
         ? {
-            openButton: '📷 友達QR',
+            openButton: '🦭 Friend QR',
             title: 'FRIEND QR',
-            subtitle: 'このQRを読み込むと友達になれるよ',
+            subtitle: 'スキャンすると、そのまま友達Walrusが遊びに来るよ',
             close: '閉じる',
-            myId: 'YOUR ID',
+            copyLink: 'リンクをコピー',
+            myId: 'FRIEND ID',
             friendCount: 'FRIENDS',
             qrError: 'QRの表示に失敗しました',
+            saveFirst: 'Walrus保存後に Friend QR を作成できます',
+            saveFirstDetail: '先にこのWalrusを保存すると、紹介ページ用の招待リンクが作れます。',
+            linkCopied: '📋 招待リンクをコピーしたよ！',
+            linkCopyFailed: 'コピーに失敗しました',
             addedToast: '✨ FRIEND ADDED ✨',
             duplicateToast: '👯 すでに友達だよ',
             selfToast: '🪞 自分自身は追加できないよ',
@@ -2758,13 +2865,18 @@ function getFriendQrCopy(){
             selfMsg: 'そのQRはあなた自身のものだよ'
         }
         : {
-            openButton: '📷 Friend QR',
+            openButton: '🦭 Friend QR',
             title: 'FRIEND QR',
-            subtitle: 'Scan this QR to become friends',
+            subtitle: 'Scan to let your Walrus drift over automatically',
             close: 'Close',
-            myId: 'YOUR ID',
+            copyLink: 'Copy Link',
+            myId: 'FRIEND ID',
             friendCount: 'FRIENDS',
             qrError: 'Could not render the QR code',
+            saveFirst: 'Save this Walrus first to create a Friend QR',
+            saveFirstDetail: 'Once this Walrus is saved, an invite link for your intro page will be ready.',
+            linkCopied: '📋 Invite link copied!',
+            linkCopyFailed: 'Copy failed',
             addedToast: '✨ FRIEND ADDED ✨',
             duplicateToast: '👯 Already friends',
             selfToast: '🪞 That is your own QR',
@@ -2785,8 +2897,8 @@ function refreshFriendQrMeta(){
     const meta = document.getElementById('friendQrMeta');
     if(!meta) return;
     const copy = getFriendQrCopy();
-    const profile = getWalMateFriendProfile();
-    meta.innerHTML = `<span><strong>${copy.myId}</strong> ${escapeHtml(formatFriendId(profile.userId))}</span><span><strong>${copy.friendCount}</strong> ${getWalMateFriends().length}</span>`;
+    const friendId = getOrCreateFriendIdForCurrentWalrus();
+    meta.innerHTML = `<span><strong>${copy.myId}</strong> ${escapeHtml(formatFriendId(friendId || '--'))}</span><span><strong>${copy.friendCount}</strong> ${getWalMateFriends().length}</span>`;
 }
 
 function updateFriendQrModalCopy(){
@@ -2794,22 +2906,31 @@ function updateFriendQrModalCopy(){
     const title = document.getElementById('friendQrModalTitle');
     const subtitle = document.getElementById('friendQrModalCopy');
     const closeBtn = document.getElementById('friendQrCloseBtn');
+    const copyBtn = document.getElementById('friendQrCopyBtn');
     if(title) title.textContent = copy.title;
     if(subtitle) subtitle.textContent = copy.subtitle;
     if(closeBtn) closeBtn.textContent = copy.close;
+    if(copyBtn) copyBtn.textContent = copy.copyLink;
     refreshFriendQrMeta();
 }
 
 function renderFriendQrCode(){
     const mount = document.getElementById('friendQrCanvas');
     const urlLabel = document.getElementById('friendQrUrl');
+    const copyBtn = document.getElementById('friendQrCopyBtn');
     if(!mount) return;
     const copy = getFriendQrCopy();
-    const inviteUrl = getFriendInviteUrl();
+    const friendId = getOrCreateFriendIdForCurrentWalrus();
+    const inviteUrl = friendId ? getFriendInviteUrl(friendId) : '';
     const size = Math.max(196, Math.min(248, window.innerWidth - 120));
     mount.innerHTML = '';
-    if(urlLabel) urlLabel.textContent = inviteUrl;
+    if(urlLabel) urlLabel.textContent = inviteUrl || copy.saveFirst;
+    if(copyBtn) copyBtn.disabled = !inviteUrl;
     refreshFriendQrMeta();
+    if(!inviteUrl){
+        mount.innerHTML = `<div class="friend-qr-fallback"><strong>${escapeHtml(copy.saveFirst)}</strong><br>${escapeHtml(copy.saveFirstDetail)}</div>`;
+        return;
+    }
     if(!window.QRCode){
         mount.innerHTML = `<div class="friend-qr-fallback">${escapeHtml(copy.qrError)}</div>`;
         return;
@@ -2851,17 +2972,48 @@ function closeFriendQrModal(){
     modal.style.display = 'none';
 }
 
+async function copyFriendInviteUrl(){
+    const copy = getFriendQrCopy();
+    const inviteUrl = getFriendInviteUrl();
+    if(!inviteUrl || !inviteUrl.includes('friendId=')){
+        showToast(copy.saveFirst, true);
+        return;
+    }
+    const ok = await copyText(inviteUrl);
+    showToast(ok ? copy.linkCopied : copy.linkCopyFailed, !ok);
+}
+
 function removeFriendParamFromUrl(){
     const url = new URL(window.location.href);
-    if(!url.searchParams.has('friend')) return;
-    url.searchParams.delete('friend');
+    let changed = false;
+    if(url.searchParams.has('friendId')){
+        url.searchParams.delete('friendId');
+        changed = true;
+    }
+    if(url.searchParams.has('friend')){
+        url.searchParams.delete('friend');
+        changed = true;
+    }
+    if(!changed) return;
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
 }
 
-function handlePendingFriendInviteFromUrl(){
+async function handlePendingFriendInviteFromUrl(){
     const url = new URL(window.location.href);
+    const friendId = (url.searchParams.get('friendId') || '').trim();
+    if(friendId){
+        if(typeof handleIncomingFriendVisit === 'function'){
+            const result = await handleIncomingFriendVisit(friendId);
+            if(result?.ok || result?.reason === 'self') removeFriendParamFromUrl();
+            return result;
+        }
+        return { ok:false, reason:'visit_handler_missing' };
+    }
     const friendUserId = (url.searchParams.get('friend') || '').trim();
-    if(!friendUserId) return null;
+    if(!friendUserId){
+        removeFriendParamFromUrl();
+        return null;
+    }
     const result = addWalMateFriend(friendUserId);
     removeFriendParamFromUrl();
     const copy = getFriendQrCopy();
@@ -3339,9 +3491,9 @@ function applyLanguage(){
     if(document.getElementById('btnExchangeOpenLabel')) document.getElementById('btnExchangeOpenLabel').textContent = t('walrus_exchange');
     if(document.getElementById('btnDiaryLabel')) document.getElementById('btnDiaryLabel').textContent = t('walrus_diary');
     const statNames = document.querySelectorAll('.stat-name');
-    if(statNames[0]) statNames[0].textContent = t('stat_hunger');
-    if(statNames[1]) statNames[1].textContent = t('stat_happy');
-    if(statNames[2]) statNames[2].textContent = t('stat_exp');
+    if(statNames[0]) statNames[0].innerHTML = `◇ ENERGY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? 'エネルギー' : 'Energy'}</span>`;
+    if(statNames[1]) statNames[1].innerHTML = `✦ BOND<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? '共鳴' : 'Bond'}</span>`;
+    if(statNames[2]) statNames[2].innerHTML = `◎ MEMORY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">${currentLang === 'ja' ? '記憶' : 'Memory'}</span>`;
     if(typeof updateActionCards === 'function') updateActionCards();
     updateFriendQrModalCopy();
 

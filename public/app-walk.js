@@ -16,7 +16,7 @@ function applyWalkLanguage() {
         : 'Watch for a moment and its mood starts to surface.';
     setText('walkDesireLabel', isJa ? 'Walrus Signal' : 'Walrus Signal');
     setText('walkRuleLabel', isJa ? 'Walk Key' : 'Walk Key');
-    setText('walkRuleValue', isJa ? '満腹 50%+' : 'Hunger 50%+');
+    setText('walkRuleValue', 'ENERGY 50%+');
     setText('walkLabelDist',  isJa ? '距離' : 'Distance');
     setText('walkLabelTime',  isJa ? '歩行時間' : 'Time');
     setText('walkLabelExp',   isJa ? '獲得EXP' : 'EXP Gained');
@@ -335,8 +335,8 @@ function startWalk() {
     if(G.hunger < WALK_MIN_HUNGER_TO_START) {
         showToast(
             currentLang === 'ja'
-                ? `🐟 満腹${WALK_MIN_HUNGER_TO_START}%以上で散歩できます`
-                : `🐟 You need ${WALK_MIN_HUNGER_TO_START}%+ hunger before it can wander`,
+                ? `◇ ENERGY ${WALK_MIN_HUNGER_TO_START}%以上で散歩できます`
+                : `◇ You need ${WALK_MIN_HUNGER_TO_START}%+ ENERGY before it can wander`,
             true
         );
         setMsg(

@@ -1841,9 +1841,12 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 @keyframes petSleep { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-4px) rotate(2deg)} }
 .pet-stage.bounce { animation: petBounce 0.34s cubic-bezier(0.2,1.5,0.36,1) forwards; }
 .pet-stage.shake  { animation: petShake  0.28s ease-out forwards; }
-.pet-stage.action-feed { animation: petFeedChomp 0.92s cubic-bezier(0.2,1.35,0.28,1) forwards; filter: drop-shadow(0 18px 34px rgba(0,229,176,0.3)) drop-shadow(0 0 22px rgba(245,208,128,0.16)); }
-.pet-stage.action-pet { animation: petCuddleWiggle 0.98s cubic-bezier(0.2,1.45,0.28,1) forwards; filter: drop-shadow(0 18px 34px rgba(255,122,170,0.28)) drop-shadow(0 0 22px rgba(126,200,255,0.16)); }
-.pet-stage.action-play { animation: petPlayFlip 1.05s cubic-bezier(0.18,1.4,0.3,1) forwards; filter: drop-shadow(0 20px 34px rgba(0,200,240,0.32)) drop-shadow(0 0 26px rgba(255,225,80,0.2)); }
+.pet-stage.action-feed,
+.pet-stage.action-offer { animation: petOfferPulse 0.92s cubic-bezier(0.2,1.35,0.28,1) forwards; filter: drop-shadow(0 18px 34px rgba(0,229,176,0.3)) drop-shadow(0 0 22px rgba(245,208,128,0.16)); }
+.pet-stage.action-pet,
+.pet-stage.action-sync { animation: petSyncRipple 0.98s cubic-bezier(0.2,1.45,0.28,1) forwards; filter: drop-shadow(0 18px 34px rgba(164,144,255,0.3)) drop-shadow(0 0 22px rgba(126,200,255,0.18)); }
+.pet-stage.action-play,
+.pet-stage.action-drift { animation: petDriftFloat 1.05s cubic-bezier(0.18,1.4,0.3,1) forwards; filter: drop-shadow(0 20px 34px rgba(0,200,240,0.32)) drop-shadow(0 0 26px rgba(255,225,80,0.2)); }
 .pet-stage.baby-delight {
   z-index: 40;
   animation: babyWalrusZoomHop 1.05s cubic-bezier(0.16,1,0.3,1) forwards;
@@ -1858,20 +1861,20 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 }
 @keyframes petBounce { 0%,100%{transform:scale(1)} 40%{transform:scale(1.22) rotate(-4deg)} 70%{transform:scale(0.92) rotate(3deg)} }
 @keyframes petShake  { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-11deg)} 40%{transform:rotate(11deg)} 60%{transform:rotate(-7deg)} 80%{transform:rotate(7deg)} }
-@keyframes petFeedChomp {
+@keyframes petOfferPulse {
   0%{transform:translateY(0) scale(1) rotate(0)} 18%{transform:translateY(-8px) scale(1.08,0.94) rotate(-4deg)}
   38%{transform:translateY(8px) scale(0.96,1.12) rotate(4deg)} 58%{transform:translateY(-12px) scale(1.18,0.9) rotate(-2deg)}
   78%{transform:translateY(3px) scale(0.98,1.06) rotate(2deg)} 100%{transform:translateY(0) scale(1) rotate(0)}
 }
-@keyframes petCuddleWiggle {
-  0%,100%{transform:translateY(0) scale(1) rotate(0)} 14%{transform:translateY(-8px) scale(1.08) rotate(-8deg)}
-  28%{transform:translateY(2px) scale(1.02,1.08) rotate(8deg)} 44%{transform:translateY(-12px) scale(1.13,0.96) rotate(-6deg)}
-  62%{transform:translateY(3px) scale(0.98,1.08) rotate(6deg)} 80%{transform:translateY(-4px) scale(1.05) rotate(-3deg)}
+@keyframes petSyncRipple {
+  0%,100%{transform:translateY(0) scale(1) rotate(0)} 14%{transform:translateY(-10px) scale(1.06) rotate(-3deg)}
+  28%{transform:translateY(0) scale(1.1,0.96) rotate(3deg)} 44%{transform:translateY(-14px) scale(1.12,1.02) rotate(-2deg)}
+  62%{transform:translateY(2px) scale(0.98,1.06) rotate(2deg)} 80%{transform:translateY(-5px) scale(1.04) rotate(-1deg)}
 }
-@keyframes petPlayFlip {
-  0%{transform:translate(0,0) scale(1) rotate(0)} 18%{transform:translate(-10px,-16px) scale(1.12) rotate(-13deg)}
-  38%{transform:translate(12px,-24px) scale(1.2) rotate(14deg)} 58%{transform:translate(-4px,8px) scale(0.96,1.12) rotate(-8deg)}
-  78%{transform:translate(5px,-10px) scale(1.08) rotate(6deg)} 100%{transform:translate(0,0) scale(1) rotate(0)}
+@keyframes petDriftFloat {
+  0%{transform:translate(0,0) scale(1) rotate(0)} 18%{transform:translate(-16px,-14px) scale(1.06) rotate(-5deg)}
+  38%{transform:translate(18px,-28px) scale(1.1) rotate(4deg)} 58%{transform:translate(-8px,-6px) scale(1.02,1.06) rotate(-3deg)}
+  78%{transform:translate(12px,-18px) scale(1.06) rotate(2deg)} 100%{transform:translate(0,0) scale(1) rotate(0)}
 }
 @keyframes babyWalrusZoomHop {
   0%   { transform: translate(0,0) scale(1) rotate(0); }
@@ -2253,7 +2256,7 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 /* ===== ACTION REACTIONS ===== */
 .action-fx { position: fixed; left: 0; top: 0; z-index: 420; pointer-events: none; transform: translate(-50%, -50%); }
 .action-fx-ring { width: var(--size); height: var(--size); border-radius: 50%; border: 2px solid var(--color); box-shadow: 0 0 24px var(--glow), inset 0 0 24px var(--glow); animation: actionRingPop 0.78s ease-out forwards; }
-.action-fx-chip { padding: 6px 10px; border-radius: 999px; background: rgba(3,12,26,0.78); border: 1px solid var(--color); color: var(--color); font: 900 0.78rem 'Nunito', sans-serif; box-shadow: 0 0 18px var(--glow); animation: actionChipFloat 0.92s ease-out forwards; white-space: nowrap; }
+.action-fx-chip { padding: 6px 10px; border-radius: 6px; background: rgba(3,12,26,0.9); border: 2px solid var(--color); color: var(--color); font: 900 0.72rem 'Press Start 2P', 'Nunito', sans-serif; box-shadow: 0 0 18px var(--glow), 0 3px 0 rgba(1,6,16,0.92); animation: actionChipFloat 0.92s steps(6, end) forwards; white-space: nowrap; letter-spacing: 0.06em; }
 .action-fx-dot { width: var(--size); height: var(--size); border-radius: 50%; background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.95) 0 18%, transparent 19%), var(--color); box-shadow: 0 0 18px var(--glow); animation: actionDotBurst var(--dur) ease-out forwards; display: grid; place-items: center; font-size: calc(var(--size) * 0.72); line-height: 1; }
 .action-fx-pat {
   width: 74px;
@@ -2286,8 +2289,11 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   font-size: 20px;
   opacity: 0;
 }
-.action-courier.feed { animation: actionFeedFlight 0.52s steps(8, end) forwards; }
-.action-courier.play { animation: actionPlayFlight 0.66s steps(10, end) forwards; }
+.action-courier.feed,
+.action-courier.offer { animation: actionFeedFlight 0.52s steps(8, end) forwards; }
+.action-courier.play,
+.action-courier.drift { animation: actionPlayFlight 0.66s steps(10, end) forwards; }
+.action-courier.sync { animation: actionSyncFlight 0.62s steps(8, end) forwards; }
 .walrus-react-burst {
   font-size: 18px;
   animation: walrusBurstFloat var(--dur, 0.72s) steps(6, end) forwards;
@@ -2295,6 +2301,7 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .walrus-react-burst.sparkle { color: #fff3ab; text-shadow: 0 0 8px rgba(255,243,171,0.45); }
 .walrus-react-burst.heart { color: #ff9ec5; text-shadow: 0 0 8px rgba(255,158,197,0.45); }
 .walrus-react-burst.ball { color: #8fe9ff; text-shadow: 0 0 8px rgba(143,233,255,0.45); }
+.walrus-react-burst.sync { color: #bca7ff; text-shadow: 0 0 8px rgba(188,167,255,0.45); }
 @keyframes actionFeedFlight {
   0% { opacity: 0; transform: translate(-50%, -50%) translate(0,0) scale(0.72); }
   18% { opacity: 1; }
@@ -2306,6 +2313,12 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   42% { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.42), calc(var(--dy) * 0.48 - 26px)) scale(0.94); }
   72% { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.76), calc(var(--dy) * 0.82 + 10px)) scale(1.02); }
   100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(1.08); }
+}
+@keyframes actionSyncFlight {
+  0% { opacity: 0; transform: translate(-50%, -50%) translate(0,0) scale(0.64); }
+  18% { opacity: 1; }
+  48% { transform: translate(-50%, -50%) translate(calc(var(--dx) * 0.54), calc(var(--dy) * 0.48 - 18px)) scale(1.04); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(1.18); }
 }
 @keyframes walrusBurstFloat {
   0% { opacity: 0; transform: translate(-50%, -50%) translate(0, 8px) scale(0.7); }
@@ -2455,9 +2468,9 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 
 /* ===== STATS ===== */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-.stat-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: clamp(10px,2.8vw,13px) clamp(8px,2vw,11px); transition: border-color 0.4s, background 0.4s; }
+.stat-card { background: linear-gradient(180deg, rgba(7,18,30,0.96), rgba(4,10,20,0.96)); border: 2px solid rgba(126,200,255,0.14); border-radius: 6px; padding: clamp(10px,2.8vw,13px) clamp(8px,2vw,11px); transition: border-color 0.4s, background 0.4s, box-shadow 0.4s; box-shadow: 0 4px 0 rgba(1,6,16,0.9), inset 0 0 0 1px rgba(255,255,255,0.03); }
 .stat-card.warning { border-color: rgba(255,107,107,0.35); background: rgba(255,107,107,0.05); }
-.stat-name { font-size: clamp(0.6rem,2.4vw,0.68rem); font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.9px; margin-bottom: 7px; }
+.stat-name { font-size: clamp(0.58rem,2.4vw,0.68rem); font-weight: 800; color: rgba(255,255,255,0.48); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 7px; line-height: 1.35; }
 .stat-bar-bg { background: rgba(255,255,255,0.07); border-radius: 4px; height: 7px; overflow: hidden; }
 .stat-bar { height: 100%; border-radius: 4px; transition: width 0.55s ease, background 0.55s ease; }
 .bar-g { background: linear-gradient(90deg, #00a880, #00e5b0); }
@@ -2471,20 +2484,21 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .action-guidance {
   width: 100%;
   margin-bottom: 10px;
-  padding: 10px 12px;
-  border: 2px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
+  padding: 11px 12px;
+  border: 2px solid rgba(126,200,255,0.2);
+  border-radius: 6px;
   background:
-    linear-gradient(0deg, rgba(4,12,26,0.92), rgba(4,12,26,0.92)),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 6px);
-  box-shadow: 0 4px 0 rgba(2,8,18,0.8), inset 0 0 0 1px rgba(255,255,255,0.04);
+    linear-gradient(180deg, rgba(4,12,26,0.96), rgba(3,8,18,0.96)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(0deg, rgba(0,229,176,0.03) 0 1px, transparent 1px 5px);
+  box-shadow: 0 4px 0 rgba(2,8,18,0.86), inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 22px rgba(0,229,176,0.08);
 }
 .action-guidance-kicker { color: rgba(228,242,248,0.45); font-size: 0.62rem; letter-spacing: 0.12em; margin-bottom: 5px; }
 .action-guidance-text { color: var(--white); font-size: clamp(0.88rem,3.8vw,0.98rem); line-height: 1.35; min-height: 1.35em; }
 .action-guidance-sub { color: rgba(228,242,248,0.56); font-size: 0.62rem; line-height: 1.5; margin-top: 4px; min-height: 1.5em; }
-.action-guidance[data-recommend="feed"] .action-guidance-text { color: #ffd98f; }
-.action-guidance[data-recommend="pet"] .action-guidance-text { color: #ffb9d0; }
-.action-guidance[data-recommend="play"] .action-guidance-text { color: #94e8ff; }
+.action-guidance[data-recommend="offer"] .action-guidance-text { color: #ffd98f; }
+.action-guidance[data-recommend="sync"] .action-guidance-text { color: #bca7ff; }
+.action-guidance[data-recommend="drift"] .action-guidance-text { color: #94e8ff; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
 .actions.secondary-actions { opacity: 1; }
 .actions.primary-care-actions {
@@ -2498,16 +2512,18 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 }
 .act-btn {
   min-height: 72px;
-  background: rgba(8,20,34,0.92);
+  background:
+    linear-gradient(180deg, rgba(10,24,38,0.97), rgba(3,10,20,0.98)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 6px);
   border: 2px solid rgba(255,255,255,0.14);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px 8px;
   font-family: 'DotGothic16', 'Nunito', sans-serif;
   font-size: clamp(0.76rem,3.2vw,0.88rem);
   font-weight: 700;
   color: var(--teal);
   cursor: pointer;
-  transition: transform 0.12s steps(2, end), filter 0.12s steps(2, end), opacity 0.16s linear, border-color 0.16s linear, box-shadow 0.16s linear;
+  transition: transform 0.12s steps(2, end), filter 0.12s steps(2, end), opacity 0.16s linear, border-color 0.16s linear, box-shadow 0.16s linear, background 0.16s linear;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2517,11 +2533,31 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   touch-action: manipulation;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 0 rgba(1,6,16,0.92), inset 0 0 0 1px rgba(255,255,255,0.04);
+  box-shadow: 0 4px 0 rgba(1,6,16,0.92), inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 0 rgba(0,0,0,0);
+}
+.act-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent 34%, transparent 68%, rgba(0,0,0,0.18));
+  opacity: 0.8;
+  pointer-events: none;
+}
+.act-btn::after {
+  content: '';
+  position: absolute;
+  inset: -16%;
+  background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 58%);
+  opacity: 0;
+  transform: scale(0.72);
+  transition: opacity 0.14s linear, transform 0.14s linear;
+  pointer-events: none;
 }
 .act-btn:hover { transform: translateY(-2px); filter: brightness(1.06); }
-.act-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(1,6,16,0.92), inset 0 0 0 1px rgba(255,255,255,0.05); }
-.act-btn.tap-feedback { animation: quickButtonPop 0.18s steps(2, end); }
+.act-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(1,6,16,0.92), inset 0 0 0 1px rgba(255,255,255,0.05), 0 0 18px currentColor; }
+.act-btn:active::after,
+.act-btn.tap-feedback::after { opacity: 1; transform: scale(1); }
+.act-btn.tap-feedback { animation: quickButtonPop 0.18s steps(2, end), ritualButtonJitter 0.16s steps(2, end); }
 .act-btn:disabled { opacity: 0.55; }
 .act-btn.loading { opacity: 0.7; }
 .act-btn .cd-bar { width: 72%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
@@ -2546,7 +2582,7 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   padding: 1px 6px;
   border: 1px solid currentColor;
   color: currentColor;
-  font-size: 0.54rem;
+  font-size: 0.52rem;
   line-height: 1.45;
   letter-spacing: 0.08em;
   background: rgba(255,255,255,0.03);
@@ -2570,9 +2606,9 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .primary-care-actions .care-btn .act-hint { text-align: center; min-height: 2.8em; }
 .primary-care-actions .care-btn .act-sub { width: auto; }
 .utility-actions .act-btn { min-height: 74px; }
-.care-btn.feed-btn { color: #ffd98f; border-color: rgba(255,217,143,0.34); }
-.care-btn.pet-btn { color: #ffb9d0; border-color: rgba(255,185,208,0.34); }
-.care-btn.play-btn { color: #94e8ff; border-color: rgba(148,232,255,0.34); }
+.care-btn.offer-btn { color: #ffd98f; border-color: rgba(255,217,143,0.34); }
+.care-btn.sync-btn { color: #bca7ff; border-color: rgba(188,167,255,0.34); }
+.care-btn.drift-btn { color: #94e8ff; border-color: rgba(148,232,255,0.34); }
 .care-btn.is-muted {
   opacity: 0.64;
   filter: saturate(0.7) brightness(0.88);
@@ -2581,6 +2617,13 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
   transform: translateY(-2px) scale(1.04);
   z-index: 2;
   box-shadow: 0 6px 0 rgba(1,6,16,0.95), 0 0 0 2px currentColor, 0 0 16px currentColor, inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+.care-btn .act-en { display: block; font-size: clamp(0.8rem,3vw,0.96rem); letter-spacing: 0.12em; }
+.care-btn .act-jp { display: block; font-size: 0.52rem; color: rgba(228,242,248,0.66); letter-spacing: 0.1em; }
+@keyframes ritualButtonJitter {
+  0%, 100% { transform: translateY(0); }
+  35% { transform: translate(1px, 1px); }
+  70% { transform: translate(-1px, 0); }
 }
 .care-btn.is-recommended::after {
   content: 'NOW';
@@ -5583,7 +5626,7 @@ html.motion-paused .legend-ring-outer {
                 </div>
                 <div class="walk-rule-chip">
                     <span class="walk-rule-label" id="walkRuleLabel">Walk Key</span>
-                    <span class="walk-rule-value" id="walkRuleValue">満腹 50%+</span>
+                    <span class="walk-rule-value" id="walkRuleValue">ENERGY 50%+</span>
                 </div>
             </div>
             <div class="walk-stats-row">
@@ -5655,17 +5698,17 @@ html.motion-paused .legend-ring-outer {
 
         <div class="stats-grid">
             <div class="stat-card" id="cardH">
-                <div class="stat-name">🐟 満腹</div>
+                <div class="stat-name">◇ ENERGY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">エネルギー</span></div>
                 <div class="stat-bar-bg"><div class="stat-bar bar-g" id="barH" style="width:70%"></div></div>
                 <div class="stat-val" id="valH">70%</div>
             </div>
             <div class="stat-card" id="cardHa">
-                <div class="stat-name">💗 ハッピー</div>
+                <div class="stat-name">✦ BOND<br><span style="font-size:0.52rem;letter-spacing:0.08em;">共鳴</span></div>
                 <div class="stat-bar-bg"><div class="stat-bar bar-p" id="barHa" style="width:50%"></div></div>
                 <div class="stat-val" id="valHa">50%</div>
             </div>
             <div class="stat-card" id="cardX">
-                <div class="stat-name">⭐ 経験値</div>
+                <div class="stat-name">◎ MEMORY<br><span style="font-size:0.52rem;letter-spacing:0.08em;">記憶</span></div>
                 <div class="stat-bar-bg"><div class="stat-bar bar-b" id="barX" style="width:0%"></div></div>
                 <div class="stat-val" id="valX">0/100</div>
             </div>
@@ -5677,39 +5720,39 @@ html.motion-paused .legend-ring-outer {
             <div class="action-guidance-sub" id="actionGuidanceSub">気になる反応をひとつ選んでみよう</div>
         </div>
         <div class="actions primary-care-actions">
-            <button class="act-btn care-btn feed-btn" id="btnFeed" onclick="doFeed()">
+            <button class="act-btn care-btn offer-btn" id="btnFeed" onclick="offerToWalrus()">
                 <span class="act-main">
-                    <span class="act-icon">🍣</span>
+                    <span class="act-icon">🐚</span>
                     <span class="act-copy">
-                        <span class="act-title" id="btnFeedLabel">今日のごはん</span>
-                        <span class="act-sub" id="btnFeedVerb">餌やり</span>
+                        <span class="act-title" id="btnFeedLabel"><span class="act-en">OFFER</span><span class="act-jp">おそなえ</span></span>
+                        <span class="act-sub" id="btnFeedVerb">OFFER</span>
                     </span>
                 </span>
-                <span class="act-hint" id="btnFeedHint">おなかを満たす</span>
+                <span class="act-hint" id="btnFeedHint">魚・貝・Blob をそっと差し出す</span>
                 <div class="cd-bar"><div class="cd-fill" id="cdFeed"></div></div>
                 <div class="cd-label" id="lblFeed"></div>
             </button>
-            <button class="act-btn care-btn pet-btn" id="btnPet" onclick="doPet()">
+            <button class="act-btn care-btn sync-btn" id="btnPet" onclick="syncWithWalrus()">
                 <span class="act-main">
-                    <span class="act-icon">✋</span>
+                    <span class="act-icon">✦</span>
                     <span class="act-copy">
-                        <span class="act-title" id="btnPetLabel">なでてみる</span>
-                        <span class="act-sub" id="btnPetVerb">なでなで</span>
+                        <span class="act-title" id="btnPetLabel"><span class="act-en">SYNC</span><span class="act-jp">シンク</span></span>
+                        <span class="act-sub" id="btnPetVerb">SYNC</span>
                     </span>
                 </span>
-                <span class="act-hint" id="btnPetHint">きげんアップ</span>
+                <span class="act-hint" id="btnPetHint">波形を合わせて共鳴を探る</span>
                 <div class="cd-bar"><div class="cd-fill" id="cdPet"></div></div>
                 <div class="cd-label" id="lblPet"></div>
             </button>
-            <button class="act-btn care-btn play-btn" id="btnPlay" onclick="doPlay()">
+            <button class="act-btn care-btn drift-btn" id="btnPlay" onclick="driftWalrus()">
                 <span class="act-main">
-                    <span class="act-icon">⚽</span>
+                    <span class="act-icon">🫧</span>
                     <span class="act-copy">
-                        <span class="act-title" id="btnPlayLabel">遊びたがってる！</span>
-                        <span class="act-sub" id="btnPlayVerb">遊ぶ</span>
+                        <span class="act-title" id="btnPlayLabel"><span class="act-en">DRIFT</span><span class="act-jp">漂流</span></span>
+                        <span class="act-sub" id="btnPlayVerb">DRIFT</span>
                     </span>
                 </span>
-                <span class="act-hint" id="btnPlayHint">元気にあそぶ</span>
+                <span class="act-hint" id="btnPlayHint">ふわりと漂って深海ログを拾う</span>
                 <div class="cd-bar"><div class="cd-fill" id="cdPlay"></div></div>
                 <div class="cd-label" id="lblPlay"></div>
             </button>
@@ -5720,11 +5763,6 @@ html.motion-paused .legend-ring-outer {
             </button>
             <button class="act-btn walrus-btn" id="btnLoad" onclick="openWalrusLoadModal()">
                 <span class="act-icon">📥</span>Walrus復元
-            </button>
-            <button class="act-btn" id="btnExchangeOpen" onclick="openExchangeModal()"
-                style="background:rgba(0,229,176,0.07);border-color:rgba(0,229,176,0.22);color:var(--teal);">
-                <span class="act-icon">🤝</span><span id="btnExchangeOpenLabel">Walrus交流</span>
-                <div style="font-size:0.62rem;color:rgba(0,229,176,0.42);transition:color 0.3s" id="exchangeBtnSub">友達と繋がろう！</div>
             </button>
             <button class="act-btn" id="btnDiary" onclick="openDiaryWrite()"
                 style="background:rgba(255,122,170,0.07);border-color:rgba(255,122,170,0.22);color:var(--pink);">
@@ -5887,6 +5925,7 @@ html.motion-paused .legend-ring-outer {
             <div class="friend-qr-canvas" id="friendQrCanvas" aria-live="polite"></div>
             <div class="friend-qr-url" id="friendQrUrl"></div>
         </div>
+        <button class="intro-btn alt friend-qr-close" id="friendQrCopyBtn" type="button" onclick="copyFriendInviteUrl()">リンクをコピー</button>
         <button class="intro-btn friend-qr-close" id="friendQrCloseBtn" type="button" onclick="closeFriendQrModal()">閉じる</button>
     </div>
 </div>

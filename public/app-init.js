@@ -74,7 +74,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
             renderDailyBoard();
             syncStoryProgress(false);
             syncDailyWeatherFromGPS({ silent:true });
-            setTimeout(() => handlePendingFriendInviteFromUrl(), 220);
+            setTimeout(() => handlePendingFriendInviteFromUrl(), 1200);
             
             // 画面トランジションが終わるのを待ってから孵化アニメ開始
             setTimeout(() => {

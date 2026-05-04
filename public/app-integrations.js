@@ -5,6 +5,13 @@ const PUBLISHER  = "https://publisher.walrus-testnet.walrus.space";
 const AGGREGATOR = "https://aggregator.walrus-testnet.walrus.space";
 let legendCertShareUrl = '';
 let saveMomentHideTimer = null;
+const FRIEND_VISIT_LOG_KEY = 'walmate_friend_visit_log';
+const FRIEND_VISIT_PLAY = {
+    key: 'friend-visit',
+    icon: '🫧',
+    particles: ['🫧', '💚', '✨', '🦭'],
+    reward: { hunger: 10, happy: 12, exp: 14 }
+};
 
 function isLikelyIOSDevice(){
     return /iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -59,6 +66,62 @@ async function copyText(text){
 function shortBlobId(blobId){
     if(!blobId) return '';
     return blobId.length > 30 ? `${blobId.slice(0, 16)}…${blobId.slice(-8)}` : blobId;
+}
+
+function parseWalrusBlobPayload(text){
+    const js = text.indexOf('{');
+    const je = text.lastIndexOf('}');
+    if(js === -1 || je === -1) throw new Error('JSON not found');
+    return JSON.parse(text.slice(js, je + 1));
+}
+
+async function fetchWalrusDataByBlobId(blobId){
+    const cleanBlobId = typeof blobId === 'string' ? blobId.trim() : '';
+    if(!cleanBlobId) throw new Error('Missing blobId');
+    const res = await fetch(`${AGGREGATOR}/v1/blobs/${cleanBlobId}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/octet-stream, */*' }
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const friendData = parseWalrusBlobPayload(text);
+    if(typeof friendData.lv === 'undefined' || typeof friendData.hunger === 'undefined'){
+        throw new Error('Invalid Walrus data format');
+    }
+    return friendData;
+}
+
+function getFriendVisitLog(){
+    try {
+        const raw = JSON.parse(localStorage.getItem(FRIEND_VISIT_LOG_KEY) || '{}');
+        return raw && typeof raw === 'object' ? raw : {};
+    } catch(e){
+        return {};
+    }
+}
+
+function saveFriendVisitLog(log){
+    try { localStorage.setItem(FRIEND_VISIT_LOG_KEY, JSON.stringify(log && typeof log === 'object' ? log : {})); } catch(e){}
+}
+
+function hasFriendVisitRewardToday(friendId, dateKey = getLocalDateKey()){
+    const cleanFriendId = typeof friendId === 'string' ? friendId.trim() : '';
+    if(!cleanFriendId) return false;
+    const log = getFriendVisitLog();
+    return log?.[cleanFriendId]?.dateKey === dateKey;
+}
+
+function markFriendVisitReward(friendId, meta = {}){
+    const cleanFriendId = typeof friendId === 'string' ? friendId.trim() : '';
+    if(!cleanFriendId) return;
+    const log = getFriendVisitLog();
+    log[cleanFriendId] = {
+        ts: Date.now(),
+        dateKey: meta.dateKey || getLocalDateKey(),
+        blobId: meta.blobId || '',
+        walrusName: meta.walrusName || ''
+    };
+    saveFriendVisitLog(log);
 }
 
 function setStorageText(id, value){
@@ -1032,6 +1095,13 @@ const EXCHANGE_PLAYS = {
         en: { name: 'Treasure Swap', desc: 'Show each other shiny treasures. Earn more EXP.' },
         reward: { happy: 10, exp: 18, hunger: 0 },
         particles: ['💎','⭐','✨','💎','💚']
+    },
+    'friend-visit': {
+        icon: FRIEND_VISIT_PLAY.icon,
+        ja: { name: '一緒にぷかぷかした！', desc: 'Friend QR から友達Walrusがふわっと遊びに来た。' },
+        en: { name: 'Floated together!', desc: 'A friend Walrus drifted in through the Friend QR.' },
+        reward: FRIEND_VISIT_PLAY.reward,
+        particles: FRIEND_VISIT_PLAY.particles
     }
 };
 let selectedExchangePlay = 'snack';
@@ -1047,9 +1117,9 @@ function getExchangePlayText(key = selectedExchangePlay){
 
 function formatExchangeReward(reward){
     const parts = [];
-    if(reward.happy) parts.push(`${currentLang === 'ja' ? 'ハッピー' : 'Happy'} ${reward.happy > 0 ? '+' : ''}${reward.happy}`);
-    if(reward.exp) parts.push(`${currentLang === 'ja' ? '経験値' : 'EXP'} ${reward.exp > 0 ? '+' : ''}${reward.exp}`);
-    if(reward.hunger) parts.push(`${currentLang === 'ja' ? '満腹' : 'Full'} ${reward.hunger > 0 ? '+' : ''}${reward.hunger}`);
+    if(reward.hunger) parts.push(`ENERGY ${reward.hunger > 0 ? '+' : ''}${reward.hunger}`);
+    if(reward.happy) parts.push(`BOND ${reward.happy > 0 ? '+' : ''}${reward.happy}`);
+    if(reward.exp) parts.push(`MEMORY ${reward.exp > 0 ? '+' : ''}${reward.exp}`);
     return parts.join(' / ');
 }
 
@@ -1177,18 +1247,7 @@ async function exchangeWithFriend(){
     btn.innerHTML = `<div class="btn-spinner" style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,0.2);border-top:2px solid #030c1a;border-radius:50%;animation:spin 0.8s linear infinite;"></div> ${currentLang === 'ja' ? '交換あそび中…' : 'Playing exchange...'}`;
 
     try{
-        const res = await fetch(`${AGGREGATOR}/v1/blobs/${code}`, {
-            method: 'GET', headers: { 'Accept': 'application/octet-stream, */*' }
-        });
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const js = text.indexOf('{'), je = text.lastIndexOf('}');
-        if(js === -1 || je === -1) throw new Error('JSON not found');
-        const friendData = JSON.parse(text.slice(js, je + 1));
-
-        if(typeof friendData.lv === 'undefined' || typeof friendData.hunger === 'undefined'){
-            throw new Error('Invalid Walrus data format');
-        }
+        const friendData = await fetchWalrusDataByBlobId(code);
 
         G.happy = Math.min(100, G.happy + reward.happy);
         G.hunger = Math.min(100, Math.max(0, G.hunger + reward.hunger));
@@ -1245,10 +1304,11 @@ async function exchangeWithFriend(){
 
 function showVisitingAnimation(exchangeEntry){
     const friendLv = Math.max(1, Math.min(4, exchangeEntry.friendLv || 1));
-    const friendLvName = getLvName(friendLv) || 'Walrus';
+    const friendName = (exchangeEntry.friendName || '').trim();
+    const friendLvName = friendName || getLvName(friendLv) || 'Walrus';
     const play = getExchangePlay(exchangeEntry.playKey);
     const playText = exchangeEntry.playName
-        ? { name: exchangeEntry.playName, desc: getExchangePlayText(exchangeEntry.playKey).desc }
+        ? { name: exchangeEntry.playName, desc: exchangeEntry.playDesc || getExchangePlayText(exchangeEntry.playKey).desc }
         : getExchangePlayText(exchangeEntry.playKey);
     const reward = exchangeEntry.reward || play.reward;
 
@@ -1257,18 +1317,19 @@ function showVisitingAnimation(exchangeEntry){
     const friendLabel = document.getElementById('visitFriendLabel');
     friendLabel.textContent = `Lv.${friendLv} ${friendLvName}`;
     friendLabel.dataset.dynamic = 'true';
-    document.getElementById('visitingMsg').textContent = currentLang === 'ja' ? `Lv.${friendLv} ${friendLvName}と交換遊び！` : `Exchange play with Lv.${friendLv} ${friendLvName}!`;
+    document.getElementById('visitingMsg').textContent = exchangeEntry.visitMessage || (currentLang === 'ja' ? `Lv.${friendLv} ${friendLvName}と交換遊び！` : `Exchange play with Lv.${friendLv} ${friendLvName}!`);
     const playChip = document.getElementById('visitingPlayChip');
     if(playChip) playChip.textContent = `${play.icon} ${playText.name}`;
     const rewardWrap = document.querySelector('#visitingOverlay .visiting-rewards');
     if(rewardWrap){
         rewardWrap.innerHTML = [
-            reward.happy ? `<div class="visiting-reward-chip pink">💗 ${currentLang === 'ja' ? 'ハッピー' : 'Happy'} +${reward.happy}</div>` : '',
-            reward.exp ? `<div class="visiting-reward-chip">⭐ ${currentLang === 'ja' ? '経験値' : 'EXP'} +${reward.exp}</div>` : '',
-            reward.hunger ? `<div class="visiting-reward-chip">🐟 ${currentLang === 'ja' ? '満腹' : 'Full'} ${reward.hunger > 0 ? '+' : ''}${reward.hunger}</div>` : ''
+            reward.hunger ? `<div class="visiting-reward-chip">◇ ENERGY ${reward.hunger > 0 ? '+' : ''}${reward.hunger}</div>` : '',
+            reward.happy ? `<div class="visiting-reward-chip pink">✦ BOND +${reward.happy}</div>` : '',
+            reward.exp ? `<div class="visiting-reward-chip">◎ MEMORY +${reward.exp}</div>` : '',
+            !reward.hunger && !reward.happy && !reward.exp ? `<div class="visiting-reward-chip">🫧 ${currentLang === 'ja' ? '今日はもう遊んだよ' : 'Already visited today'}</div>` : ''
         ].filter(Boolean).join('');
     }
-    document.getElementById('visitingDiaryNote').textContent = currentLang === 'ja' ? '📔 今日の日記に自動記録されたよ！' : '📔 Auto-recorded in today’s diary!';
+    document.getElementById('visitingDiaryNote').textContent = exchangeEntry.diaryNote || (currentLang === 'ja' ? '📔 今日の日記に自動記録されたよ！' : '📔 Auto-recorded in today’s diary!');
 
     document.getElementById('visitingOverlay').style.display = 'flex';
 
@@ -1279,11 +1340,142 @@ function showVisitingAnimation(exchangeEntry){
     spawnParticles([...(play.particles || []),'🦭','💗'], c.x, c.y);
     spawnExchangePlayBurst(play);
     animPet('bounce');
-    setMsg(currentLang === 'ja' ? `🤝 ${playText.name}成功！ Lv.${friendLv} ${friendLvName}と仲良くなったよ` : `🤝 ${playText.name} complete! You became friends with Lv.${friendLv} ${friendLvName}`);
+    setMsg(exchangeEntry.resultMessage || (currentLang === 'ja' ? `🤝 ${playText.name}成功！ Lv.${friendLv} ${friendLvName}と仲良くなったよ` : `🤝 ${playText.name} complete! You became friends with Lv.${friendLv} ${friendLvName}`));
+    if(exchangeEntry.autoCloseMs){
+        clearTimeout(window.__friendVisitOverlayTimer);
+        window.__friendVisitOverlayTimer = setTimeout(() => closeVisitingOverlay(), exchangeEntry.autoCloseMs);
+    }
 }
 
 function closeVisitingOverlay(){
+    clearTimeout(window.__friendVisitOverlayTimer);
     document.getElementById('visitingOverlay').style.display = 'none';
+}
+
+function appendFriendVisitDiaryEntry(meta){
+    const todayKey = getLocalDateKey();
+    const entries = getDiaryEntries();
+    const todayIdx = entries.findIndex(e => e.date === todayKey);
+    const rewardText = formatExchangeReward(meta.reward || {});
+    const diaryAutoText = meta.repeatVisit
+        ? (currentLang === 'ja'
+            ? `🫧 ${meta.friendName} のWalrusがまた遊びに来たよ。今日はもう一緒にぷかぷか済み。`
+            : `🫧 ${meta.friendName}'s Walrus drifted by again. You already floated together today.`)
+        : (currentLang === 'ja'
+            ? `🦭 ${meta.friendName} のWalrusが遊びに来た！\n${meta.playDesc}\n（${rewardText}）`
+            : `🦭 ${meta.friendName}'s Walrus came to visit!\n${meta.playDesc}\n(${rewardText})`);
+    if(todayIdx >= 0){
+        if(!entries[todayIdx].text.includes(diaryAutoText)) entries[todayIdx].text += `\n\n${diaryAutoText}`;
+    } else {
+        entries.unshift({ date: todayKey, text: diaryAutoText, lv: G.lv, ts: Date.now() });
+    }
+    saveDiaryEntries(entries);
+}
+
+async function handleIncomingFriendVisit(friendId){
+    const cleanFriendId = typeof friendId === 'string' ? friendId.trim() : '';
+    if(!cleanFriendId) return { ok:false, reason:'missing' };
+    const myFriendId = getOrCreateFriendIdForCurrentWalrus();
+    if(myFriendId && cleanFriendId === myFriendId){
+        showToast(currentLang === 'ja' ? '自分のFriend QRです' : 'This is your own Friend QR', true);
+        setMsg(currentLang === 'ja' ? '自分のWalrusはいつもそばにいるよ' : 'Your own Walrus is already right here', true);
+        return { ok:false, reason:'self' };
+    }
+
+    const blobId = resolveFriendId(cleanFriendId);
+    if(!blobId){
+        showToast(currentLang === 'ja' ? '友達Walrusを読み込めませんでした' : 'Could not load that friend Walrus', true);
+        setMsg(currentLang === 'ja' ? 'Friend ID の解決に失敗しました' : 'Failed to resolve that Friend ID', true);
+        return { ok:false, reason:'resolve_failed' };
+    }
+
+    const myBlobId = (localStorage.getItem('walrus_blobid') || '').trim();
+    if(myBlobId && myBlobId === blobId){
+        showToast(currentLang === 'ja' ? '自分のFriend QRです' : 'This is your own Friend QR', true);
+        setMsg(currentLang === 'ja' ? '自分のWalrusはいつもそばにいるよ' : 'Your own Walrus is already right here', true);
+        return { ok:false, reason:'self' };
+    }
+
+    try {
+        const friendData = await fetchWalrusDataByBlobId(blobId);
+        const dateKey = getLocalDateKey();
+        const repeatedToday = hasFriendVisitRewardToday(cleanFriendId, dateKey);
+        const reward = repeatedToday ? { hunger: 0, happy: 0, exp: 0 } : { ...FRIEND_VISIT_PLAY.reward };
+        const friendLv = Math.max(1, Math.min(4, Number(friendData.lv) || 1));
+        const friendName = (friendData.petName || '').trim() || (getLvName(friendLv) || 'Walrus');
+
+        addWalMateFriend(cleanFriendId, {
+            walrusName: friendName,
+            level: friendLv
+        });
+
+        if(!repeatedToday){
+            G.hunger = Math.min(100, Math.max(0, G.hunger + reward.hunger));
+            G.happy = Math.min(100, G.happy + reward.happy);
+            G.exp += reward.exp;
+            markFriendVisitReward(cleanFriendId, { dateKey, blobId, walrusName: friendName });
+        }
+
+        const history = getExchangeHistory();
+        history.unshift({
+            ts: Date.now(),
+            code: shortBlobId(blobId).slice(0, 24),
+            friendId: cleanFriendId,
+            friendLv,
+            friendName,
+            friendHunger: Math.round(friendData.hunger || 50),
+            friendHappy: Math.round(friendData.happy || 50),
+            playKey: FRIEND_VISIT_PLAY.key,
+            playName: repeatedToday
+                ? (currentLang === 'ja' ? 'また遊びに来たよ' : 'Dropped by again')
+                : (currentLang === 'ja' ? '一緒にぷかぷかした！' : 'Floated together!'),
+            playIcon: FRIEND_VISIT_PLAY.icon,
+            reward,
+            repeatedToday
+        });
+        saveExchangeHistory(history);
+
+        appendFriendVisitDiaryEntry({
+            friendName,
+            reward,
+            repeatVisit: repeatedToday,
+            playDesc: currentLang === 'ja'
+                ? '紹介ページの Friend QR から、ふわっと遊びに来てくれた。'
+                : 'A Walrus drifted in from a Friend QR on the intro page.'
+        });
+
+        showVisitingAnimation({
+            friendLv,
+            friendName,
+            playKey: FRIEND_VISIT_PLAY.key,
+            playName: repeatedToday
+                ? (currentLang === 'ja' ? 'また遊びに来たよ' : 'Dropped by again')
+                : (currentLang === 'ja' ? '一緒にぷかぷかした！' : 'Floated together!'),
+            playDesc: currentLang === 'ja'
+                ? '紹介ページの Friend QR から、ふわっと遊びに来てくれた。'
+                : 'A Walrus drifted in from the Friend QR on the intro page.',
+            reward,
+            visitMessage: repeatedToday
+                ? (currentLang === 'ja' ? `${friendName} のWalrusがまた遊びに来たよ` : `${friendName}'s Walrus drifted by again`)
+                : (currentLang === 'ja' ? `${friendName} のWalrusが遊びに来た！` : `${friendName}'s Walrus came to visit!`),
+            diaryNote: repeatedToday
+                ? (currentLang === 'ja' ? '🫧 今日はもう交流済み。軽くあいさつしたよ！' : '🫧 Already visited today, so this was just a quick hello!')
+                : (currentLang === 'ja' ? '📔 交流履歴と今日の日記に自動記録されたよ！' : '📔 Logged to your visit history and diary automatically!'),
+            resultMessage: repeatedToday
+                ? (currentLang === 'ja' ? `🫧 ${friendName} のWalrusがまた顔を見せてくれたよ` : `🫧 ${friendName}'s Walrus stopped by again`)
+                : (currentLang === 'ja' ? `🤝 ${friendName} のWalrusと仲良くなったよ` : `🤝 You connected with ${friendName}'s Walrus`),
+            autoCloseMs: 3800
+        });
+
+        checkLevelUp();
+        updateUI();
+        return { ok:true, reason: repeatedToday ? 'repeat' : 'visited', blobId, friendName };
+    } catch(e){
+        console.warn('Friend visit error:', e);
+        showToast(currentLang === 'ja' ? '友達Walrusを読み込めませんでした' : 'Could not load that friend Walrus', true);
+        setMsg(currentLang === 'ja' ? '友達Walrusの訪問に失敗しました' : 'Friend visit failed to load', true);
+        return { ok:false, reason:'load_failed', error:e };
+    }
 }
 
 function spawnExchangePlayBurst(play){
@@ -1321,7 +1513,7 @@ function renderExchangeHistory(){
     }
     container.innerHTML = history.map(h => {
         const d = new Date(h.ts).toLocaleDateString(localeCode(), {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
-        const lvName = getLvName(h.friendLv) || 'Walrus';
+        const lvName = (h.friendName || '').trim() || getLvName(h.friendLv) || 'Walrus';
         const isLeg = h.friendLv >= 4;
         const play = getExchangePlay(h.playKey);
         const playName = h.playName || getExchangePlayText(h.playKey).name;

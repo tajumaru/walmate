@@ -378,7 +378,7 @@ function renderWalrusMarkup(target, lv, mood = 'normal', expression = getExpress
 
 const ACTION_CARD_DEFS = Object.freeze([
     {
-        key: 'feed',
+        key: 'offer',
         buttonId: 'btnFeed',
         titleId: 'btnFeedLabel',
         verbId: 'btnFeedVerb',
@@ -387,25 +387,25 @@ const ACTION_CARD_DEFS = Object.freeze([
         urgentThreshold: 24,
         copy: {
             ja: {
-                defaultTitle: '今日のごはん',
-                needyTitle: 'おなかすいた…',
-                verb: '餌やり',
-                defaultHint: 'おなかを満たす',
-                recommendedHint: '今はごはんがいちばん効く',
-                success: 'もぐもぐ…うまい！'
+                defaultTitle: 'OFFER',
+                needyTitle: 'OFFER',
+                verb: 'OFFER',
+                defaultHint: '魚・貝・Blob をそっと差し出す',
+                recommendedHint: '今日はおそなえが受け入れられやすい',
+                success: '静かに受け取った'
             },
             en: {
-                defaultTitle: 'Meal time',
-                needyTitle: 'So hungry...',
-                verb: 'Feed',
-                defaultHint: 'Fill that belly',
-                recommendedHint: 'Food will help the most now',
-                success: 'Nom nom... tasty!'
+                defaultTitle: 'OFFER',
+                needyTitle: 'OFFER',
+                verb: 'OFFER',
+                defaultHint: 'Present fish, shells, or a strange Blob',
+                recommendedHint: 'An offering should land well right now',
+                success: 'It accepted the offering'
             }
         }
     },
     {
-        key: 'pet',
+        key: 'sync',
         buttonId: 'btnPet',
         titleId: 'btnPetLabel',
         verbId: 'btnPetVerb',
@@ -414,25 +414,25 @@ const ACTION_CARD_DEFS = Object.freeze([
         urgentThreshold: 28,
         copy: {
             ja: {
-                defaultTitle: 'なでてみる',
-                needyTitle: 'さみしそう…',
-                verb: 'なでなで',
-                defaultHint: 'きげんアップ',
-                recommendedHint: 'やさしく触れると落ち着きそう',
-                success: 'クー…うれしい'
+                defaultTitle: 'SYNC',
+                needyTitle: 'SYNC',
+                verb: 'SYNC',
+                defaultHint: '波形を合わせて共鳴を探る',
+                recommendedHint: 'いまは同期すると信号が安定しそう',
+                success: '周波数が重なった'
             },
             en: {
-                defaultTitle: 'Gentle pat',
-                needyTitle: 'Looks lonely...',
-                verb: 'Pet',
-                defaultHint: 'Boost the mood',
-                recommendedHint: 'A soft pat should calm it down',
-                success: 'Kuu... happy'
+                defaultTitle: 'SYNC',
+                needyTitle: 'SYNC',
+                verb: 'SYNC',
+                defaultHint: 'Align your signal and listen for resonance',
+                recommendedHint: 'Syncing should stabilize the signal now',
+                success: 'Your frequencies overlapped'
             }
         }
     },
     {
-        key: 'play',
+        key: 'drift',
         buttonId: 'btnPlay',
         titleId: 'btnPlayLabel',
         verbId: 'btnPlayVerb',
@@ -441,20 +441,20 @@ const ACTION_CARD_DEFS = Object.freeze([
         urgentThreshold: 20,
         copy: {
             ja: {
-                defaultTitle: '遊びたがってる！',
-                needyTitle: 'うずうずしてる！',
-                verb: '遊ぶ',
-                defaultHint: '元気にあそぶ',
-                recommendedHint: '遊ぶと経験値もぐんと伸びる',
-                success: 'もっと遊ぶ！'
+                defaultTitle: 'DRIFT',
+                needyTitle: 'DRIFT',
+                verb: 'DRIFT',
+                defaultHint: 'ふわりと漂って深海ログを拾う',
+                recommendedHint: 'いまは漂流で記憶が集まりやすい',
+                success: '漂流ログを持ち帰った'
             },
             en: {
-                defaultTitle: 'Ready to play!',
-                needyTitle: 'Full of energy!',
-                verb: 'Play',
-                defaultHint: 'Burn bright together',
-                recommendedHint: 'Playtime boosts EXP the most',
-                success: 'More play!'
+                defaultTitle: 'DRIFT',
+                needyTitle: 'DRIFT',
+                verb: 'DRIFT',
+                defaultHint: 'Let it glide and collect deep-sea logs',
+                recommendedHint: 'Drifting should gather memory traces now',
+                success: 'It returned with a drift log'
             }
         }
     }
@@ -464,21 +464,113 @@ function getActionCardCopy(def){
     return currentLang === 'ja' ? def.copy.ja : def.copy.en;
 }
 
+function getWalrusTimeBand(){
+    return G?.daily?.timeBand || 'day';
+}
+
+function pickRandom(list){
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function renderActionTitle(key){
+    const jp = key === 'offer' ? 'おそなえ' : key === 'sync' ? 'シンク' : '漂流';
+    const en = key.toUpperCase();
+    return `<span class="act-en">${en}</span><span class="act-jp">${jp}</span>`;
+}
+
+function getActionOutcome(type){
+    const timeBand = getWalrusTimeBand();
+    const bandIndex = timeBand === 'night' ? 2 : timeBand === 'dawn' ? 1 : 0;
+    const roll = Math.random();
+    const secret = roll < 0.03;
+    const special = !secret && roll < 0.08;
+    const pool = {
+        offer: {
+            commonJa: ['謎の貝を受け取った', 'SUIの光をまとった', '今日は食べる気分じゃない', 'Blobの匂いを気に入った'],
+            commonEn: ['It accepted a strange shell', 'It wrapped itself in SUI light', 'Not in the mood to consume today', 'It liked the scent of the Blob'],
+            specialJa: ['深海祭壇が一瞬だけ開いた', 'おそなえが青い波紋に変わった', '見えない保管庫へ運ばれていった'],
+            specialEn: ['A deep-sea altar flickered open', 'The offering became a blue ripple', 'Something carried it into a hidden vault'],
+            timeJa: ['昼の泡がやさしく反応した', '夜明けの潮が少しだけ震えた', '夜の層に静かな返答があった'],
+            timeEn: ['Day bubbles answered softly', 'The dawn tide gave a small tremor', 'The night layer answered in silence']
+        },
+        sync: {
+            commonJa: ['周波数が合ってきた', 'Walrusがこちらを見ている', '一瞬だけ秘密が見えた', '同期率が少し上がった'],
+            commonEn: ['Your frequencies are aligning', 'The Walrus is looking back at you', 'A secret flashed for a moment', 'Sync rate increased slightly'],
+            specialJa: ['輪郭が二重になって、すぐ戻った', '秘密基地のノイズが急に静かになった', '心拍みたいな波形が見えた'],
+            specialEn: ['Its silhouette doubled, then returned', 'The base noise suddenly went quiet', 'A heartbeat-like waveform appeared'],
+            timeJa: ['昼の信号は安定している', '夜明けのノイズが少し甘い', '夜の同期は深く沈む感じがする'],
+            timeEn: ['Daytime signals feel stable', 'Dawn noise feels unusually warm', 'Night sync sinks deeper than usual']
+        },
+        drift: {
+            commonJa: ['泡のゲートを見つけた', '遠くで光るBlobを見つけた', '何も起きなかった。でも少し楽しそう', '深海ログを拾った'],
+            commonEn: ['It found a bubble gate', 'It spotted a glowing Blob far away', 'Nothing happened, but it looked pleased', 'It brought back a deep-sea log'],
+            specialJa: ['漂流ルートが一瞬だけ星図になった', '深海の風が逆向きに流れた', '見覚えのない標識を通り過ぎた'],
+            specialEn: ['Its drift path turned into a star map', 'The deep-sea current reversed for a beat', 'It passed an unknown marker'],
+            timeJa: ['昼の層をふわりと横切った', '夜明けの青に溶けるように漂った', '夜の水面下で静かに遠回りした'],
+            timeEn: ['It glided across the daytime layer', 'It drifted into the blue of dawn', 'It took a silent night detour below the surface']
+        }
+    }[type];
+    const textJa = secret
+        ? `SECRET FOUND · ${type === 'offer' ? '供物ログが解読された' : type === 'sync' ? '隠し周波数を検出した' : '漂流座標に秘匿印があった'}`
+        : special
+            ? pickRandom(pool.specialJa)
+            : `${pickRandom(pool.commonJa)}。${pool.timeJa[bandIndex]}`;
+    const textEn = secret
+        ? `SECRET FOUND · ${type === 'offer' ? 'offering log decoded' : type === 'sync' ? 'hidden frequency detected' : 'drift coordinates carried a hidden mark'}`
+        : special
+            ? pickRandom(pool.specialEn)
+            : `${pickRandom(pool.commonEn)}. ${pool.timeEn[bandIndex]}`;
+    return { textJa, textEn, secret, special };
+}
+
+function applyActionDelta(type, outcome){
+    if(type === 'offer'){
+        G.hunger = Math.min(100, G.hunger + 10 + Math.floor(Math.random() * 9));
+        G.happy = Math.min(100, G.happy + 1 + Math.floor(Math.random() * 5));
+        G.exp += 8 + Math.floor(Math.random() * 7);
+        if(outcome.special) G.exp += 8;
+        if(outcome.secret){
+            G.hunger = Math.min(100, G.hunger + 6);
+            G.happy = Math.min(100, G.happy + 6);
+            G.exp += 12;
+        }
+        return;
+    }
+    if(type === 'sync'){
+        G.happy = Math.min(100, G.happy + 8 + Math.floor(Math.random() * 10));
+        G.exp += 10 + Math.floor(Math.random() * 8);
+        if(outcome.special) G.hunger = Math.min(100, G.hunger + 2);
+        if(outcome.secret){
+            G.happy = Math.min(100, G.happy + 8);
+            G.exp += 14;
+        }
+        return;
+    }
+    G.happy = Math.min(100, G.happy + 6 + Math.floor(Math.random() * 7));
+    G.hunger = Math.max(0, G.hunger - (2 + Math.floor(Math.random() * 5)));
+    G.exp += 14 + Math.floor(Math.random() * 10);
+    if(outcome.special) G.happy = Math.min(100, G.happy + 3);
+    if(outcome.secret){
+        G.happy = Math.min(100, G.happy + 6);
+        G.exp += 16;
+    }
+}
+
 function getRecommendedAction(){
     const expInLv = G.exp - (G.lv - 1) * 100;
     const candidates = [
         {
-            key: 'feed',
+            key: 'offer',
             score: G.hunger < 42 ? 120 + (42 - G.hunger) : 20,
             urgency: G.hunger < 24 ? 'urgent' : 'normal'
         },
         {
-            key: 'pet',
+            key: 'sync',
             score: G.happy < 45 ? 110 + (45 - G.happy) : 24,
             urgency: G.happy < 28 ? 'urgent' : 'normal'
         },
         {
-            key: 'play',
+            key: 'drift',
             score: (G.hunger >= 42 && G.happy >= 45 ? 90 : 28) + Math.max(0, 42 - expInLv) * 0.6,
             urgency: expInLv < 20 && G.hunger >= 42 ? 'urgent' : 'normal'
         }
@@ -504,15 +596,15 @@ function updateActionCards(){
         if(guidanceKicker) guidanceKicker.textContent = currentLang === 'ja' ? 'WALRUS SIGNAL' : 'WALRUS SIGNAL';
         if(guidanceText){
             guidanceText.textContent =
-                recommendation.key === 'feed' ? (currentLang === 'ja' ? 'いまはごはんをあげたい気分。' : 'It really wants food right now.') :
-                recommendation.key === 'pet' ? (currentLang === 'ja' ? 'いまはやさしく触れてほしそう。' : 'It wants gentle attention right now.') :
-                (currentLang === 'ja' ? 'いまは一緒に遊ぶと喜びそう。' : 'It looks ready to play with you.');
+                recommendation.key === 'offer' ? (currentLang === 'ja' ? 'いまは供物の気配に反応しやすい。' : 'It is unusually receptive to offerings right now.') :
+                recommendation.key === 'sync' ? (currentLang === 'ja' ? 'いまは同期すると深く共鳴しそう。' : 'A sync attempt should resonate deeply right now.') :
+                (currentLang === 'ja' ? 'いまは漂流で何か拾ってきそう。' : 'A short drift could uncover something right now.');
         }
         if(guidanceSub){
             guidanceSub.textContent =
-                recommendation.key === 'feed' ? (currentLang === 'ja' ? '先に満腹にしてあげると落ち着く。' : 'A quick meal will settle it down.') :
-                recommendation.key === 'pet' ? (currentLang === 'ja' ? 'まずは安心させてあげよう。' : 'A calm touch should help first.') :
-                (currentLang === 'ja' ? '元気なうちに経験値も伸ばそう。' : 'Make the most of that energy for EXP.');
+                recommendation.key === 'offer' ? (currentLang === 'ja' ? 'ENERGY が低いときは、おそなえから入ると安定しやすい。' : 'Low ENERGY responds well to a quiet offering first.') :
+                recommendation.key === 'sync' ? (currentLang === 'ja' ? 'BOND を整えると、反応ログがやわらかくなる。' : 'A little BOND makes later reactions softer.') :
+                (currentLang === 'ja' ? 'MEMORY を集めたいなら、軽い漂流がちょうどいい。' : 'If you want MEMORY, a light drift is a good bet.');
         }
     }
     ACTION_CARD_DEFS.forEach(def => {
@@ -523,14 +615,14 @@ function updateActionCards(){
         const btn = document.getElementById(def.buttonId);
         if(!btn) return;
 
-        const isFeedNeed = def.key === 'feed' && G.hunger < def.lowThreshold;
-        const isPetNeed = def.key === 'pet' && G.happy < def.lowThreshold;
-        const isPlayNeed = def.key === 'play' && G.hunger >= 42 && G.happy >= 45;
+        const isFeedNeed = def.key === 'offer' && G.hunger < def.lowThreshold;
+        const isPetNeed = def.key === 'sync' && G.happy < def.lowThreshold;
+        const isPlayNeed = def.key === 'drift' && G.hunger >= 42 && G.happy >= 45;
         const title =
-            def.key === 'feed' ? (isFeedNeed ? copy.needyTitle : copy.defaultTitle) :
-            def.key === 'pet' ? (isPetNeed ? copy.needyTitle : copy.defaultTitle) :
+            def.key === 'offer' ? (isFeedNeed ? copy.needyTitle : copy.defaultTitle) :
+            def.key === 'sync' ? (isPetNeed ? copy.needyTitle : copy.defaultTitle) :
             (isPlayNeed ? copy.needyTitle : copy.defaultTitle);
-        if(titleEl) titleEl.textContent = title;
+        if(titleEl) titleEl.innerHTML = renderActionTitle(def.key);
         if(verbEl) verbEl.textContent = copy.verb;
         if(hintEl) hintEl.textContent = recommendation.key === def.key ? copy.recommendedHint : copy.defaultHint;
 
@@ -588,7 +680,7 @@ function updateUI(){
     renderWalrusMarkup(stage, G.lv, mood, expression);
     const aboutAvatar = document.getElementById('aboutWalrusAvatar');
     renderWalrusMarkup(aboutAvatar, G.lv, 'happy', 'happy');
-    if(!stage.classList.contains('bounce') && !stage.classList.contains('shake') && !stage.classList.contains('legend-reveal') && !stage.classList.contains('action-feed') && !stage.classList.contains('action-pet') && !stage.classList.contains('action-play')){
+    if(!stage.classList.contains('bounce') && !stage.classList.contains('shake') && !stage.classList.contains('legend-reveal') && !stage.classList.contains('action-feed') && !stage.classList.contains('action-pet') && !stage.classList.contains('action-play') && !stage.classList.contains('action-offer') && !stage.classList.contains('action-sync') && !stage.classList.contains('action-drift')){
         stage.className = getPetClasses();
     }
     applyIdleRandomEventVisuals?.();
@@ -752,7 +844,7 @@ function animPet(cls){
     const el = document.getElementById('petStage');
     el.style.animation='none'; void el.offsetWidth;
     el.className = 'pet-stage ' + cls + (G.lv===4?' legend-pet':'');
-    const actionDurations = { 'action-feed': 960, 'action-pet': 1020, 'action-play': 1100 };
+    const actionDurations = { 'action-feed': 960, 'action-pet': 1020, 'action-play': 1100, 'action-offer': 960, 'action-sync': 1020, 'action-drift': 1100 };
     setTimeout(()=>{
         if(cls !== 'legend-reveal') el.className = getPetClasses();
     }, cls==='legend-reveal' ? 1800 : (actionDurations[cls] || 420));
@@ -788,14 +880,14 @@ function spawnParticles(emojis, x, y){
 function spawnActionFx(type){
     const c = getStageCenter();
     const cfg = {
-        feed: { color: '#f5d080', glow: 'rgba(245,208,128,0.42)', label: currentLang === 'ja' ? 'もぐもぐ!' : 'nom nom!', dots: ['🐟','✨','💚'], ring: 150 },
-        pet:  { color: '#ff7aaa', glow: 'rgba(255,122,170,0.42)', label: currentLang === 'ja' ? 'すりすり♪' : 'cuddle!', dots: ['💗','💙','✨'], ring: 132 },
-        play: { color: '#00c8f0', glow: 'rgba(0,200,240,0.45)', label: currentLang === 'ja' ? 'ぴょん!' : 'splash!', dots: ['🫧','⭐','💫'], ring: 166 }
+        offer: { color: '#f5d080', glow: 'rgba(245,208,128,0.42)', label: 'OFFER', dots: ['🐚','◇','✦'], ring: 150 },
+        sync:  { color: '#bca7ff', glow: 'rgba(188,167,255,0.42)', label: 'SYNC', dots: ['✦','◎','∿'], ring: 138 },
+        drift: { color: '#00c8f0', glow: 'rgba(0,200,240,0.45)', label: 'DRIFT', dots: ['🫧','≋','➜'], ring: 166 }
     }[type];
     if(!cfg) return;
     createActionFx('ring', c.x, c.y + 4, cfg, { '--size': `${cfg.ring}px` });
     createActionFx('chip', c.x, c.y - 96, cfg);
-    if(type === 'pet') {
+    if(type === 'sync') {
         createActionFx('pat', c.x - 28, c.y - 32, cfg);
         createActionFx('pat', c.x + 28, c.y - 28, cfg);
     }
@@ -812,7 +904,7 @@ function spawnActionFx(type){
 }
 
 function spawnActionCourier(type, emoji, endX, endY){
-    const btn = document.getElementById(type === 'feed' ? 'btnFeed' : type === 'pet' ? 'btnPet' : 'btnPlay');
+    const btn = document.getElementById(type === 'offer' ? 'btnFeed' : type === 'sync' ? 'btnPet' : 'btnPlay');
     if(!btn) return;
     const rect = btn.getBoundingClientRect();
     const startX = rect.left + rect.width / 2;
@@ -830,11 +922,11 @@ function spawnActionCourier(type, emoji, endX, endY){
 
 function spawnWalrusReactionBursts(type){
     const center = getStageCenter();
-    const palette = type === 'feed'
-        ? [{ text: '✦', cls: 'sparkle' }, { text: '🍣', cls: 'sparkle' }, { text: '✦', cls: 'sparkle' }]
-        : type === 'pet'
-            ? [{ text: '❤', cls: 'heart' }, { text: '✦', cls: 'sparkle' }, { text: '❤', cls: 'heart' }]
-            : [{ text: '⚽', cls: 'ball' }, { text: '✦', cls: 'sparkle' }, { text: '✦', cls: 'ball' }];
+    const palette = type === 'offer'
+        ? [{ text: '◇', cls: 'sparkle' }, { text: '🐚', cls: 'sparkle' }, { text: '✦', cls: 'sparkle' }]
+        : type === 'sync'
+            ? [{ text: '◎', cls: 'sync' }, { text: '∿', cls: 'sync' }, { text: '✦', cls: 'sparkle' }]
+            : [{ text: '🫧', cls: 'ball' }, { text: '➜', cls: 'ball' }, { text: '≋', cls: 'ball' }];
     palette.forEach((item, index) => {
         const el = document.createElement('div');
         el.className = `walrus-react-burst ${item.cls}`;
@@ -853,17 +945,18 @@ function triggerWalrusActionResponse(type){
     const center = getStageCenter();
     const mouthX = center.x + 4;
     const mouthY = center.y + 22;
-    if(type === 'feed'){
-        spawnActionCourier('feed', '🍣', mouthX, mouthY);
-        setTimeout(() => spawnWalrusReactionBursts('feed'), 180);
+    if(type === 'offer'){
+        spawnActionCourier('offer', '🐚', mouthX, mouthY);
+        setTimeout(() => spawnWalrusReactionBursts('offer'), 180);
         return;
     }
-    if(type === 'pet'){
-        setTimeout(() => spawnWalrusReactionBursts('pet'), 60);
+    if(type === 'sync'){
+        spawnActionCourier('sync', '✦', mouthX, mouthY - 10);
+        setTimeout(() => spawnWalrusReactionBursts('sync'), 60);
         return;
     }
-    spawnActionCourier('play', '⚽', center.x + 8, center.y + 8);
-    setTimeout(() => spawnWalrusReactionBursts('play'), 180);
+    spawnActionCourier('drift', '🫧', center.x + 8, center.y + 8);
+    setTimeout(() => spawnWalrusReactionBursts('drift'), 180);
 }
 
 function createActionFx(kind, x, y, cfg, vars = {}, text = ''){
@@ -1235,48 +1328,39 @@ function normalizeProfileDeckState(profileDeck){
 }
 
 /* ===== ACTIONS ===== */
-function doFeed(){
+function performWalrusAction(type){
+    const map = {
+        offer: { count: 'feedCount', button: '#btnFeed', sfx: sfxFeed, hapticMs: 15, cls: 'action-offer', particles: ['◇','✦','🐚','✦'], cooldown: COOLDOWNS.feed, cd: ['btnFeed','cdFeed','lblFeed'] },
+        sync: { count: 'petCount', button: '#btnPet', sfx: sfxPet, hapticMs: 12, cls: 'action-sync', particles: ['∿','✦','◎'], cooldown: COOLDOWNS.pet, cd: ['btnPet','cdPet','lblPet'] },
+        drift: { count: 'playCount', button: '#btnPlay', sfx: sfxPlay, hapticMs: 20, cls: 'action-drift', particles: ['🫧','≋','➜','✦'], cooldown: COOLDOWNS.play, cd: ['btnPlay','cdPlay','lblPlay'] }
+    }[type];
+    if(!map) return;
     dismissNewbornGuide();
-    recordBehaviorAction('feedCount');
-    pulseActionButtons('#btnFeed', '.tama-btn-a');
-    sfxFeed(); haptic(15);
-    triggerWalrusActionResponse('feed');
-    G.hunger=Math.min(100,G.hunger+28); G.exp+=15;
-    setMsg(getActionCardCopy(ACTION_CARD_DEFS[0]).success);
-    animPet('action-feed');
-    const c=getStageCenter(); spawnParticles(['💚','⭐','💚','🐟'],c.x,c.y);
-    spawnActionFx('feed');
-    startCD('btnFeed','cdFeed','lblFeed',COOLDOWNS.feed);
+    recordBehaviorAction(map.count);
+    pulseActionButtons(map.button, type === 'offer' ? '.tama-btn-a' : type === 'sync' ? '.tama-btn-b' : '.tama-btn-c');
+    map.sfx(); haptic(map.hapticMs);
+    triggerWalrusActionResponse(type);
+    const outcome = getActionOutcome(type);
+    applyActionDelta(type, outcome);
+    setMsg(currentLang === 'ja' ? outcome.textJa : outcome.textEn, !!outcome.secret);
+    if(outcome.secret){
+        showToast?.('SECRET FOUND');
+        addWalMateLog(outcome.textJa, outcome.textEn, 'secret', { id: `secret:${type}:${Date.now()}` });
+    } else if(outcome.special){
+        addWalMateLog(outcome.textJa, outcome.textEn, 'ritual', { id: `ritual:${type}:${Date.now()}` });
+    }
+    animPet(map.cls);
+    const c=getStageCenter(); spawnParticles(map.particles,c.x,c.y);
+    spawnActionFx(type);
+    startCD(...map.cd, map.cooldown);
     checkLevelUp(); updateUI();
 }
-function doPet(){
-    dismissNewbornGuide();
-    recordBehaviorAction('petCount');
-    pulseActionButtons('#btnPet', '.tama-btn-b');
-    sfxPet(); haptic(12);
-    triggerWalrusActionResponse('pet');
-    G.happy=Math.min(100,G.happy+22); G.exp+=10;
-    setMsg(getActionCardCopy(ACTION_CARD_DEFS[1]).success);
-    animPet('action-pet');
-    const c=getStageCenter(); spawnParticles(['💙','💙','💙'],c.x,c.y);
-    spawnActionFx('pet');
-    startCD('btnPet','cdPet','lblPet',COOLDOWNS.pet);
-    checkLevelUp(); updateUI();
-}
-function doPlay(){
-    dismissNewbornGuide();
-    recordBehaviorAction('playCount');
-    pulseActionButtons('#btnPlay', '.tama-btn-c');
-    sfxPlay(); haptic(20);
-    triggerWalrusActionResponse('play');
-    G.happy=Math.min(100,G.happy+18); G.hunger=Math.max(0,G.hunger-10); G.exp+=20;
-    setMsg(getActionCardCopy(ACTION_CARD_DEFS[2]).success);
-    animPet('action-play');
-    const c=getStageCenter(); spawnParticles(['⭐','💫','⭐','💫'],c.x,c.y);
-    spawnActionFx('play');
-    startCD('btnPlay','cdPlay','lblPlay',COOLDOWNS.play);
-    checkLevelUp(); updateUI();
-}
+function offerToWalrus(){ performWalrusAction('offer'); }
+function syncWithWalrus(){ performWalrusAction('sync'); }
+function driftWalrus(){ performWalrusAction('drift'); }
+function doFeed(){ offerToWalrus(); }
+function doPet(){ syncWithWalrus(); }
+function doPlay(){ driftWalrus(); }
 function tapPet(){
     if(getMood()==='sleepy'){ setMsg(currentLang === 'ja' ? 'お腹空いてて元気ない…🐟' : 'Too hungry to move...🐟',true); haptic(30); return; }
     if(babyModeEnabled){
