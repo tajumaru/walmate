@@ -1,7 +1,7 @@
 {
-  "name": "たじゅまるのWalrus",
-  "short_name": "たじゅまるのWalrus",
-  "description": "Walrusを育てて遊べるホーム画面対応のミニアプリ",
+  "name": "WalMate",
+  "short_name": "WalMate",
+  "description": "WalMate - Walrusを育てて遊べるホーム画面対応のミニアプリ",
   "lang": "ja",
   "start_url": "./index.html",
   "scope": "./",
