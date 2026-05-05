@@ -25,7 +25,9 @@ function createDefaultDailyState(dateKey = '1970-01-01'){
         weatherSyncAt: 0,
         timeBand: 'day',
         weekday: 0,
-        isFullMoon: false
+        isFullMoon: false,
+        anomalySlotId: '',
+        anomalySlotConsumed: false
     };
 }
 
@@ -46,6 +48,8 @@ function normalizeDailyState(daily){
     base.timeBand = ['dawn', 'day', 'night'].includes(next.timeBand) ? next.timeBand : 'day';
     base.weekday = Math.max(0, Math.min(6, Number(next.weekday) || 0));
     base.isFullMoon = !!next.isFullMoon;
+    base.anomalySlotId = typeof next.anomalySlotId === 'string' ? next.anomalySlotId : '';
+    base.anomalySlotConsumed = !!next.anomalySlotConsumed;
     return base;
 }
 
@@ -88,6 +92,19 @@ function createDefaultBehaviorState(){
     };
 }
 
+function createDefaultAnomalyState(){
+    return {
+        unlockedAt: 0,
+        lastEscapeAt: 0,
+        resonanceUntil: 0,
+        hueShift: 0,
+        mutationSeen: false,
+        lastAudioSeed: '',
+        lastActionAt: { offer: 0, sync: 0, drift: 0 },
+        logBook: []
+    };
+}
+
 function normalizeBehaviorState(behavior){
     const base = createDefaultBehaviorState();
     const next = (behavior && typeof behavior === 'object') ? behavior : {};
@@ -100,6 +117,38 @@ function normalizeBehaviorState(behavior){
     base.neglectMinutes = Math.max(0, Number(next.neglectMinutes) || 0);
     base.missedLoginDays = Math.max(0, Number(next.missedLoginDays) || 0);
     base.originPath = ['feral', 'shadow', 'clingy', 'balanced'].includes(next.originPath) ? next.originPath : '';
+    return base;
+}
+
+function normalizeAnomalyState(anomaly){
+    const base = createDefaultAnomalyState();
+    const next = (anomaly && typeof anomaly === 'object') ? anomaly : {};
+    base.unlockedAt = Math.max(0, Number(next.unlockedAt) || 0);
+    base.lastEscapeAt = Math.max(0, Number(next.lastEscapeAt) || 0);
+    base.resonanceUntil = Math.max(0, Number(next.resonanceUntil) || 0);
+    base.hueShift = Math.max(-120, Math.min(120, Number(next.hueShift) || 0));
+    base.mutationSeen = !!next.mutationSeen;
+    base.lastAudioSeed = typeof next.lastAudioSeed === 'string' ? next.lastAudioSeed.slice(0, 64) : '';
+    const lastActionAt = (next.lastActionAt && typeof next.lastActionAt === 'object') ? next.lastActionAt : {};
+    base.lastActionAt = {
+        offer: Math.max(0, Number(lastActionAt.offer) || 0),
+        sync: Math.max(0, Number(lastActionAt.sync) || 0),
+        drift: Math.max(0, Number(lastActionAt.drift) || 0)
+    };
+    base.logBook = Array.isArray(next.logBook)
+        ? next.logBook
+            .filter(entry => entry && typeof entry === 'object')
+            .slice(0, 120)
+            .map(entry => ({
+                id: typeof entry.id === 'string' ? entry.id : `anomaly:${Date.now()}`,
+                ts: Math.max(0, Number(entry.ts) || Date.now()),
+                type: typeof entry.type === 'string' ? entry.type : 'anomaly',
+                tier: typeof entry.tier === 'string' ? entry.tier : 'odd',
+                textJa: typeof entry.textJa === 'string' ? entry.textJa : '',
+                textEn: typeof entry.textEn === 'string' ? entry.textEn : '',
+                dateKey: typeof entry.dateKey === 'string' ? entry.dateKey : getLocalDateKey()
+            }))
+        : [];
     return base;
 }
 
@@ -124,7 +173,8 @@ const DEFAULT_GAME_STATE = Object.freeze({
     soundDiet: createEmptySoundDiet('1970-01-01'),
     daily: createDefaultDailyState(),
     idleEvent: createDefaultIdleEventState(),
-    behavior: createDefaultBehaviorState()
+    behavior: createDefaultBehaviorState(),
+    anomaly: createDefaultAnomalyState()
 });
 
 function createGameState(overrides = {}){
@@ -139,7 +189,8 @@ function createGameState(overrides = {}){
         soundDiet: normalizeSoundDiet(overrides.soundDiet || DEFAULT_GAME_STATE.soundDiet),
         daily: normalizeDailyState(overrides.daily || DEFAULT_GAME_STATE.daily),
         idleEvent: normalizeIdleEventState(overrides.idleEvent || DEFAULT_GAME_STATE.idleEvent),
-        behavior: normalizeBehaviorState(overrides.behavior || DEFAULT_GAME_STATE.behavior)
+        behavior: normalizeBehaviorState(overrides.behavior || DEFAULT_GAME_STATE.behavior),
+        anomaly: normalizeAnomalyState(overrides.anomaly || DEFAULT_GAME_STATE.anomaly)
     };
     return normalizeGameState(merged);
 }
@@ -161,6 +212,7 @@ function normalizeGameState(state){
     state.daily = normalizeDailyState(state.daily);
     state.idleEvent = normalizeIdleEventState(state.idleEvent);
     state.behavior = normalizeBehaviorState(state.behavior);
+    state.anomaly = normalizeAnomalyState(state.anomaly);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -234,6 +286,242 @@ function recordBehaviorAction(action, amount = 1){
     if(typeof behavior[action] !== 'number') return behavior;
     behavior[action] += amount;
     return behavior;
+}
+
+function ensureAnomalyState(){
+    G.anomaly = normalizeAnomalyState(G.anomaly);
+    return G.anomaly;
+}
+
+function isAnomalyModeActive(){
+    return Number(G?.lv) >= 4;
+}
+
+function isFriendResonanceActive(now = Date.now()){
+    return isAnomalyModeActive() && ensureAnomalyState().resonanceUntil > now;
+}
+
+function unlockAnomalyMode(){
+    const anomaly = ensureAnomalyState();
+    if(!anomaly.unlockedAt) anomaly.unlockedAt = Date.now();
+    return anomaly;
+}
+
+let anomalyEscapeTimer = null;
+
+function scheduleAnomalyEscape(){
+    if(!isAnomalyModeActive()){
+        clearTimeout(anomalyEscapeTimer);
+        anomalyEscapeTimer = null;
+        return;
+    }
+    if(anomalyEscapeTimer) return;
+    const delay = 9000 + Math.random() * 22000;
+    anomalyEscapeTimer = window.setTimeout(() => {
+        anomalyEscapeTimer = null;
+        triggerAnomalyEscape();
+    }, delay);
+}
+
+function triggerAnomalyEscape(){
+    if(!isAnomalyModeActive()) return;
+    const wrap = document.querySelector('.free-swim-wrap');
+    if(!wrap || wrap.classList.contains('anomaly-escaping')){
+        scheduleAnomalyEscape();
+        return;
+    }
+    const anomaly = unlockAnomalyMode();
+    const points = [
+        ['78vw', '8vh'],
+        ['72vw', '30vh'],
+        ['6vw', '34vh'],
+        ['60vw', '12vh']
+    ];
+    const [x, y] = points[Math.floor(Math.random() * points.length)];
+    anomaly.lastEscapeAt = Date.now();
+    wrap.style.setProperty('--anomaly-escape-x', x);
+    wrap.style.setProperty('--anomaly-escape-y', y);
+    wrap.classList.add('anomaly-escaping');
+    window.setTimeout(() => {
+        wrap.classList.remove('anomaly-escaping');
+        wrap.style.removeProperty('--anomaly-escape-x');
+        wrap.style.removeProperty('--anomaly-escape-y');
+        scheduleAnomalyEscape();
+    }, 2600);
+}
+
+function garbleAnomalyText(text){
+    const src = String(text || '').trim();
+    if(!src) return currentLang === 'ja' ? '...受信不能...' : '...signal lost...';
+    const patterns = [
+        value => value.replace(/[。.!！?？]/g, ' ... '),
+        value => value.replace(/Walrus/gi, 'W4LRUS'),
+        value => value.replace(/ログ/g, 'log//'),
+        value => value.replace(/深海/g, '深//海'),
+        value => value.replace(/\s+/g, ' / '),
+        value => `${value} // ${currentLang === 'ja' ? 'ノイズ混入' : 'noise bleed'}`
+    ];
+    const next = patterns[Math.floor(Math.random() * patterns.length)](src);
+    return next.slice(0, 160);
+}
+
+const ANOMALY_DAILY_SLOT_DEFS = Object.freeze({
+    audio_bloom: {
+        labelJa: '異常音',
+        labelEn: 'Anomalous audio',
+        hintJa: '今日は音の輪郭が少しだけ深く沈む',
+        hintEn: 'Today the edge of sound sinks a little deeper'
+    },
+    strange_copy: {
+        labelJa: '特殊ログ',
+        labelEn: 'Special log',
+        hintJa: '今日は短い反応でも違和感が混ざりやすい',
+        hintEn: 'Today even small reactions may carry a trace of wrongness'
+    },
+    ui_shift: {
+        labelJa: '微細な揺れ',
+        labelEn: 'Micro shift',
+        hintJa: '今日は画面の気配がわずかにずれる',
+        hintEn: 'Today the screen mood slips slightly out of place'
+    },
+    rare_echo: {
+        labelJa: 'レア残響',
+        labelEn: 'Rare echo',
+        hintJa: '今日は何かが一度だけ返ってくるかもしれない',
+        hintEn: 'Today something may answer back exactly once'
+    }
+});
+
+const ANOMALY_LOG_POOLS = Object.freeze({
+    offer: {
+        normal: {
+            ja: ['静かに受理された。波紋だけが残った', '供物は沈んだ。返答は薄い', '手応えはないが、記録だけは残っている'],
+            en: ['It was accepted quietly. Only the ripple remained', 'The offering sank. The reply stayed thin', 'No clear response, but the record remained']
+        },
+        odd: {
+            ja: ['供物ログの末尾だけが読めない', '差し出したものより、受理音のほうが重かった', '返答はない。だが空白の形だけが残った'],
+            en: ['Only the tail of the offering log is unreadable', 'The intake tone felt heavier than the item itself', 'No reply came back, only the shape of an absence']
+        },
+        anomaly: {
+            ja: ['UNKNOWN OFFER // 供物の行き先が途中で反転した', '受理記録の時刻が先に進みすぎている', '誰も見ていない保管庫が一瞬だけ開いた'],
+            en: ['UNKNOWN OFFER // the destination inverted halfway through', 'The intake timestamp advanced too far ahead', 'A storage vault that no one watches opened for a beat']
+        },
+        rare: {
+            ja: ['RARE LOG // 供物ではなく、観測者が記録された', '供物の返答欄に、あなたの名前の欠片があった'],
+            en: ['RARE LOG // the observer was recorded instead of the offering', 'A fragment of your name appeared in the response field']
+        }
+    },
+    sync: {
+        normal: {
+            ja: ['周波数が重なった。まだ意味は読めない', '同期は浅く成功した。残響だけ長い', '短い共鳴が続いている'],
+            en: ['Your frequencies overlapped. The meaning is still unclear', 'A shallow sync succeeded and left a longer echo', 'A short resonance is still continuing']
+        },
+        odd: {
+            ja: ['共鳴の後ろで別の拍が鳴っていた', 'こちらの波形に、ひとつ余分な縁がある', '同期したはずの音が少し遅れて戻った'],
+            en: ['Another pulse sounded behind the resonance', 'Your waveform gained one extra edge', 'The synced sound came back a little late']
+        },
+        anomaly: {
+            ja: ['SYNC TRACE // 波形の外で誰かが歌っている', '共鳴率は上がったが、音源数が合わない', 'ノイズが信号のふりをして混ざった'],
+            en: ['SYNC TRACE // something is singing outside the waveform', 'Resonance climbed, but the source count no longer fits', 'Noise joined in while pretending to be signal']
+        },
+        rare: {
+            ja: ['RARE LOG // 共鳴先が友達Walrusではなかった', '波形の奥から、一度だけ別名で呼ばれた'],
+            en: ['RARE LOG // the resonance target was not your friend Walrus', 'Something called you by another name from behind the waveform']
+        }
+    },
+    drift: {
+        normal: {
+            ja: ['小さな漂流ログを持ち帰った', '浅い層で短い記録が拾われた', '泡の裏に短文が残っていた'],
+            en: ['A small drift log came back', 'A short record was found in the shallow layer', 'A brief line remained behind the bubbles']
+        },
+        odd: {
+            ja: ['帰還ログに余白が多すぎる', '拾った記録の主語だけが欠けている', '漂流は短かったが、影だけ長く残った'],
+            en: ['There is too much blank space in the return log', 'Only the subject is missing from the recovered note', 'The drift was short, but the shadow lingered longer']
+        },
+        anomaly: {
+            ja: ['DRIFT TRACE // 深海ログの座標が途中で濁った', '帰還したが、経路が一部だけ別の日付を指している', '海底の風向きが記録と逆だった'],
+            en: ['DRIFT TRACE // the abyss coordinates blurred halfway through', 'It returned, but part of the route points to another date', 'The seabed current ran opposite to the record']
+        },
+        rare: {
+            ja: ['RARE LOG // 帰還地点より先の記録が先に届いた', '深海の底で、まだ起きていない変異が記録されていた'],
+            en: ['RARE LOG // a record from beyond the return point arrived first', 'A mutation that has not happened yet was logged at the abyss floor']
+        }
+    }
+});
+
+function getAnomalyDailySlotDef(slotId = G?.daily?.anomalySlotId){
+    return ANOMALY_DAILY_SLOT_DEFS[slotId] || null;
+}
+
+function pickDailyAnomalySlot(context){
+    const ids = Object.keys(ANOMALY_DAILY_SLOT_DEFS);
+    const rng = createSeededRandom(`anomaly-slot:${context.dateKey}:${context.timeBand}:${context.weather}:${G.lv}`);
+    return ids[Math.floor(rng() * ids.length)] || 'strange_copy';
+}
+
+function markDailyAnomalySlotConsumed(){
+    ensureDailyState();
+    if(!G.daily.anomalySlotId || G.daily.anomalySlotConsumed) return false;
+    G.daily.anomalySlotConsumed = true;
+    return true;
+}
+
+function getAnomalyDailyUiClass(){
+    if(!isAnomalyModeActive()) return '';
+    const slotId = G?.daily?.anomalySlotId || '';
+    if(slotId === 'ui_shift') return 'daily-anomaly-ui';
+    if(slotId === 'audio_bloom') return 'daily-anomaly-audio';
+    return '';
+}
+
+function getDriftElapsedTier(now = Date.now()){
+    const last = ensureAnomalyState().lastActionAt?.drift || 0;
+    if(!last) return 'short';
+    const elapsed = now - last;
+    if(elapsed >= 3 * 60 * 60 * 1000) return 'long';
+    if(elapsed >= 20 * 60 * 1000) return 'mid';
+    return 'short';
+}
+
+function pickAnomalyTier(type, context = {}){
+    const roll = Math.random();
+    let tier = roll < 0.01 ? 'rare' : roll < 0.05 ? 'anomaly' : roll < 0.20 ? 'odd' : 'normal';
+    if(type === 'drift'){
+        const driftTier = context.driftElapsedTier || 'short';
+        if(driftTier === 'mid' && tier === 'normal' && Math.random() < 0.64) tier = 'odd';
+        if(driftTier === 'long'){
+            if(tier === 'normal') tier = 'anomaly';
+            else if(tier === 'odd' && Math.random() < 0.55) tier = 'anomaly';
+            else if(tier === 'anomaly' && Math.random() < 0.16) tier = 'rare';
+        }
+    }
+    if(G?.daily?.anomalySlotId === 'rare_echo' && !G?.daily?.anomalySlotConsumed && tier !== 'rare' && Math.random() < 0.22){
+        tier = 'rare';
+    }
+    if(G?.daily?.anomalySlotId === 'strange_copy' && !G?.daily?.anomalySlotConsumed && tier === 'normal' && Math.random() < 0.6){
+        tier = 'odd';
+    }
+    return tier;
+}
+
+function registerAnomalyLog(textJa, textEn, type = 'anomaly', tier = 'odd'){
+    const anomaly = ensureAnomalyState();
+    const entry = {
+        id: `${type}:${tier}:${Date.now()}`,
+        ts: Date.now(),
+        type,
+        tier,
+        textJa,
+        textEn,
+        dateKey: getLocalDateKey()
+    };
+    anomaly.logBook.unshift(entry);
+    if(anomaly.logBook.length > 120) anomaly.logBook.length = 120;
+    return entry;
+}
+
+function getAnomalyLogBook(){
+    return ensureAnomalyState().logBook.slice();
 }
 
 function recordMissedLoginDays(days = 0){
@@ -346,9 +634,10 @@ function getPetClasses(){
     const expression = getExpressionState(mood);
     let cls = 'pet-stage';
     if(mood === 'sleepy') cls += ' sleepy';
-    if(G.lv === 4) cls += ' legend-pet';
+    if(G.lv === 4) cls += ' legend-pet anomaly-pet';
     if(expression === 'full') cls += ' full';
     if(expression === 'ecstatic') cls += ' ecstatic';
+    if(isFriendResonanceActive()) cls += ' resonance-pet';
     return cls;
 }
 
@@ -356,11 +645,9 @@ function getPetClasses(){
 function updateTamaDevice(){
     const dev = document.getElementById('tamaDevice');
     if(!dev) return;
-    if(G.lv >= 4){
-        dev.classList.add('legend-device');
-    } else {
-        dev.classList.remove('legend-device');
-    }
+    dev.classList.toggle('legend-device', G.lv >= 4);
+    dev.classList.toggle('anomaly-mode', isAnomalyModeActive());
+    dev.classList.toggle('friend-resonance', isFriendResonanceActive());
     // Update indicator dots (lv 1-4)
     for(let i=1;i<=4;i++){
         const dot = document.getElementById('dot'+i);
@@ -479,6 +766,44 @@ function renderActionTitle(key){
 }
 
 function getActionOutcome(type){
+    if(isAnomalyModeActive()){
+        ensureDailyState();
+        const driftElapsedTier = type === 'drift' ? getDriftElapsedTier() : 'short';
+        const tier = pickAnomalyTier(type, { driftElapsedTier });
+        const pool = ANOMALY_LOG_POOLS[type]?.[tier] || ANOMALY_LOG_POOLS[type]?.normal;
+        let textJa = garbleAnomalyText(pickRandom(pool?.ja || ['...']));
+        let textEn = garbleAnomalyText(pickRandom(pool?.en || ['...']));
+        if(type === 'drift'){
+            if(driftElapsedTier === 'short'){
+                textJa = `${textJa} // 小さな漂流片`;
+                textEn = `${textEn} // small drift fragment`;
+            } else if(driftElapsedTier === 'mid'){
+                textJa = `${textJa} // 中層ログ`;
+                textEn = `${textEn} // mid-layer log`;
+            } else {
+                textJa = `${textJa} // 変異予兆`;
+                textEn = `${textEn} // mutation omen`;
+            }
+        }
+        const consumedDaily = !G.daily.anomalySlotConsumed && markDailyAnomalySlotConsumed();
+        if(consumedDaily && G.daily.anomalySlotId === 'strange_copy'){
+            textJa = garbleAnomalyText(textJa);
+            textEn = garbleAnomalyText(textEn);
+        }
+        if(consumedDaily && G.daily.anomalySlotId === 'rare_echo'){
+            textJa = `${textJa} // 一度だけ返答あり`;
+            textEn = `${textEn} // one-time answer returned`;
+        }
+        return {
+            textJa,
+            textEn,
+            secret: tier === 'rare',
+            special: tier === 'odd' || tier === 'anomaly',
+            anomalyTier: tier,
+            driftElapsedTier,
+            consumedDaily
+        };
+    }
     const timeBand = getWalrusTimeBand();
     const bandIndex = timeBand === 'night' ? 2 : timeBand === 'dawn' ? 1 : 0;
     const roll = Math.random();
@@ -587,24 +912,33 @@ function getRecommendedAction(){
 
 function updateActionCards(){
     const recommendation = getRecommendedAction();
+    const anomalyActive = isAnomalyModeActive();
     const guidance = document.getElementById('actionGuidance');
     const guidanceKicker = document.getElementById('actionGuidanceKicker');
     const guidanceText = document.getElementById('actionGuidanceText');
     const guidanceSub = document.getElementById('actionGuidanceSub');
     if(guidance){
         guidance.dataset.recommend = recommendation.key;
-        if(guidanceKicker) guidanceKicker.textContent = currentLang === 'ja' ? 'WALRUS SIGNAL' : 'WALRUS SIGNAL';
+        if(guidanceKicker) guidanceKicker.textContent = anomalyActive ? 'ANOMALY SIGNAL' : 'WALRUS SIGNAL';
         if(guidanceText){
-            guidanceText.textContent =
-                recommendation.key === 'offer' ? (currentLang === 'ja' ? 'いまは供物の気配に反応しやすい。' : 'It is unusually receptive to offerings right now.') :
-                recommendation.key === 'sync' ? (currentLang === 'ja' ? 'いまは同期すると深く共鳴しそう。' : 'A sync attempt should resonate deeply right now.') :
-                (currentLang === 'ja' ? 'いまは漂流で何か拾ってきそう。' : 'A short drift could uncover something right now.');
+            guidanceText.textContent = anomalyActive
+                ? (recommendation.key === 'offer'
+                    ? (currentLang === 'ja' ? '応答が薄い。供物は受理されても返答が消える。' : 'Responses are thinning. Offerings may be accepted without a reply.')
+                    : recommendation.key === 'sync'
+                        ? (currentLang === 'ja' ? '共鳴が深すぎる。波形の外で別の音が混ざる。' : 'Resonance is running too deep. Another sound leaks in around the waveform.')
+                        : (currentLang === 'ja' ? '漂流ルートが乱れている。帰還ログの破損に注意。' : 'The drift route is unstable. Expect return logs to arrive corrupted.'))
+                : (recommendation.key === 'offer' ? (currentLang === 'ja' ? 'いまは供物の気配に反応しやすい。' : 'It is unusually receptive to offerings right now.') :
+                    recommendation.key === 'sync' ? (currentLang === 'ja' ? 'いまは同期すると深く共鳴しそう。' : 'A sync attempt should resonate deeply right now.') :
+                    (currentLang === 'ja' ? 'いまは漂流で何か拾ってきそう。' : 'A short drift could uncover something right now.'));
         }
         if(guidanceSub){
-            guidanceSub.textContent =
-                recommendation.key === 'offer' ? (currentLang === 'ja' ? 'ENERGY が低いときは、おそなえから入ると安定しやすい。' : 'Low ENERGY responds well to a quiet offering first.') :
-                recommendation.key === 'sync' ? (currentLang === 'ja' ? 'BOND を整えると、反応ログがやわらかくなる。' : 'A little BOND makes later reactions softer.') :
-                (currentLang === 'ja' ? 'MEMORY を集めたいなら、軽い漂流がちょうどいい。' : 'If you want MEMORY, a light drift is a good bet.');
+            guidanceSub.textContent = anomalyActive
+                ? (currentLang === 'ja'
+                    ? 'Lv.4では行動名は変わらないが、反応ログだけが少しずつ壊れていく。'
+                    : 'At Lv.4 the action names stay the same, but the reaction logs begin to decay.')
+                : (recommendation.key === 'offer' ? (currentLang === 'ja' ? 'ENERGY が低いときは、おそなえから入ると安定しやすい。' : 'Low ENERGY responds well to a quiet offering first.') :
+                    recommendation.key === 'sync' ? (currentLang === 'ja' ? 'BOND を整えると、反応ログがやわらかくなる。' : 'A little BOND makes later reactions softer.') :
+                    (currentLang === 'ja' ? 'MEMORY を集めたいなら、軽い漂流がちょうどいい。' : 'If you want MEMORY, a light drift is a good bet.'));
         }
     }
     ACTION_CARD_DEFS.forEach(def => {
@@ -624,7 +958,16 @@ function updateActionCards(){
             (isPlayNeed ? copy.needyTitle : copy.defaultTitle);
         if(titleEl) titleEl.innerHTML = renderActionTitle(def.key);
         if(verbEl) verbEl.textContent = copy.verb;
-        if(hintEl) hintEl.textContent = recommendation.key === def.key ? copy.recommendedHint : copy.defaultHint;
+        if(hintEl){
+            if(anomalyActive){
+                hintEl.textContent =
+                    def.key === 'offer' ? (currentLang === 'ja' ? '反応が返らないまま、供物ログだけ残ることがある' : 'The response may vanish while only the offer log remains') :
+                    def.key === 'sync' ? (currentLang === 'ja' ? '共鳴とノイズが混線し、音の輪郭が二重になる' : 'Resonance and noise may cross until the sound doubles') :
+                    (currentLang === 'ja' ? '帰還ログや深海ログが壊れた形で届くことがある' : 'Return and abyss logs may come back partially corrupted');
+            } else {
+                hintEl.textContent = recommendation.key === def.key ? copy.recommendedHint : copy.defaultHint;
+            }
+        }
 
         const isRecommended = recommendation.key === def.key;
         btn.classList.toggle('is-recommended', isRecommended);
@@ -638,6 +981,7 @@ function updateUI(){
     const mood = getMood();
     const expression = getExpressionState(mood);
     const xInLv = G.exp - (G.lv-1)*100;
+    const anomalyActive = isAnomalyModeActive();
 
     document.getElementById('barH').style.width  = Math.round(G.hunger)+'%';
     document.getElementById('barHa').style.width = Math.round(G.happy)+'%';
@@ -663,10 +1007,14 @@ function updateUI(){
     if(mood === 'sleepy') alerts.innerHTML += `<span class="alert-tag alert-sleepy">${currentLang === 'ja' ? '😴 眠たい…' : '😴 Sleepy...'}</span>`;
     if(G.sakuraPink) alerts.innerHTML += `<span class="alert-tag alert-sakura">${currentLang === 'ja' ? '🌸 桜Walrus' : '🌸 Sakura Walrus'}</span>`;
     else if(G.sakuraPetals > 0) alerts.innerHTML += `<span class="alert-tag alert-sakura">🌸 ${G.sakuraPetals}/${SAKURA_PETALS_REQUIRED}</span>`;
-    if(G.lv === 4) alerts.innerHTML += `<span class="alert-tag alert-legend">✦ LEGEND</span>`;
+    if(G.lv === 4) alerts.innerHTML += `<span class="alert-tag alert-legend">✦ ANOMALY DRIFT</span>`;
     if((G.soundDiet?.total || 0) > 0){
         const insight = getSoundDietInsight();
         alerts.innerHTML += `<span class="alert-tag alert-happy">🎵 ${insight.favoriteLabel}</span>`;
+    }
+    const dailyAnomaly = getAnomalyDailySlotDef?.();
+    if(anomalyActive && dailyAnomaly){
+        alerts.innerHTML += `<span class="alert-tag alert-mystery">${currentLang === 'ja' ? dailyAnomaly.labelJa : dailyAnomaly.labelEn}</span>`;
     }
     if(isSoundStarved()){
         alerts.innerHTML += `<span class="alert-tag alert-silence">${currentLang === 'ja' ? '🔇 静かすぎる…' : '🔇 Too quiet...'}</span>`;
@@ -677,6 +1025,7 @@ function updateUI(){
     }
 
     const stage = document.getElementById('petStage');
+    const mainScreen = document.getElementById('mainScreen');
     renderWalrusMarkup(stage, G.lv, mood, expression);
     const aboutAvatar = document.getElementById('aboutWalrusAvatar');
     renderWalrusMarkup(aboutAvatar, G.lv, 'happy', 'happy');
@@ -693,11 +1042,20 @@ function updateUI(){
     const showRing = G.lv >= 4;
     document.getElementById('legendRing').style.display      = showRing ? 'block':'none';
     document.getElementById('legendRingOuter').style.display = showRing ? 'block':'none';
+    if(mainScreen) mainScreen.classList.toggle('anomaly-mode', anomalyActive);
+    if(mainScreen) mainScreen.style.setProperty('--anomaly-hue-shift', `${ensureAnomalyState().hueShift}deg`);
+    if(mainScreen) mainScreen.classList.toggle('daily-anomaly-ui', getAnomalyDailyUiClass() === 'daily-anomaly-ui');
+    if(mainScreen) mainScreen.classList.toggle('daily-anomaly-audio', getAnomalyDailyUiClass() === 'daily-anomaly-audio');
+    if(stage) stage.classList.toggle('resonance-pet', isFriendResonanceActive());
+    if(anomalyActive) scheduleAnomalyEscape();
+    const anomalySoundBtn = document.getElementById('anomalySoundBtn');
+    if(anomalySoundBtn) anomalySoundBtn.style.display = anomalyActive ? '' : 'none';
 
     if(G.lv>=2) document.getElementById('sec1').classList.add('show');
     if(G.lv>=3) document.getElementById('sec2').classList.add('show');
     if(G.lv>=4) document.getElementById('sec3').classList.add('show');
-    renderLegendLab();
+    if(G.lv >= 3) renderDeepSeaLogSystem?.();
+    renderAnomalyHub?.();
 
     const diaryBtn = document.getElementById('btnDiary');
     if(diaryBtn){
@@ -725,6 +1083,8 @@ function updateUI(){
     bubble.classList.toggle('mood-happy', expression === 'happy' || expression === 'ecstatic');
     bubble.classList.toggle('mood-sleepy', expression === 'sleepy');
     bubble.classList.toggle('mood-full', expression === 'full' || expression === 'ecstatic');
+    bubble.classList.toggle('anomaly-bubble', anomalyActive);
+    bubble.classList.toggle('friend-resonance', isFriendResonanceActive());
     applyIdleRandomEventVisuals?.();
     saveG();
 }
@@ -739,6 +1099,8 @@ function setMsg(txt, warn=false){
         if(expression === 'happy' || expression === 'ecstatic') el.classList.add('mood-happy');
         if(expression === 'sleepy') el.classList.add('mood-sleepy');
         if(expression === 'full' || expression === 'ecstatic') el.classList.add('mood-full');
+        if(isAnomalyModeActive()) el.classList.add('anomaly-bubble');
+        if(isFriendResonanceActive()) el.classList.add('friend-resonance');
         applyIdleRandomEventVisuals?.();
         el.style.opacity='1';
     },70);
@@ -843,7 +1205,8 @@ function setStoredStoryStage(stage){
 function animPet(cls){
     const el = document.getElementById('petStage');
     el.style.animation='none'; void el.offsetWidth;
-    el.className = 'pet-stage ' + cls + (G.lv===4?' legend-pet':'');
+    el.className = 'pet-stage ' + cls + (G.lv===4 ? ' legend-pet anomaly-pet' : '');
+    if(isFriendResonanceActive()) el.classList.add('resonance-pet');
     const actionDurations = { 'action-feed': 960, 'action-pet': 1020, 'action-play': 1100, 'action-offer': 960, 'action-sync': 1020, 'action-drift': 1100 };
     setTimeout(()=>{
         if(cls !== 'legend-reveal') el.className = getPetClasses();
@@ -1215,33 +1578,29 @@ function checkLevelUp(){
         haptic(50);
         if(G.lv !== 4) showLevelUpOverlay(G.lv);
         setMsg(G.lv===4
-            ? (currentLang === 'ja' ? '✦ Legend到達。育ち方のクセが姿に刻まれた！' : 'Legend reached. Its growth style has shaped the final form!')
+            ? (currentLang === 'ja'
+                ? 'Walrusの浮遊が安定しなくなった。これは成長ではなく、変質かもしれない。'
+                : 'The Walrus can no longer keep a stable drift. This may not be growth, but a mutation.')
             : (G.lv===2
                 ? (currentLang === 'ja' ? '✨ Lv.2解放！ 自己紹介とプロフィールカードを教えてね。' : '✨ Lv.2 unlocked! Set your intro and profile cards.')
                 : (currentLang === 'ja' ? `✨ レベルアップ！ Lv.${G.lv} · ${getLvName(G.lv)} になったよ！` : `Level up! Lv.${G.lv} ${getLvName(G.lv)}`)));
         if(G.lv===4){
-            const originPath = ensureOriginPath();
+            unlockAnomalyMode();
             socialPopupPending = false;
-            showLegendAscension();
-            setTimeout(()=>animPet('legend-reveal'), 560);
+            animPet('legend-reveal');
+            const c = getStageCenter();
+            spawnParticles(['✦','//','🫧','≋','✦'], c.x, c.y);
+            addWalMateLog(
+                'Walrusの浮遊が安定しなくなった。これは成長ではなく、変質かもしれない。',
+                'The Walrus drift became unstable. This may be a mutation, not simple growth.',
+                'story',
+                { id: 'story:anomaly-drift-unlock' }
+            );
             setTimeout(() => {
-                const msg = currentLang === 'ja'
-                    ? (originPath === 'feral'
-                        ? '🪶 放置の気配で野生化したLegend Walrusになった'
-                        : originPath === 'shadow'
-                            ? '🌑 ログインの途切れで闇進化したLegend Walrusになった'
-                            : originPath === 'clingy'
-                                ? '💞 構いすぎで依存進化したLegend Walrusになった'
-                                : '🌊 散歩以外の暮らし方も抱えたLegend Walrusになった')
-                    : (originPath === 'feral'
-                        ? '🪶 It became a feral Legend Walrus through neglect.'
-                        : originPath === 'shadow'
-                            ? '🌑 It became a shadow Legend Walrus through sparse logins.'
-                            : originPath === 'clingy'
-                                ? '💞 It became a clingy Legend Walrus through too much attention.'
-                                : '🌊 It became a balanced Legend Walrus shaped by daily life.');
-                setMsg(msg);
-            }, 1200);
+                setMsg(currentLang === 'ja'
+                    ? '異常浮遊 / Anomaly Drift が解放された。ホーム画面の反応ログが少しずつ壊れはじめる。'
+                    : 'Anomaly Drift unlocked. Home-screen reaction logs will begin to decay.');
+            }, 880);
         } else {
             animPet('bounce');
         }
@@ -1296,13 +1655,27 @@ function performWalrusAction(type){
     map.sfx(); haptic(map.hapticMs);
     triggerWalrusActionResponse(type);
     const outcome = getActionOutcome(type);
+    const anomaly = isAnomalyModeActive() ? ensureAnomalyState() : null;
     applyActionDelta(type, outcome);
+    if(anomaly){
+        anomaly.lastActionAt[type] = Date.now();
+    }
     setMsg(currentLang === 'ja' ? outcome.textJa : outcome.textEn, !!outcome.secret);
     if(outcome.secret){
         showToast?.('SECRET FOUND');
         addWalMateLog(outcome.textJa, outcome.textEn, 'secret', { id: `secret:${type}:${Date.now()}` });
     } else if(outcome.special){
         addWalMateLog(outcome.textJa, outcome.textEn, 'ritual', { id: `ritual:${type}:${Date.now()}` });
+    }
+    if(anomaly && outcome.anomalyTier){
+        registerAnomalyLog(outcome.textJa, outcome.textEn, type, outcome.anomalyTier);
+        if(type === 'drift' && outcome.driftElapsedTier === 'long'){
+            anomaly.hueShift = -24 + Math.round(Math.random() * 48);
+            if(Math.random() < 0.58) triggerAnomalySound?.();
+        }
+        if(type === 'sync' && outcome.consumedDaily && G.daily.anomalySlotId === 'audio_bloom'){
+            triggerAnomalySound?.();
+        }
     }
     animPet(map.cls);
     const c=getStageCenter(); spawnParticles(map.particles,c.x,c.y);
@@ -1367,6 +1740,7 @@ function doReset(){
                 'walrus_exchange_history',
                 PORTFOLIO_ORDER_KEY,
                 COLLECTOR_BLOB_KEY,
+                DEEPSEA_LOG_STORAGE_KEY,
                 NEWBORN_GUIDE_SEEN_KEY,
                 WALK_LOG_KEY,
                 WALK_BLOB_KEY

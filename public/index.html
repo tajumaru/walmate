@@ -910,6 +910,16 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
   font-family: 'Nunito', sans-serif; font-weight: 700; transition: background 0.15s;
 }
 .sound-sm-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.65); }
+.sound-sm-btn.anomaly-audio-btn {
+  min-width: 88px;
+  color: rgba(214,232,255,0.88);
+  border-color: rgba(126,200,255,0.24);
+  background: linear-gradient(135deg, rgba(8,28,48,0.88), rgba(30,28,62,0.72));
+}
+.sound-sm-btn.anomaly-audio-btn:hover {
+  color: #eff8ff;
+  border-color: rgba(126,200,255,0.4);
+}
 .sound-bpm-display {
   font-size: 0.62rem; color: rgba(255,255,255,0.26); letter-spacing: 0.06em;
   font-weight: 800; white-space: nowrap;
@@ -964,6 +974,16 @@ var(--bg-linear); transition: background 0.6s cubic-bezier(0.23,1,0.32,1); }
   font-size: 0.68rem; cursor: pointer; transition: background 0.15s;
 }
 .sound-memory-item:hover { background: rgba(255,122,170,0.08); border-color: rgba(255,122,170,0.2); }
+.sound-lab.anomaly-source-active {
+  box-shadow: 0 0 0 1px rgba(126,200,255,0.24), 0 0 28px rgba(126,200,255,0.12);
+  transform: translateY(-1px);
+}
+.focus-pulse { animation: focusPulse 1.4s ease; }
+@keyframes focusPulse {
+  0% { box-shadow: 0 0 0 0 rgba(126,200,255,0); }
+  35% { box-shadow: 0 0 0 2px rgba(126,200,255,0.42), 0 0 24px rgba(126,200,255,0.16); }
+  100% { box-shadow: 0 0 0 0 rgba(126,200,255,0); }
+}
 .smi-date { color: var(--pink); font-weight: 700; font-size: 0.62rem; min-width: 40px; }
 .smi-name { flex: 1; color: rgba(228,242,248,0.72); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .smi-zones { color: rgba(255,255,255,0.32); font-size: 0.62rem; }
@@ -1299,7 +1319,42 @@ will-change: transform, opacity;
 }
 
 /* ===== MAIN SCREEN ===== */
-#mainScreen { overflow-y: auto; align-items: stretch; padding: 0; transition: filter 0.35s ease, background 0.35s ease; }
+#mainScreen { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; touch-action: pan-y; align-items: stretch; padding: 0; transition: filter 0.35s ease, background 0.35s ease; }
+#mainScreen.anomaly-mode::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.16;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(126,200,255,0.03) 0 2px, transparent 2px 6px),
+    radial-gradient(circle at 20% 24%, rgba(255,255,255,0.08), transparent 20%),
+    radial-gradient(circle at 82% 68%, rgba(0,229,176,0.08), transparent 24%);
+  mix-blend-mode: screen;
+  animation: anomalyNoise 7s steps(6, end) infinite;
+}
+#mainScreen.friend-resonance::before {
+  opacity: 0.28;
+  animation-duration: 2.2s;
+}
+#mainScreen.daily-anomaly-ui {
+  filter: saturate(1.03) contrast(1.02);
+}
+#mainScreen.daily-anomaly-ui .msg-bubble {
+  transform: translateX(0.5px);
+}
+#mainScreen.daily-anomaly-audio .sound-lab {
+  border-color: rgba(126,200,255,0.26);
+  box-shadow: 0 0 18px rgba(126,200,255,0.06);
+}
+@keyframes anomalyNoise {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(0.5%, -0.4%, 0); }
+  50% { transform: translate3d(-0.6%, 0.3%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
 #mainScreen.sound-starved {
   filter: saturate(0.88) brightness(0.9);
   background:
@@ -1688,6 +1743,21 @@ will-change: transform, opacity;
 .pet-stage {
   transform-origin: 50% 62%;
 }
+.pet-stage.anomaly-pet {
+  animation: anomalyWalrusHover 5.4s ease-in-out infinite;
+}
+.pet-stage.anomaly-pet .pixel-walrus {
+  filter: hue-rotate(var(--anomaly-hue-shift, 0deg));
+}
+.pet-stage.resonance-pet .pixel-walrus {
+  filter: hue-rotate(var(--anomaly-hue-shift, 16deg)) saturate(1.12) brightness(1.04);
+}
+@keyframes anomalyWalrusHover {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  22% { transform: translate3d(1px, -3px, 0) rotate(-0.3deg); }
+  45% { transform: translate3d(-2px, 2px, 0) rotate(0.45deg); }
+  67% { transform: translate3d(2px, -1px, 0) rotate(-0.2deg); }
+}
 
 /* Free-swim stage */
 .free-swim-stage {
@@ -1695,6 +1765,21 @@ will-change: transform, opacity;
   inset: 0;
   z-index: 1;
   pointer-events: none;
+}
+.free-swim-stage.anomaly-mode .free-swim-field::before {
+  opacity: 0.96;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255,255,255,0.08), transparent 14%),
+    radial-gradient(circle at 74% 24%, rgba(255,122,170,0.08), transparent 16%),
+    linear-gradient(112deg, transparent 0%, rgba(255,255,255,0.05) 16%, transparent 30%),
+    linear-gradient(292deg, transparent 0%, rgba(126,200,255,0.05) 18%, transparent 32%);
+}
+.free-swim-stage.anomaly-mode .free-swim-field::after {
+  opacity: 0.92;
+  filter: hue-rotate(12deg);
+}
+.free-swim-stage.friend-resonance .free-swim-current {
+  filter: blur(20px) hue-rotate(var(--anomaly-hue-shift, 16deg)) saturate(1.2);
 }
 .free-swim-field {
   position: absolute;
@@ -1744,6 +1829,16 @@ will-change: transform, opacity;
   pointer-events: auto;
   animation: freeSwimDriftViewport 22s ease-in-out infinite alternate;
 }
+.free-swim-stage.anomaly-mode .free-swim-wrap {
+  animation:
+    freeSwimDriftViewport 18s ease-in-out infinite alternate,
+    anomalyWrapGlitch 4.8s steps(2, end) infinite;
+}
+.free-swim-wrap.anomaly-escaping {
+  animation:
+    anomalyEscapeFlight 2.4s cubic-bezier(0.18, 0.9, 0.26, 1),
+    anomalyWrapGlitch 0.24s steps(2, end) 8;
+}
 .free-swim-stage.legend-device .free-swim-field {
   background: none;
 }
@@ -1781,6 +1876,17 @@ will-change: transform, opacity;
   68% { transform: translate3d(30vw, 30vh, 0); }
   84% { transform: translate3d(10vw, 38vh, 0); }
   100% { transform: translate3d(2vw, 16vh, 0); }
+}
+@keyframes anomalyWrapGlitch {
+  0%, 82%, 100% { filter: none; opacity: 1; }
+  84% { filter: hue-rotate(8deg) brightness(1.03); opacity: 0.98; }
+  88% { filter: hue-rotate(-6deg) saturate(1.1); opacity: 1; }
+  92% { filter: contrast(1.04); opacity: 0.99; }
+}
+@keyframes anomalyEscapeFlight {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  22% { transform: translate3d(8vw, -2vh, 0) scale(1.02); }
+  100% { transform: translate3d(var(--anomaly-escape-x, 60vw), var(--anomaly-escape-y, 12vh), 0) scale(0.92); }
 }
 @keyframes freeSwimCurrent {
   from { transform: translate3d(-2%, -1%, 0) scale(1); }
@@ -2433,6 +2539,17 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 
 /* ===== MSG BUBBLE ===== */
 .msg-bubble { position: relative; background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: clamp(10px,3vw,14px) clamp(18px,5vw,24px); text-align: center; font-size: clamp(0.88rem,3.8vw,0.98rem); color: rgba(255,255,255,0.88); margin: 10px 0 14px; min-height: 50px; display: flex; align-items: center; justify-content: center; transition: opacity 0.22s, border-color 0.3s, background 0.3s, transform 0.3s; font-style: italic; line-height: 1.5; backdrop-filter: blur(8px); }
+.msg-bubble.anomaly-bubble {
+  border-color: rgba(126,200,255,0.28);
+  background:
+    linear-gradient(135deg, rgba(6,14,38,0.88), rgba(20,18,48,0.7)),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 6px);
+  text-shadow: 0 0 10px rgba(126,200,255,0.18);
+}
+.msg-bubble.friend-resonance {
+  border-color: rgba(255,122,170,0.36);
+  box-shadow: 0 0 22px rgba(255,122,170,0.12);
+}
 .msg-bubble.warn { border-color: rgba(255,107,107,0.3); background: rgba(255,107,107,0.06); }
 .msg-bubble.mood-happy { border-color: rgba(255,122,170,0.34); background: linear-gradient(135deg, rgba(255,122,170,0.15), rgba(255,255,255,0.04)); transform: translateY(-2px); }
 .msg-bubble.mood-sleepy { border-color: rgba(140,170,255,0.26); background: linear-gradient(135deg, rgba(90,120,220,0.16), rgba(255,255,255,0.03)); }
@@ -4242,6 +4359,141 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 }
 .section-caption { margin-bottom: 10px; color: rgba(228,242,248,0.7); }
 .feature-grid { display: grid; gap: 12px; }
+.deepsea-terminal,
+.deepsea-archive-shell {
+  position: relative;
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(7,16,30,0.96), rgba(4,10,22,0.92)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 4px);
+  border: 1px solid rgba(126,200,255,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 18px 34px rgba(0,0,0,0.22);
+  overflow: hidden;
+}
+.deepsea-terminal::before,
+.deepsea-archive-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), transparent 18%, transparent 82%, rgba(255,255,255,0.03)),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(126,200,255,0.04) 3px 4px);
+  mix-blend-mode: screen;
+  opacity: 0.45;
+}
+.deepsea-terminal-head,
+.deepsea-archive-head,
+.deepsea-log-card,
+.deepsea-archive-item { position: relative; z-index: 1; }
+.deepsea-terminal-head {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.deepsea-kicker {
+  color: rgba(126,200,255,0.78);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.deepsea-terminal-copy {
+  margin-top: 4px;
+  color: rgba(228,242,248,0.74);
+  line-height: 1.7;
+}
+.deepsea-thread-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.deepsea-thread-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(126,200,255,0.08);
+  border: 1px solid rgba(126,200,255,0.14);
+  color: rgba(228,242,248,0.72);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+.deepsea-log-list,
+.deepsea-archive-list {
+  display: grid;
+  gap: 10px;
+}
+.deepsea-log-card,
+.deepsea-archive-item {
+  border-radius: 16px;
+  padding: 12px 13px;
+  background: rgba(3,12,26,0.58);
+  border: 1px solid rgba(126,200,255,0.12);
+}
+.deepsea-log-card.decoded {
+  border-color: rgba(0,229,176,0.24);
+  box-shadow: 0 0 0 1px rgba(0,229,176,0.08);
+}
+.deepsea-log-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.deepsea-log-title {
+  color: rgba(242,249,255,0.96);
+  font: 900 0.82rem 'DotGothic16', 'Nunito', sans-serif;
+}
+.deepsea-log-meta,
+.deepsea-log-thread {
+  color: rgba(126,200,255,0.62);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.deepsea-log-fragment {
+  white-space: pre-wrap;
+  color: rgba(228,242,248,0.82);
+  font: 800 0.78rem/1.85 'DotGothic16', 'Nunito', sans-serif;
+  letter-spacing: 0.03em;
+  min-height: 78px;
+}
+.deepsea-log-relation {
+  margin-top: 8px;
+  color: rgba(126,200,255,0.74);
+  font: 800 0.67rem/1.7 'DotGothic16', 'Nunito', sans-serif;
+}
+.deepsea-log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.deepsea-log-actions .collector-btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+  transform: none;
+  border-color: rgba(255,255,255,0.08);
+}
+.deepsea-archive-item strong {
+  display: block;
+  color: rgba(242,249,255,0.92);
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+.deepsea-archive-item span {
+  color: rgba(228,242,248,0.68);
+  font: 800 0.72rem/1.7 'DotGothic16', 'Nunito', sans-serif;
+  white-space: pre-wrap;
+}
+.deepsea-empty {
+  padding: 12px 0;
+  text-align: center;
+  color: rgba(228,242,248,0.5);
+}
 .scrapbook-grid { display: grid; gap: 14px; }
 .showcase-card { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(155deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); box-shadow: 0 14px 30px rgba(0,0,0,0.18); }
 .showcase-card.is-speaking { border-color: rgba(0,229,176,0.42); box-shadow: 0 16px 34px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,229,176,0.12); }
@@ -4342,6 +4594,28 @@ mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(10
 .legend-cta-btn.x-btn { background: linear-gradient(90deg, var(--gold), var(--gold-light)); color: #0b0d10; }
 .legend-cta-btn.note-btn { border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: var(--white); }
 .buddy-tip { margin-top: 10px; font-size: 0.78rem; color: rgba(255,255,255,0.6); }
+.anomaly-hub-shell { display: grid; gap: 12px; }
+.anomaly-hub-title { font-family: 'Fredoka One', cursive; font-size: 1.12rem; color: #eef7ff; text-shadow: 0 0 16px rgba(126,200,255,0.2); }
+.anomaly-hub-copy { color: rgba(228,242,248,0.76); line-height: 1.8; }
+.anomaly-hub { display: grid; gap: 10px; }
+.anomaly-hub-status { border: 1px solid rgba(126,200,255,0.16); border-radius: 14px; padding: 10px 12px; background: linear-gradient(135deg, rgba(9,22,40,0.72), rgba(22,18,46,0.54)); }
+.anomaly-hub-kicker { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.12em; color: rgba(126,200,255,0.72); }
+.anomaly-hub-note { margin-top: 6px; color: rgba(238,247,255,0.82); line-height: 1.6; }
+.anomaly-grid { display: grid; gap: 10px; }
+.anomaly-card { width: 100%; text-align: left; border-radius: 16px; border: 1px solid rgba(126,200,255,0.14); background: linear-gradient(135deg, rgba(6,16,34,0.92), rgba(20,18,44,0.78)), repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 7px); color: var(--white); padding: 14px 14px 13px; display: grid; gap: 6px; cursor: pointer; transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; }
+.anomaly-card strong { font-size: 0.96rem; color: #f3f9ff; }
+.anomaly-card span, .anomaly-card em { font-style: normal; color: rgba(228,242,248,0.68); line-height: 1.5; }
+.anomaly-card-kicker { font-size: 0.58rem; font-weight: 900; letter-spacing: 0.12em; color: rgba(126,200,255,0.76); }
+.anomaly-card:hover { transform: translateY(-1px); border-color: rgba(126,200,255,0.28); box-shadow: 0 0 22px rgba(126,200,255,0.08); }
+.anomaly-card.abyss { border-color: rgba(255,122,170,0.18); }
+.abyss-layer-card { display: none; margin: 12px 0 4px; padding: 14px; border-radius: 18px; border: 1px solid rgba(126,200,255,0.14); background: linear-gradient(145deg, rgba(2,10,24,0.96), rgba(13,17,36,0.84)), radial-gradient(circle at 80% 18%, rgba(255,122,170,0.08), transparent 26%); }
+.abyss-layer-card.show { display: grid; gap: 8px; }
+.abyss-layer-card.active { box-shadow: 0 0 0 1px rgba(126,200,255,0.18), 0 0 24px rgba(126,200,255,0.08); }
+.abyss-layer-kicker { font-size: 0.58rem; font-weight: 900; letter-spacing: 0.14em; color: rgba(126,200,255,0.72); }
+.abyss-layer-title { font-family: 'Fredoka One', cursive; font-size: 1rem; color: #eef7ff; }
+.abyss-layer-copy { color: rgba(228,242,248,0.74); line-height: 1.7; }
+.abyss-layer-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.abyss-layer-chip { padding: 5px 8px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(228,242,248,0.66); font-size: 0.6rem; font-weight: 800; }
 .legend-lab { margin-top: 14px; border-radius: 18px; padding: 14px; background: rgba(3,12,26,0.36); border: 1px solid rgba(245,208,128,0.18); }
 .legend-lab-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
 .legend-lab-title { font-family: 'Fredoka One', cursive; color: var(--gold-light); font-size: 1rem; }
@@ -6403,6 +6677,7 @@ html.motion-paused .legend-ring-outer {
             </div>
             <div class="sound-ctrl-row">
                 <button class="sound-play-btn" id="soundPlayBtn" onclick="toggleTrack()">▶ 今日の散歩BGM</button>
+                <button class="sound-sm-btn anomaly-audio-btn" id="anomalySoundBtn" onclick="triggerAnomalySound()">異常音源</button>
                 <button class="sound-sm-btn" onclick="saveMemoryTrack()">💾</button>
                 <button class="sound-sm-btn" onclick="saveSoundCollectionToWalrus()">🌐</button>
                 <button class="sound-sm-btn" onclick="clearAllSlots()">✕</button>
@@ -6411,6 +6686,16 @@ html.motion-paused .legend-ring-outer {
             <div class="sound-memory-summary empty" id="soundDietCard"></div>
             <div class="sound-memory-label" id="soundTrackLabel">📦 音のコレクション</div>
             <div class="sound-memory-list" id="soundMemoryList"></div>
+        </div>
+        <div class="abyss-layer-card" id="abyssLayerCard">
+            <div class="abyss-layer-kicker">ABYSS ACCESS</div>
+            <div class="abyss-layer-title" id="abyssLayerTitle">Abyss Layer</div>
+            <div class="abyss-layer-copy" id="abyssLayerCopy">深海探索のさらに下にある異常層。いまは入口だけが開いていて、将来的に日替わりログ・音・レア出現を接続できます。</div>
+            <div class="abyss-layer-meta">
+                <span class="abyss-layer-chip" id="abyssChipRoute">UI Route Ready</span>
+                <span class="abyss-layer-chip" id="abyssChipDaily">Daily Logs Slot</span>
+                <span class="abyss-layer-chip" id="abyssChipRare">Rare Spawn Slot</span>
+            </div>
         </div>
 
         <div class="unlock-section" id="sec1">
@@ -6441,11 +6726,11 @@ html.motion-paused .legend-ring-outer {
         </div>
 
         <div class="unlock-section" id="sec3">
-            <div class="utag legend">✦ Lv.4 — LEGEND!</div>
-            <div class="utitle">Legend Walrus 達成おめでとう！</div>
+            <div class="utag legend">✦ Lv.4 — 異常浮遊</div>
+            <div class="utitle">異常浮遊 / Anomaly Drift</div>
             <div class="ubody">
-                最高レベルに到達！ あなたは本物のWalrus仲間 🦭<br>
-                コンテスト参加中！ <a href="https://x.com/tajumaruxxx" target="_blank">@tajumaruxxx をフォロー</a>してね ✨<br>
+                Walrusの浮遊が安定しなくなった。これは成長ではなく、変質かもしれない。<br>
+                音・共鳴・深海ログが少しずつ壊れながらつながっていく。<br>
                 <span style="color:rgba(255,255,255,0.3);font-size:0.8rem">Built on Walrus Protocol · Walgo.xyz</span>
             </div>
         </div>

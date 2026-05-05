@@ -1528,6 +1528,74 @@ function appendFriendVisitDiaryEntry(meta){
     saveDiaryEntries(entries);
 }
 
+function triggerFriendResonance(meta = {}){
+    if(!isAnomalyModeActive?.()) return;
+    const anomaly = ensureAnomalyState?.();
+    const mainScreen = document.getElementById('mainScreen');
+    const device = document.getElementById('tamaDevice');
+    const effectRoll = Math.random();
+    const effect = effectRoll < 0.34 ? 'color' : effectRoll < 0.67 ? 'log' : 'audio';
+    if(anomaly){
+        anomaly.resonanceUntil = Date.now() + 5200;
+        anomaly.hueShift = -18 + Math.round(Math.random() * 36);
+    }
+    mainScreen?.classList.add('friend-resonance');
+    device?.classList.add('friend-resonance');
+    sfxMysteryWalrus?.(G?.daily?.timeBand === 'night' ? 'night' : 'day');
+    if(effect === 'audio') triggerAnomalySound?.();
+    const mutation = Math.random() < 0.16;
+    const friendName = meta.friendName || (currentLang === 'ja' ? '友達Walrus' : 'your friend Walrus');
+    const effectMsgJa = effect === 'color'
+        ? `${friendName} の波形で体色がずれた`
+        : effect === 'log'
+            ? `${friendName} の共鳴でログの文法が少し壊れた`
+            : `${friendName} の共鳴で音の縁が変形した`;
+    const effectMsgEn = effect === 'color'
+        ? `${friendName}'s waveform shifted the body color`
+        : effect === 'log'
+            ? `${friendName}'s resonance slightly broke the grammar of the log`
+            : `${friendName}'s resonance bent the edge of the sound`;
+    setMsg(currentLang === 'ja'
+        ? `✦ Friend Resonance 発生。${effectMsgJa}。`
+        : `✦ Friend Resonance detected. ${effectMsgEn}.`);
+    addWalMateLog(
+        currentLang === 'ja'
+            ? `${friendName} のFriend Resonanceで画面ノイズが走った。${effectMsgJa}。`
+            : `Friend Resonance from ${friendName} sent noise through the screen. ${effectMsgEn}.`,
+        currentLang === 'ja'
+            ? `${friendName} のFriend Resonanceで画面ノイズが走った。${effectMsgJa}。`
+            : `Friend Resonance from ${friendName} sent noise through the screen. ${effectMsgEn}.`,
+        'ritual',
+        { id: `friend-resonance:${Date.now()}` }
+    );
+    registerAnomalyLog?.(
+        currentLang === 'ja'
+            ? `${friendName} のFriend Resonance。${effectMsgJa}。`
+            : `Friend Resonance from ${friendName}. ${effectMsgEn}.`,
+        currentLang === 'ja'
+            ? `${friendName} のFriend Resonance。${effectMsgJa}。`
+            : `Friend Resonance from ${friendName}. ${effectMsgEn}.`,
+        'friend-resonance',
+        mutation ? 'rare' : 'odd'
+    );
+    if(mutation){
+        if(anomaly) anomaly.mutationSeen = true;
+        showToast(currentLang === 'ja' ? '変異ログを検出した' : 'Mutation log detected');
+        window.setTimeout(() => {
+            setMsg(currentLang === 'ja'
+                ? '変異メッセージ // この共鳴は友達のものだけではない'
+                : 'Mutation message // this resonance does not belong to your friend alone', true);
+        }, 700);
+    } else {
+        showToast(currentLang === 'ja' ? 'Friend Resonance 発生' : 'Friend Resonance detected');
+    }
+    window.setTimeout(() => {
+        mainScreen?.classList.remove('friend-resonance');
+        device?.classList.remove('friend-resonance');
+        updateUI?.();
+    }, 5200);
+}
+
 async function handleIncomingFriendVisit(friendId){
     const cleanFriendId = typeof friendId === 'string' ? friendId.trim() : '';
     if(!cleanFriendId) return { ok:false, reason:'missing' };
@@ -1623,6 +1691,7 @@ async function handleIncomingFriendVisit(friendId){
             autoCloseMs: 3800
         });
 
+        triggerFriendResonance({ friendName, friendLv, repeatedToday });
         checkLevelUp();
         updateUI();
         return { ok:true, reason: repeatedToday ? 'repeat' : 'visited', blobId, friendName };
@@ -2076,5 +2145,6 @@ function runHatching(){
 
 window.addEventListener('DOMContentLoaded', () => {
     setupMemoryLagoonInteractions();
+    setupDeepSeaLogRefresh?.();
 });
 

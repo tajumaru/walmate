@@ -664,9 +664,13 @@ function ensureDailyState(){
     const today = getLocalDateKey();
     if(G.daily.dateKey === today){
         const knownEvent = dailyEvents.some(event => event.id === G.daily.eventId);
+        const context = getTodayDailyContext();
         if(!knownEvent){
-            const context = getTodayDailyContext();
             G.daily.eventId = pickDailyEvent(context, G.daily.streak)?.id || 'calm_current';
+        }
+        if(!G.daily.anomalySlotId){
+            G.daily.anomalySlotId = pickDailyAnomalySlot(context);
+            G.daily.anomalySlotConsumed = false;
         }
         if(getStoredDailyEventDate?.() !== today){
             applyDailyEventRewards(getDailyEventById(G.daily.eventId), today);
@@ -696,7 +700,9 @@ function ensureDailyState(){
         weatherSyncAt: 0,
         timeBand: context.timeBand,
         weekday: context.weekday,
-        isFullMoon: context.isFullMoon
+        isFullMoon: context.isFullMoon,
+        anomalySlotId: pickDailyAnomalySlot(context),
+        anomalySlotConsumed: false
     });
 
     if(streak > 0 && streak % 7 === 0){
@@ -2163,6 +2169,7 @@ const PWA_INSTALL_BANNER_KEY = 'walrus_pwa_install_banner_seen';
 const PORTFOLIO_ORDER_KEY = 'walrus_portfolio_order';
 const PORTFOLIO_BLOB_KEY = 'walrus_portfolio_blobs';
 const COLLECTOR_BLOB_KEY = 'walrus_collector_blobs';
+const DEEPSEA_LOG_STORAGE_KEY = 'walrus_deepsea_logs';
 const NEWBORN_GUIDE_SEEN_KEY = 'walrus_newborn_guide_seen';
 const I18N_LEGACY = {
     ja: {
@@ -2208,12 +2215,55 @@ const I18N_LEGACY = {
         intro_empty: 'まず自己紹介を書いてね',
         intro_preview_empty: 'ここに、あなたの自己紹介をWalrusが紹介します。',
         unlock3_tag: 'Lv.3 解禁',
-        unlock3_title: '好きなこと・活動',
-        unlock3_body1: "<div class=\"section-caption\">Lv.3 では Walrus のスクラップブックが開きます。たじゅまるが見つけた Sui / Walrus ネタを、ぼくが『これ好き』『あとで読み返したい』の温度で集めてるモードです。</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-a\"><span class=\"thumb-badge\">NOTE PICK</span><div class=\"thumb-title\">Walrus視点の<br>深海メモ採集</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Collected by Walrus</div><div class=\"showcase-meta\">Sui / Walrus / Field Notes</div><div class=\"showcase-copy\">記事そのものより、『この発見おもしろい』を先に拾っていく感じ。あとで見返すと、深海で拾った小さなログがちゃんと地図になります。</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#Sui</span><span class=\"scrapbook-tag\">#Walrus</span><span class=\"scrapbook-tag\">#Discovery</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">記事を見にいく →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-b\"><span class=\"thumb-badge\">SCRAP LOG</span><div class=\"thumb-title\">今日ひろった<br>Sui / Walrus 小ネタ</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Shelf Memo</div><div class=\"showcase-meta\">Builder Diary / Swamp Dispatch</div><div class=\"showcase-copy\">検証していて気づいたこと、Note に残したい話題、誰かに見せたいリンクの予感。その日の『おっ』を Walrus が棚に並べてるイメージです。</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#NotePick</span><span class=\"scrapbook-tag\">#DevLog</span><span class=\"scrapbook-tag\">#SwampFind</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">@tajumaru をのぞく →</a></div></article></div>",
-        unlock3_body2: "<div class=\"section-caption\">コレクションモードも、ただ並べるだけじゃなくて『Walrus が集めて飾ってる棚』に進化。作品ごとに違うノリをメモ付きで置いてあります。</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-a has-art\"><img class=\"showcase-art\" src=\"./poopie-face-1.webp\" alt=\"Poopie Face thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">COLLECTED</span><div class=\"thumb-title title-chip\">Poopie Face💩</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Collection Log</div><div class=\"showcase-meta\">Chaotic Cute</div><div class=\"showcase-copy\">かわいさと勢いで突然ぶつかってくるタイプ。説明より先に『連れて帰りたくなるか』で判断する、Walrus の即決枠です。</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x56301d99f63ec982086a5d80087e186f4812334eb9dc10f17e77b8a7e5fc99a8?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">TradePortで見る →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-b has-art\"><img class=\"showcase-art\" src=\"./tajumarte-banner.webp\" alt=\"Tajumarte thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">DISPLAY PICK</span><div class=\"thumb-title title-chip\">Tajumarte</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Gallery Shelf</div><div class=\"showcase-meta\">Gallery Mode</div><div class=\"showcase-copy\">少しアート寄りで、深海ギャラリーに飾られてそうなムード。Walrus 的には『静かに強い』枠として確保しておきたい作品です。</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0xaad44f5565ff1b02f50dff6ae9cf671541f819f0fe89646b05bf725664623ab2?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">コレクションを見る →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-c has-art\"><img class=\"showcase-art\" src=\"./sunsun.jpg\" alt=\"SunSun thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">BRIGHT FIND</span><div class=\"thumb-title title-chip\">SunSun</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Warm Light Slot</div><div class=\"showcase-meta\">Bright Energy</div><div class=\"showcase-copy\">深海ムードの棚に差し込む日差し担当。温度差のある一枚を混ぜることで、集めてる感じがぐっと生っぽくなります。</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x5c1a7e0e538823c2829fc692fd8ae08eccf58f59b6be64f2c411901fc6994ae9?tab=mint&bottomTab=trades\" target=\"_blank\" rel=\"noopener noreferrer\">ミントページへ →</a></div></article></div>",
-        unlock4_tag: '✦ Lv.4 — LEGEND!',
-        unlock4_title: 'Legend Walrus 達成おめでとう！',
-        unlock4_body: "<div class=\"legend-cta\"><div class=\"legend-cta-title\">育成完了。ここからは Legend の第2章です。</div><div class=\"legend-cta-copy\">最高レベルに到達したあなたは、もう本物の Walrus 仲間。<br><strong>進化</strong>で Mythic な姿にするか、<strong>カスタマイズ</strong>で色やアクセサリーを選んで、自分だけの Legend Walrus に育てよう。</div><div id=\"legendLab\" class=\"legend-lab\"></div><div class=\"legend-cta-actions\"><a class=\"legend-cta-btn x-btn\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">𝕏 をフォローする</a><a class=\"legend-cta-btn note-btn\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Note を読みにいく</a></div><div class=\"buddy-tip\">たじゅまると友達になると、Walrus の話題がだいたい 1.7 倍くらい増えます。<br><span style=\"color:rgba(255,255,255,0.34);font-size:0.94em\">Built on Walrus Protocol · Walgo.xyz</span></div></div>",
+        unlock3_title: '深海ログ探索',
+        unlock3_body1: "<div class=\"section-caption\">Walrusが深海から拾ってきた、意味不明な断片を観測する場所です。文章は最初から読めません。少しずつ解読し、繋がりを見つけてください。</div><div id=\"deepseaLogSystem\" class=\"deepsea-terminal\"></div>",
+        unlock3_body2: "<div class=\"section-caption\">断片は時間経過でも増えます。複数の観測ログが揃うと、単体では意味のなかった言葉がゆっくり輪郭を持ちはじめます。</div><div id=\"deepseaArchiveMount\" class=\"deepsea-archive-shell\"></div>",
+        deepsea_status: '観測ログ',
+        deepsea_status_wait: '深海は静かです。しばらくすると新しい断片が浮上します。',
+        deepsea_status_new: '放置中に新しい断片が浮上しました。',
+        deepsea_decode: '解読する',
+        deepsea_read: '断片を読む',
+        deepsea_stash: '深海にしまう',
+        deepsea_thread: '関連信号',
+        deepsea_thread_hull: '船殻断片',
+        deepsea_thread_signal: '残響信号',
+        deepsea_thread_route: '帰路座標',
+        deepsea_archive: '保管済み断片',
+        deepsea_empty: 'まだ観測できる断片はありません。',
+        deepsea_archive_empty: '深海にしまわれた断片はまだありません。',
+        deepsea_progress: '解読率',
+        deepsea_relation: '接続兆候',
+        deepsea_relation_none: 'まだ単独では意味を結びません。',
+        deepsea_read_locked: '断片がまだ荒すぎる。もう少し解読が必要です。',
+        deepsea_unlock_msg: '深海から新しい断片が浮上した。',
+        deepsea_decode_msg: 'ノイズの向こう側が少しだけ見えた。',
+        deepsea_stash_msg: '断片を深海にしまった。',
+        deepsea_read_msg: '断片同士の意味が、まだ完全ではない形で繋がった。',
+        unlock4_tag: '✦ Lv.4 — 異常浮遊',
+        unlock4_title: '異常浮遊 / Anomaly Drift',
+        unlock4_body: "<div class=\"anomaly-hub-shell\"><div class=\"anomaly-hub-title\">Walrusの浮遊が安定しなくなった。</div><div class=\"anomaly-hub-copy\">これは成長ではなく、変質かもしれない。<br>ここから先は、音・共鳴・深海ログが少しずつ壊れながらつながっていきます。</div><div id=\"anomalyHub\" class=\"anomaly-hub\"></div></div>",
+        anomaly_sound_title: '異常音源',
+        anomaly_sound_copy: 'ランダムなWebAudio音を発生させる',
+        anomaly_sound_hint: '深夜やFriend Resonanceで変質しやすい',
+        anomaly_friend_title: 'Friend Resonance',
+        anomaly_friend_copy: 'Friend QR から共鳴を読み込む',
+        anomaly_friend_hint: '読み込み後、Walrusの色とログに乱れが出る',
+        anomaly_abyss_title: 'Abyss Layer',
+        anomaly_abyss_copy: '深海探索の異常層へ接続する',
+        anomaly_abyss_hint: '日替わりログ・音・レア出現の拡張スロット',
+        anomaly_hub_status: 'ANOMALY SIGNAL',
+        anomaly_hub_status_active: '浮遊が不安定です。反応ログは保証されません。',
+        anomaly_hub_status_resonance: 'Friend Resonance が残響しています。',
+        anomaly_hub_status_night: '深夜帯のため、異常音源が少し深く沈みます。',
+        anomaly_sound_msg: '🎛 異常音源をひらいた。音の縁が少しだけ歪んだ。',
+        anomaly_abyss_msg: '🌊 Abyss Layer の入口が浮上した。まだ浅い導線だけが開いている。',
+        anomaly_portal_sound: '異常音源へ',
+        anomaly_portal_friend: 'Friend QRへ',
+        anomaly_portal_abyss: 'Abyss Layerへ',
+        abyss_card_copy: '深海探索のさらに下にある異常層。いまは入口だけが開いていて、将来的に日替わりログ・音・レア出現を接続できます。',
+        abyss_chip_route: 'UI Route Ready',
+        abyss_chip_daily: 'Daily Logs Slot',
+        abyss_chip_rare: 'Rare Spawn Slot',
         legend_lab_title: 'Legend Lab',
         legend_lab_idle: '未選択',
         legend_lab_evolved: 'Mythic進化中',
@@ -2408,12 +2458,55 @@ const I18N_LEGACY = {
         intro_empty: 'Write your intro first',
         intro_preview_empty: 'Your Walrus will introduce you here.',
         unlock3_tag: 'Lv.3 Unlock',
-        unlock3_title: 'Things I Like / Activities',
-        unlock3_body1: "<div class=\"section-caption\">Lv.3 opens the Walrus scrapbook. This is where I collect Sui / Walrus finds with a very specific energy: not just articles, but little things worth saving for later.</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-a\"><span class=\"thumb-badge\">NOTE PICK</span><div class=\"thumb-title\">Deep Sea Notes<br>from the Walrus View</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Collected by Walrus</div><div class=\"showcase-meta\">Sui / Walrus / Field Notes</div><div class=\"showcase-copy\">Less like a formal archive, more like keeping the best “wait, this is interesting” moments in one place until they turn into a map.</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#Sui</span><span class=\"scrapbook-tag\">#Walrus</span><span class=\"scrapbook-tag\">#Discovery</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Read on Note →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb note-thumb-b\"><span class=\"thumb-badge\">SCRAP LOG</span><div class=\"thumb-title\">Today’s Tiny<br>Sui / Walrus Finds</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Shelf Memo</div><div class=\"showcase-meta\">Builder Diary / Swamp Dispatch</div><div class=\"showcase-copy\">Experiments, loose thoughts, future article seeds, and links that feel too good to lose. It is a shelf of “oh, keep that one.”</div><div class=\"scrapbook-tags\"><span class=\"scrapbook-tag\">#NotePick</span><span class=\"scrapbook-tag\">#DevLog</span><span class=\"scrapbook-tag\">#SwampFind</span></div><a class=\"showcase-link\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Visit @tajumaru →</a></div></article></div>",
-        unlock3_body2: "<div class=\"section-caption\">Collection Mode also levels up here. Instead of a plain list, the shelf now feels like a Walrus-curated display with little notes attached to each find.</div><div class=\"scrapbook-grid\"><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-a has-art\"><img class=\"showcase-art\" src=\"./poopie-face-1.webp\" alt=\"Poopie Face thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">COLLECTED</span><div class=\"thumb-title title-chip\">Poopie Face💩</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Walrus Collection Log</div><div class=\"showcase-meta\">Chaotic Cute</div><div class=\"showcase-copy\">The kind of piece that wins immediately on energy. Less explanation, more instinctive “yes, this belongs on the shelf.”</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x56301d99f63ec982086a5d80087e186f4812334eb9dc10f17e77b8a7e5fc99a8?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">View on TradePort →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-b has-art\"><img class=\"showcase-art\" src=\"./tajumarte-banner.webp\" alt=\"Tajumarte thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">DISPLAY PICK</span><div class=\"thumb-title title-chip\">Tajumarte</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Gallery Shelf</div><div class=\"showcase-meta\">Gallery Mode</div><div class=\"showcase-copy\">A quieter, art-leaning piece that gives the display shelf room to breathe while still feeling unmistakably Tajumaru.</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0xaad44f5565ff1b02f50dff6ae9cf671541f819f0fe89646b05bf725664623ab2?bottomTab=trades&tab=items\" target=\"_blank\" rel=\"noopener noreferrer\">See collection →</a></div></article><article class=\"showcase-card scrapbook-card\"><div class=\"showcase-thumb nft-thumb-c has-art\"><img class=\"showcase-art\" src=\"./sunsun.jpg\" alt=\"SunSun thumbnail\" loading=\"lazy\" decoding=\"async\" /><span class=\"thumb-badge badge-chip\">BRIGHT FIND</span><div class=\"thumb-title title-chip\">SunSun</div></div><div class=\"showcase-body\"><div class=\"scrapbook-kicker\">Warm Light Slot</div><div class=\"showcase-meta\">Bright Energy</div><div class=\"showcase-copy\">The shelf needs contrast too. This one feels like sunlight cutting into the deep sea and waking the whole row up.</div><a class=\"showcase-link alt-link\" href=\"https://www.tradeport.xyz/sui/collection/0x5c1a7e0e538823c2829fc692fd8ae08eccf58f59b6be64f2c411901fc6994ae9?tab=mint&bottomTab=trades\" target=\"_blank\" rel=\"noopener noreferrer\">Open mint page →</a></div></article></div>",
-        unlock4_tag: '✦ Lv.4 — LEGEND!',
-        unlock4_title: 'Congrats on reaching Legend Walrus!',
-        unlock4_body: "<div class=\"legend-cta\"><div class=\"legend-cta-title\">Raise complete. Now begins Legend chapter two.</div><div class=\"legend-cta-copy\">You reached the top level, which means you’re officially a Walrus companion now.<br>Choose <strong>Evolve</strong> for a Mythic form, or <strong>Customize</strong> colors and accessories to make your Legend Walrus feel like yours.</div><div id=\"legendLab\" class=\"legend-lab\"></div><div class=\"legend-cta-actions\"><a class=\"legend-cta-btn x-btn\" href=\"https://x.com/tajumaruxxx\" target=\"_blank\" rel=\"noopener noreferrer\">Follow on 𝕏</a><a class=\"legend-cta-btn note-btn\" href=\"https://note.com/tajumaru\" target=\"_blank\" rel=\"noopener noreferrer\">Read the Note posts</a></div><div class=\"buddy-tip\">Becoming Tajumaru’s friend increases the odds of unexpected Walrus talk by about 1.7x.<br><span style=\"color:rgba(255,255,255,0.34);font-size:0.94em\">Built on Walrus Protocol · Walgo.xyz</span></div></div>",
+        unlock3_title: 'Deep-Sea Log Search',
+        unlock3_body1: "<div class=\"section-caption\">This is where you observe incomplete fragments that your Walrus drags up from the deep. They are not readable at first. Decode them slowly and look for meaning between them.</div><div id=\"deepseaLogSystem\" class=\"deepsea-terminal\"></div>",
+        unlock3_body2: "<div class=\"section-caption\">Fragments also increase over time. Once several observation logs line up, words that meant nothing alone begin to form a shape.</div><div id=\"deepseaArchiveMount\" class=\"deepsea-archive-shell\"></div>",
+        deepsea_status: 'Observation Log',
+        deepsea_status_wait: 'The abyss is quiet. More fragments will surface after some time.',
+        deepsea_status_new: 'New fragments surfaced while you were away.',
+        deepsea_decode: 'Decode',
+        deepsea_read: 'Read fragment',
+        deepsea_stash: 'Store in the deep',
+        deepsea_thread: 'Related signal',
+        deepsea_thread_hull: 'Hull fragment',
+        deepsea_thread_signal: 'Residual signal',
+        deepsea_thread_route: 'Return route',
+        deepsea_archive: 'Stored fragments',
+        deepsea_empty: 'No observable fragments yet.',
+        deepsea_archive_empty: 'Nothing has been stored in the deep yet.',
+        deepsea_progress: 'Decode rate',
+        deepsea_relation: 'Connection hint',
+        deepsea_relation_none: 'Alone, it still refuses to mean anything.',
+        deepsea_read_locked: 'The fragment is still too rough. Decode it a little more first.',
+        deepsea_unlock_msg: 'A new fragment surfaced from the deep.',
+        deepsea_decode_msg: 'A little more became visible beyond the noise.',
+        deepsea_stash_msg: 'The fragment was stored back in the deep.',
+        deepsea_read_msg: 'The fragments connected, but not into a complete meaning yet.',
+        unlock4_tag: '✦ Lv.4 — Anomaly Drift',
+        unlock4_title: 'Anomaly Drift',
+        unlock4_body: "<div class=\"anomaly-hub-shell\"><div class=\"anomaly-hub-title\">The Walrus can no longer keep a stable drift.</div><div class=\"anomaly-hub-copy\">This may not be growth, but mutation.<br>From here on, sound, resonance, and deep-sea logs begin connecting through quiet damage.</div><div id=\"anomalyHub\" class=\"anomaly-hub\"></div></div>",
+        anomaly_sound_title: 'Anomalous Audio',
+        anomaly_sound_copy: 'Generate a random WebAudio fragment',
+        anomaly_sound_hint: 'Leaves room for late-night and Friend Resonance variants',
+        anomaly_friend_title: 'Friend Resonance',
+        anomaly_friend_copy: 'Pull resonance in from a Friend QR',
+        anomaly_friend_hint: 'The Walrus color and logs may distort after a scan',
+        anomaly_abyss_title: 'Abyss Layer',
+        anomaly_abyss_copy: 'Connect to the abnormal deep-sea route',
+        anomaly_abyss_hint: 'Reserved for daily logs, audio shifts, and rare appearances',
+        anomaly_hub_status: 'ANOMALY SIGNAL',
+        anomaly_hub_status_active: 'Drift stability is compromised. Reaction logs are no longer guaranteed.',
+        anomaly_hub_status_resonance: 'Friend Resonance is still echoing through the room.',
+        anomaly_hub_status_night: 'It is late. The anomalous audio sinks a little deeper tonight.',
+        anomaly_sound_msg: '🎛 An anomalous source opened. The edge of the sound warped slightly.',
+        anomaly_abyss_msg: '🌊 The Abyss Layer entrance surfaced. Only the first route is open for now.',
+        anomaly_portal_sound: 'Open anomalous audio',
+        anomaly_portal_friend: 'Open Friend QR',
+        anomaly_portal_abyss: 'Open Abyss Layer',
+        abyss_card_copy: 'An abnormal layer below the regular deep-sea route. Only the entrance is open for now, with room for daily logs, sound shifts, and rare appearances later.',
+        abyss_chip_route: 'UI Route Ready',
+        abyss_chip_daily: 'Daily Logs Slot',
+        abyss_chip_rare: 'Rare Spawn Slot',
         legend_lab_title: 'Legend Lab',
         legend_lab_idle: 'Not chosen',
         legend_lab_evolved: 'Mythic evolved',
@@ -2641,6 +2734,88 @@ let currentTheme = 'deep';
 let lastSurfaceTheme = 'lagoon';
 let socialPopupPending = false;
 let activeCollectorSpeechId = '';
+const DEEPSEA_LOG_DEFS = Object.freeze([
+    {
+        id: 'bathys-01',
+        thread: 'hull',
+        order: 1,
+        unlockStep: 0,
+        titleJa: '観測断片 A-01',
+        titleEn: 'Observation Fragment A-01',
+        fullJa: '耐圧殻の内側に、誰も打っていないはずのノックが三回だけ記録されている。',
+        fullEn: 'Inside the pressure hull, three knocks were recorded that no one should have made.'
+    },
+    {
+        id: 'bathys-02',
+        thread: 'hull',
+        order: 2,
+        unlockStep: 1,
+        titleJa: '観測断片 A-02',
+        titleEn: 'Observation Fragment A-02',
+        fullJa: 'ノックの間隔は一定ではない。最後の一回だけ、こちらの心拍と重なっていた。',
+        fullEn: 'The spacing of the knocks was not even. Only the last one overlapped with your heartbeat.'
+    },
+    {
+        id: 'bathys-03',
+        thread: 'hull',
+        order: 3,
+        unlockStep: 4,
+        titleJa: '観測断片 A-03',
+        titleEn: 'Observation Fragment A-03',
+        fullJa: '殻の外側には何もいない。だが記録上、応答は外から返ってきている。',
+        fullEn: 'Nothing was outside the hull, yet the record insists the answer came from beyond it.'
+    },
+    {
+        id: 'signal-01',
+        thread: 'signal',
+        order: 1,
+        unlockStep: 2,
+        titleJa: '観測断片 S-01',
+        titleEn: 'Observation Fragment S-01',
+        fullJa: '受信した波形の末尾に、存在しないはずの周波数がひとつだけ余っている。',
+        fullEn: 'At the tail of the received waveform, one extra frequency remained that should not exist.'
+    },
+    {
+        id: 'signal-02',
+        thread: 'signal',
+        order: 2,
+        unlockStep: 3,
+        titleJa: '観測断片 S-02',
+        titleEn: 'Observation Fragment S-02',
+        fullJa: '余剰周波数は雑音に見えるが、一定時間ごとに名前のような揺れ方をする。',
+        fullEn: 'The extra frequency looks like noise, but at fixed intervals it trembles like a name.'
+    },
+    {
+        id: 'signal-03',
+        thread: 'signal',
+        order: 3,
+        unlockStep: 6,
+        titleJa: '観測断片 S-03',
+        titleEn: 'Observation Fragment S-03',
+        fullJa: 'その揺れは音ではなく、呼びかけの癖に近い。誰かがこちらの受信癖を知っている。',
+        fullEn: 'The tremor is closer to a calling habit than a sound. Something knows how you listen.'
+    },
+    {
+        id: 'route-01',
+        thread: 'route',
+        order: 1,
+        unlockStep: 5,
+        titleJa: '観測断片 R-01',
+        titleEn: 'Observation Fragment R-01',
+        fullJa: '帰還ルートの途中に、一度だけ地図にない浅瀬が挟まっている。',
+        fullEn: 'On the way back, a shallow patch appeared once where no map says it should.'
+    },
+    {
+        id: 'route-02',
+        thread: 'route',
+        order: 2,
+        unlockStep: 7,
+        titleJa: '観測断片 R-02',
+        titleEn: 'Observation Fragment R-02',
+        fullJa: '浅瀬に残っていた足跡は前向きではない。帰るための足跡だけが先に並んでいた。',
+        fullEn: 'The footprints left on the shallows were not moving forward. Only the return steps were already there.'
+    }
+]);
 let portfolioDragState = null;
 let legendAscensionTimers = [];
 
@@ -2688,9 +2863,8 @@ function detectSurfaceTheme(){
 }
 
 function getLvName(lv){
-    if(lv >= 4 && G && G.legendEvolution) return 'Mythic Legend Walrus';
-    if(lv >= 4 && G?.behavior?.originPath) return getOriginPathLabel(G.behavior.originPath, false) + ' Walrus';
-    return ['','Baby Walrus','Child Walrus','Adult Walrus','Legend Walrus'][lv] || '';
+    if(lv >= 4) return 'Anomaly Drift Walrus';
+    return ['','Baby Walrus','Child Walrus','Adult Walrus','Anomaly Drift Walrus'][lv] || '';
 }
 
 function localeCode(){
@@ -3235,6 +3409,234 @@ function setCollectorStorage(map){
     try { localStorage.setItem(COLLECTOR_BLOB_KEY, JSON.stringify(map)); } catch(e){}
 }
 
+function createDefaultDeepSeaLogState(){
+    return {
+        knownIds: ['bathys-01'],
+        decode: {},
+        stashedIds: [],
+        lastRollAt: Date.now(),
+        surfacedCount: 0,
+        lastNewCount: 0
+    };
+}
+
+function normalizeDeepSeaLogState(state){
+    const base = createDefaultDeepSeaLogState();
+    const next = (state && typeof state === 'object') ? state : {};
+    const validIds = new Set(DEEPSEA_LOG_DEFS.map(item => item.id));
+    base.knownIds = Array.isArray(next.knownIds) ? next.knownIds.filter(id => validIds.has(id)) : base.knownIds;
+    if(!base.knownIds.length) base.knownIds = ['bathys-01'];
+    base.decode = {};
+    const rawDecode = (next.decode && typeof next.decode === 'object') ? next.decode : {};
+    Object.keys(rawDecode).forEach(id => {
+        if(validIds.has(id)) base.decode[id] = Math.max(0, Math.min(3, Number(rawDecode[id]) || 0));
+    });
+    base.stashedIds = Array.isArray(next.stashedIds) ? next.stashedIds.filter(id => validIds.has(id)) : [];
+    base.lastRollAt = Math.max(0, Number(next.lastRollAt) || Date.now());
+    base.surfacedCount = Math.max(base.knownIds.length, Number(next.surfacedCount) || base.knownIds.length);
+    base.lastNewCount = Math.max(0, Number(next.lastNewCount) || 0);
+    return base;
+}
+
+function getDeepSeaLogState(){
+    try {
+        return normalizeDeepSeaLogState(JSON.parse(localStorage.getItem(DEEPSEA_LOG_STORAGE_KEY) || '{}'));
+    } catch(e){
+        return createDefaultDeepSeaLogState();
+    }
+}
+
+function saveDeepSeaLogState(state){
+    try { localStorage.setItem(DEEPSEA_LOG_STORAGE_KEY, JSON.stringify(normalizeDeepSeaLogState(state))); } catch(e){}
+}
+
+function maskDeepSeaText(text, progress = 0){
+    const source = String(text || '');
+    if(progress >= 3) return source;
+    const keepRatio = progress <= 0 ? 0.22 : progress === 1 ? 0.48 : 0.72;
+    const chars = source.split('');
+    return chars.map((ch, index) => {
+        if(/\s|[、。,.!?'"]/u.test(ch)) return ch;
+        const edgeBias = index < 5 || index > chars.length - 6;
+        if(edgeBias && progress >= 1) return ch;
+        const stable = ((index * 37) % 100) / 100;
+        return stable < keepRatio ? ch : (index % 3 === 0 ? '░' : '█');
+    }).join('');
+}
+
+function getDeepSeaThreadProgress(state, thread){
+    const threadDefs = DEEPSEA_LOG_DEFS.filter(item => item.thread === thread);
+    const known = threadDefs.filter(item => state.knownIds.includes(item.id)).length;
+    return { known, total: threadDefs.length };
+}
+
+function getDeepSeaThreadLabel(thread){
+    return t(`deepsea_thread_${thread}`) || thread.toUpperCase();
+}
+
+function buildDeepSeaRelationHint(state, def){
+    const threadItems = DEEPSEA_LOG_DEFS
+        .filter(item => item.thread === def.thread && state.knownIds.includes(item.id))
+        .sort((a, b) => a.order - b.order);
+    if(threadItems.length <= 1) return t('deepsea_relation_none');
+    const labels = threadItems.map(item => currentLang === 'ja' ? item.titleJa : item.titleEn);
+    if(currentLang === 'ja'){
+        return `${getDeepSeaThreadLabel(def.thread)}が ${labels.join(' → ')} の順で並び始めている。`;
+    }
+    return `${getDeepSeaThreadLabel(def.thread)} is beginning to align as ${labels.join(' -> ')}.`;
+}
+
+function rollDeepSeaLogs(state){
+    const next = normalizeDeepSeaLogState(state);
+    const now = Date.now();
+    const intervalMs = 75 * 60 * 1000;
+    const steps = Math.max(0, Math.floor((now - next.lastRollAt) / intervalMs));
+    next.lastNewCount = 0;
+    if(!steps) return next;
+    const candidates = DEEPSEA_LOG_DEFS
+        .filter(item => !next.knownIds.includes(item.id))
+        .sort((a, b) => a.unlockStep - b.unlockStep);
+    let unlocked = 0;
+    for(let i = 0; i < steps && candidates.length; i++){
+        const gate = next.surfacedCount;
+        const idx = candidates.findIndex(item => item.unlockStep <= gate + 1);
+        const pickedIndex = idx >= 0 ? idx : 0;
+        const picked = candidates.splice(pickedIndex, 1)[0];
+        if(!picked) break;
+        next.knownIds.push(picked.id);
+        next.surfacedCount += 1;
+        unlocked += 1;
+    }
+    next.lastNewCount = unlocked;
+    next.lastRollAt = now;
+    return next;
+}
+
+function ensureDeepSeaLogState(){
+    let state = getDeepSeaLogState();
+    state = rollDeepSeaLogs(state);
+    saveDeepSeaLogState(state);
+    return state;
+}
+
+function decodeDeepSeaLog(id){
+    const state = ensureDeepSeaLogState();
+    state.decode[id] = Math.max(0, Math.min(3, (state.decode[id] || 0) + 1));
+    saveDeepSeaLogState(state);
+    setMsg(t('deepsea_decode_msg'));
+    renderDeepSeaLogSystem();
+}
+
+function readDeepSeaLog(id){
+    const state = ensureDeepSeaLogState();
+    const def = DEEPSEA_LOG_DEFS.find(item => item.id === id);
+    if(!def) return;
+    const progress = Math.max(0, Math.min(3, state.decode[id] || 0));
+    if(progress < 2){
+        showToast(t('deepsea_read_locked'), true);
+        setMsg(t('deepsea_read_locked'), true);
+        return;
+    }
+    state.decode[id] = Math.max(2, state.decode[id] || 0);
+    saveDeepSeaLogState(state);
+    const fragment = currentLang === 'ja' ? def.fullJa : def.fullEn;
+    const relation = buildDeepSeaRelationHint(state, def);
+    setMsg(`${fragment}\n\n${t('deepsea_relation')}：${relation}`);
+    showToast(t('deepsea_read_msg'));
+    renderDeepSeaLogSystem();
+}
+
+function stashDeepSeaLog(id){
+    const state = ensureDeepSeaLogState();
+    if(!state.stashedIds.includes(id)) state.stashedIds.unshift(id);
+    saveDeepSeaLogState(state);
+    setMsg(t('deepsea_stash_msg'));
+    renderDeepSeaLogSystem();
+}
+
+function renderDeepSeaLogSystem(){
+    const mount = document.getElementById('deepseaLogSystem');
+    const archiveMount = document.getElementById('deepseaArchiveMount');
+    if(!mount || !archiveMount) return;
+    const state = ensureDeepSeaLogState();
+    const activeLogs = DEEPSEA_LOG_DEFS.filter(item => state.knownIds.includes(item.id) && !state.stashedIds.includes(item.id));
+    const archiveLogs = DEEPSEA_LOG_DEFS.filter(item => state.stashedIds.includes(item.id));
+    const threadSummary = ['hull', 'signal', 'route'].map(thread => {
+        const progress = getDeepSeaThreadProgress(state, thread);
+        return `<span class="deepsea-thread-pill">${escapeHtml(getDeepSeaThreadLabel(thread))} ${progress.known}/${progress.total}</span>`;
+    }).join('');
+    mount.innerHTML = `
+        <div class="deepsea-terminal-head">
+            <div>
+                <div class="deepsea-kicker">${t('deepsea_status')}</div>
+                <div class="deepsea-terminal-copy">${state.lastNewCount > 0 ? t('deepsea_status_new') : t('deepsea_status_wait')}</div>
+            </div>
+            <div class="deepsea-thread-row">${threadSummary}</div>
+        </div>
+        <div class="deepsea-log-list">
+            ${activeLogs.length ? activeLogs.map(def => {
+                const progress = Math.max(0, Math.min(3, state.decode[def.id] || 0));
+                const thread = getDeepSeaThreadProgress(state, def.thread);
+                const text = maskDeepSeaText(currentLang === 'ja' ? def.fullJa : def.fullEn, progress);
+                const relationHint = buildDeepSeaRelationHint(state, def);
+                return `
+                    <article class="deepsea-log-card ${progress >= 3 ? 'decoded' : ''}">
+                        <div class="deepsea-log-head">
+                            <div>
+                                <div class="deepsea-log-title">${currentLang === 'ja' ? def.titleJa : def.titleEn}</div>
+                                <div class="deepsea-log-meta">${t('deepsea_progress')} ${Math.round((progress / 3) * 100)}%</div>
+                            </div>
+                            <div class="deepsea-log-thread">${escapeHtml(getDeepSeaThreadLabel(def.thread))} ${thread.known}/${thread.total}</div>
+                        </div>
+                        <div class="deepsea-log-fragment">${escapeHtml(text)}</div>
+                        <div class="deepsea-log-relation">${t('deepsea_relation')} ${escapeHtml(relationHint)}</div>
+                        <div class="deepsea-log-actions">
+                            <button class="collector-btn primary" type="button" onclick="decodeDeepSeaLog('${def.id}')">${t('deepsea_decode')}</button>
+                            <button class="collector-btn" type="button" onclick="readDeepSeaLog('${def.id}')" ${progress < 2 ? 'disabled' : ''}>${t('deepsea_read')}</button>
+                            <button class="collector-btn alt" type="button" onclick="stashDeepSeaLog('${def.id}')">${t('deepsea_stash')}</button>
+                        </div>
+                    </article>`;
+            }).join('') : `<div class="deepsea-empty">${t('deepsea_empty')}</div>`}
+        </div>`;
+    archiveMount.innerHTML = `
+        <div class="deepsea-archive-head">
+            <div class="deepsea-kicker">${t('deepsea_archive')}</div>
+        </div>
+        <div class="deepsea-archive-list">
+            ${archiveLogs.length ? archiveLogs.map(def => `
+                <div class="deepsea-archive-item">
+                    <strong>${escapeHtml(currentLang === 'ja' ? def.titleJa : def.titleEn)}</strong>
+                    <span>${escapeHtml(maskDeepSeaText(currentLang === 'ja' ? def.fullJa : def.fullEn, Math.max(2, state.decode[def.id] || 0)))}</span>
+                </div>
+            `).join('') : `<div class="deepsea-empty">${t('deepsea_archive_empty')}</div>`}
+        </div>`;
+    if(state.lastNewCount > 0 && Number(mount.dataset.lastSurfacedCount || 0) !== state.surfacedCount){
+        setMsg(t('deepsea_unlock_msg'));
+    }
+    mount.dataset.lastSurfacedCount = String(state.surfacedCount);
+    if(state.lastNewCount > 0){
+        state.lastNewCount = 0;
+        saveDeepSeaLogState(state);
+    }
+}
+
+let deepSeaRefreshTimer = 0;
+function refreshDeepSeaLogsIfVisible(){
+    if(document.hidden) return;
+    if(!G || G.lv < 3) return;
+    const sec2 = document.getElementById('sec2');
+    if(!sec2 || !sec2.classList.contains('show')) return;
+    renderDeepSeaLogSystem();
+}
+
+function setupDeepSeaLogRefresh(){
+    if(deepSeaRefreshTimer) return;
+    deepSeaRefreshTimer = window.setInterval(refreshDeepSeaLogsIfVisible, 60000);
+    document.addEventListener('visibilitychange', () => {
+        if(!document.hidden) refreshDeepSeaLogsIfVisible();
+    });
+}
+
 function getPortfolioBlobStorage(){
     try {
         return JSON.parse(localStorage.getItem(PORTFOLIO_BLOB_KEY) || '{}') || {};
@@ -3644,6 +4046,12 @@ function applyLanguage(){
     if(document.getElementById('soundLabTitle')) document.getElementById('soundLabTitle').textContent = t('sound_lab_title');
     if(document.getElementById('soundDietLabel')) document.getElementById('soundDietLabel').textContent = t('sound_memory_title');
     if(document.getElementById('soundTrackLabel')) document.getElementById('soundTrackLabel').textContent = t('sound_track_title');
+    if(document.getElementById('anomalySoundBtn')) document.getElementById('anomalySoundBtn').textContent = t('anomaly_sound_title');
+    if(document.getElementById('abyssLayerTitle')) document.getElementById('abyssLayerTitle').textContent = t('anomaly_abyss_title');
+    if(document.getElementById('abyssLayerCopy')) document.getElementById('abyssLayerCopy').textContent = t('abyss_card_copy');
+    if(document.getElementById('abyssChipRoute')) document.getElementById('abyssChipRoute').textContent = t('abyss_chip_route');
+    if(document.getElementById('abyssChipDaily')) document.getElementById('abyssChipDaily').textContent = t('abyss_chip_daily');
+    if(document.getElementById('abyssChipRare')) document.getElementById('abyssChipRare').textContent = t('abyss_chip_rare');
     if(document.getElementById('btnFeedVerb')) document.getElementById('btnFeedVerb').textContent = t('feed');
     if(document.getElementById('btnPetVerb')) document.getElementById('btnPetVerb').textContent = t('pet');
     if(document.getElementById('btnPlayVerb')) document.getElementById('btnPlayVerb').textContent = t('play');
@@ -3683,7 +4091,7 @@ function applyLanguage(){
         setText(sec2.querySelector('.utitle'), t('unlock3_title'));
         setHtml(sec2Bodies[0], t('unlock3_body1'));
         setHtml(sec2Bodies[1], t('unlock3_body2'));
-        initCollectorModeCards();
+        renderDeepSeaLogSystem();
     }
     const sec3 = document.getElementById('sec3');
     if(sec3){
@@ -3691,7 +4099,7 @@ function applyLanguage(){
         setText(sec3.querySelector('.utag'), t('unlock4_tag'));
         setText(sec3.querySelector('.utitle'), t('unlock4_title'));
         setHtml(sec3.querySelector('.ubody'), t('unlock4_body'));
-        renderLegendLab();
+        renderAnomalyHub();
     }
 
     if(document.getElementById('resetBtn')) document.getElementById('resetBtn').textContent = t('reset');
@@ -4496,6 +4904,128 @@ function renderLegendLab(){
             </div>
             <div class="legend-lab-note">${G.behavior?.originPath ? getOriginPathCopy(G.behavior.originPath) : t('legend_lab_note')}</div>
         </div>`;
+}
+
+function scrollToCard(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const container = document.getElementById('mainScreen');
+    if(container){
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = el.getBoundingClientRect();
+        const currentTop = container.scrollTop;
+        const offset = targetRect.top - containerRect.top;
+        const targetTop = Math.max(0, currentTop + offset - (container.clientHeight - targetRect.height) / 2);
+        container.scrollTo({ top: targetTop, behavior: 'smooth' });
+    } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    el.classList.remove('focus-pulse');
+    void el.offsetWidth;
+    el.classList.add('focus-pulse');
+    window.setTimeout(() => el.classList.remove('focus-pulse'), 1600);
+}
+
+function renderAnomalyHub(){
+    const hub = document.getElementById('anomalyHub');
+    if(!hub || G.lv < 4) return;
+    const dailySlot = getAnomalyDailySlotDef?.();
+    const status = isFriendResonanceActive?.()
+        ? t('anomaly_hub_status_resonance')
+        : G?.daily?.timeBand === 'night'
+            ? t('anomaly_hub_status_night')
+            : t('anomaly_hub_status_active');
+    hub.innerHTML = `
+        <div class="anomaly-hub-status">
+            <div class="anomaly-hub-kicker">${t('anomaly_hub_status')}</div>
+            <div class="anomaly-hub-note">${escapeHtml(status)}</div>
+            ${dailySlot ? `<div class="anomaly-hub-note">${escapeHtml(currentLang === 'ja' ? `今日の異常: ${dailySlot.labelJa} // ${dailySlot.hintJa}` : `Today's anomaly: ${dailySlot.labelEn} // ${dailySlot.hintEn}`)}</div>` : ''}
+        </div>
+        <div class="anomaly-grid">
+            <button class="anomaly-card" type="button" onclick="triggerAnomalySound()">
+                <span class="anomaly-card-kicker">SOUND LAB</span>
+                <strong>${t('anomaly_sound_title')}</strong>
+                <span>${t('anomaly_sound_copy')}</span>
+                <em>${t('anomaly_sound_hint')}</em>
+            </button>
+            <button class="anomaly-card" type="button" onclick="openFriendQrFromAnomaly()">
+                <span class="anomaly-card-kicker">FRIEND QR</span>
+                <strong>${t('anomaly_friend_title')}</strong>
+                <span>${t('anomaly_friend_copy')}</span>
+                <em>${t('anomaly_friend_hint')}</em>
+            </button>
+            <button class="anomaly-card abyss" type="button" onclick="openAbyssLayer()">
+                <span class="anomaly-card-kicker">DEEP SEA</span>
+                <strong>${t('anomaly_abyss_title')}</strong>
+                <span>${t('anomaly_abyss_copy')}</span>
+                <em>${t('anomaly_abyss_hint')}</em>
+            </button>
+        </div>`;
+}
+
+function triggerAnomalySound(){
+    if(G.lv < 4) return;
+    const ctx = getAudioCtx();
+    const mg = getMasterGain();
+    if(!ctx || !mg){
+        showToast(currentLang === 'ja' ? '先に画面をタップして音を有効化してね' : 'Tap the screen once to enable audio', true);
+        return;
+    }
+    const anomaly = ensureAnomalyState?.();
+    const isNight = G?.daily?.timeBand === 'night';
+    const resonance = isFriendResonanceActive?.();
+    const base = isNight ? 162 : 208;
+    const sequence = Array.from({ length: 4 + Math.floor(Math.random() * 3) }, (_, index) => ({
+        freq: base + Math.random() * 420 + index * (resonance ? 26 : 18),
+        type: resonance ? (index % 2 ? 'sawtooth' : 'triangle') : (index % 2 ? 'triangle' : 'sine'),
+        dur: 0.08 + Math.random() * 0.26,
+        vol: 0.024 + Math.random() * (resonance ? 0.05 : 0.03),
+        at: index * (0.07 + Math.random() * 0.08)
+    }));
+    sequence.forEach(note => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        osc.type = note.type;
+        osc.frequency.setValueAtTime(note.freq, ctx.currentTime + note.at);
+        osc.frequency.linearRampToValueAtTime(note.freq * (0.62 + Math.random() * 0.9), ctx.currentTime + note.at + note.dur);
+        filter.type = resonance ? 'bandpass' : 'lowpass';
+        filter.frequency.setValueAtTime(420 + Math.random() * 1800, ctx.currentTime + note.at);
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime + note.at);
+        gain.gain.linearRampToValueAtTime(note.vol, ctx.currentTime + note.at + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + note.at + note.dur);
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(mg);
+        osc.onended = () => { try { osc.disconnect(); filter.disconnect(); gain.disconnect(); } catch(e){} };
+        osc.start(ctx.currentTime + note.at);
+        osc.stop(ctx.currentTime + note.at + note.dur + 0.02);
+    });
+    if(anomaly){
+        anomaly.lastAudioSeed = `${Date.now()}:${isNight ? 'night' : 'day'}:${resonance ? 'res' : 'base'}`;
+    }
+    setMsg(t('anomaly_sound_msg'));
+    showToast(currentLang === 'ja' ? '異常音源を再生したよ' : 'Anomalous audio generated');
+    scrollToCard('soundLab');
+    document.getElementById('soundLab')?.classList.add('anomaly-source-active');
+    window.setTimeout(() => document.getElementById('soundLab')?.classList.remove('anomaly-source-active'), 1800);
+    saveG?.();
+}
+
+function openFriendQrFromAnomaly(){
+    scrollToCard('sec1');
+    openFriendQrModal();
+}
+
+function openAbyssLayer(){
+    const layer = document.getElementById('abyssLayerCard');
+    if(layer){
+        layer.classList.add('show', 'active');
+        scrollToCard('abyssLayerCard');
+    } else {
+        scrollToCard('sec3');
+    }
+    setMsg(t('anomaly_abyss_msg'));
 }
 
 function chooseLegendPath(path){
