@@ -232,8 +232,8 @@ function updateWalkHero() {
                 : '"I hear something out there. Let us keep walking!"';
         } else if(isHungry) {
             desire.textContent = isJa
-                ? '「お腹がすいた… 先に魚を食べてから散歩したいよ」'
-                : '"I am too hungry... feed me first, then let us walk."';
+                ? '「お腹がすいた… 先におそなえしてから散歩したいよ」'
+                : '"I am too hungry... start with an offering, then let us walk."';
         } else if(isBored) {
             desire.textContent = isJa
                 ? '「外に出たいな。散歩したら元気になれそう！」'

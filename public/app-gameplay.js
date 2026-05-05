@@ -765,6 +765,262 @@ function renderActionTitle(key){
     return `<span class="act-en">${en}</span><span class="act-jp">${jp}</span>`;
 }
 
+const ACTION_RITUAL_STATE = {
+    lastType: '',
+    streak: 0,
+    history: []
+};
+
+function getActionRitualState(type){
+    const history = Array.isArray(ACTION_RITUAL_STATE.history) ? ACTION_RITUAL_STATE.history : [];
+    const lastType = ACTION_RITUAL_STATE.lastType || '';
+    const streak = lastType === type ? Math.max(0, Number(ACTION_RITUAL_STATE.streak) || 0) : 0;
+    return {
+        lastType,
+        streak,
+        history: history.slice(0, 6)
+    };
+}
+
+function commitActionRitualState(type){
+    const nextStreak = ACTION_RITUAL_STATE.lastType === type
+        ? (Math.max(0, Number(ACTION_RITUAL_STATE.streak) || 0) + 1)
+        : 1;
+    ACTION_RITUAL_STATE.lastType = type;
+    ACTION_RITUAL_STATE.streak = nextStreak;
+    ACTION_RITUAL_STATE.history.unshift({ type, ts: Date.now() });
+    if(ACTION_RITUAL_STATE.history.length > 8) ACTION_RITUAL_STATE.history.length = 8;
+    return nextStreak;
+}
+
+function getActionRepeatPenalty(streak = 0){
+    if(streak <= 1) return 0;
+    return Math.min(0.38, (streak - 1) * 0.08);
+}
+
+function getActionRitualContext(type, now = Date.now()){
+    ensureDailyState();
+    const ritual = getActionRitualState(type);
+    const soundInsight = typeof getSoundDietInsight === 'function' ? getSoundDietInsight() : null;
+    const soundTotal = Math.max(0, Number(soundInsight?.diet?.total) || 0);
+    const soundStarved = typeof isSoundStarved === 'function' ? !!isSoundStarved(now) : false;
+    return {
+        type,
+        now,
+        lastType: ritual.lastType,
+        repeatCount: ritual.streak,
+        repeatPenalty: getActionRepeatPenalty(ritual.streak),
+        timeBand: getWalrusTimeBand(),
+        weather: G?.daily?.weather || 'clear',
+        anomalySlotId: G?.daily?.anomalySlotId || '',
+        anomalyActive: isAnomalyModeActive(),
+        soundStarved,
+        soundTotal,
+        favoriteSound: soundInsight?.favoriteLabel || '',
+        friendResonance: isFriendResonanceActive(now),
+        hunger: Math.max(0, Number(G.hunger) || 0),
+        happy: Math.max(0, Number(G.happy) || 0)
+    };
+}
+
+function appendActionLine(text, addition){
+    const base = String(text || '').trim();
+    const suffix = String(addition || '').trim();
+    if(!suffix) return base;
+    return base ? `${base}。${suffix}` : suffix;
+}
+
+function getActionRejectionOutcome(type, context, baseOutcome){
+    const copy = {
+        offer: {
+            ja: '供物は沈んだが、今日は深く受理されなかった',
+            en: 'The offering sank, but today it was not fully accepted'
+        },
+        sync: {
+            ja: '同期を試したが、拍だけが少し離れた',
+            en: 'You tried to sync, but the beat slipped away'
+        },
+        drift: {
+            ja: '漂流に出たが、すぐ浅い層へ押し戻された',
+            en: 'It drifted out, then was pushed back to the shallow layer'
+        }
+    }[type];
+    return {
+        ...baseOutcome,
+        textJa: copy?.ja || baseOutcome.textJa,
+        textEn: copy?.en || baseOutcome.textEn,
+        rejected: true,
+        special: true,
+        logTier: 'odd',
+        delta: type === 'offer'
+            ? { hunger: 4, happy: 0, exp: 2 }
+            : type === 'sync'
+                ? { hunger: 0, happy: 3, exp: 3 }
+                : { hunger: -1, happy: 1, exp: 6 },
+        reactionNoteJa: context.repeatCount >= 3 ? '同じ信号が続きすぎている。' : '今日は少し気分がずれている。',
+        reactionNoteEn: context.repeatCount >= 3 ? 'The same signal has repeated too many times.' : 'Its mood is drifting slightly out of phase.'
+    };
+}
+
+function buildRitualActionOutcome(type, baseOutcome, context){
+    const outcome = {
+        ...baseOutcome,
+        delta: type === 'offer'
+            ? { hunger: 12, happy: 3, exp: 7 }
+            : type === 'sync'
+                ? { hunger: 0, happy: 12, exp: 9 }
+                : { hunger: -3, happy: 4, exp: 15 },
+        logTier: baseOutcome.secret ? 'rare' : baseOutcome.special ? 'odd' : 'normal',
+        supplyLog: false,
+        responseSuppressed: false,
+        uiShift: false,
+        ritualFx: type,
+        anomalyPulse: false
+    };
+
+    if(outcome.special){
+        if(type === 'offer') outcome.delta.exp += 4;
+        if(type === 'sync') outcome.delta.happy += 3;
+        if(type === 'drift') outcome.delta.exp += 5;
+    }
+    if(outcome.secret){
+        outcome.delta.exp += type === 'drift' ? 12 : 9;
+        if(type !== 'drift') outcome.delta.happy += 4;
+    }
+
+    if(context.repeatPenalty > 0){
+        const scale = Math.max(0.58, 1 - context.repeatPenalty);
+        outcome.delta.hunger = Math.round(outcome.delta.hunger * scale);
+        outcome.delta.happy = Math.round(outcome.delta.happy * scale);
+        outcome.delta.exp = Math.round(outcome.delta.exp * scale);
+    }
+
+    if(type === 'offer'){
+        if(context.hunger >= 88){
+            outcome.delta.hunger = Math.max(3, Math.round(outcome.delta.hunger * 0.35));
+            outcome.delta.happy = Math.max(0, Math.round(outcome.delta.happy * 0.5));
+            outcome.textJa = appendActionLine(outcome.textJa, 'もう満ちていて、供物はゆっくり沈んだ');
+            outcome.textEn = `${outcome.textEn}. It is already full, so the offering sank slowly`;
+        } else if(context.hunger <= 26){
+            outcome.delta.hunger += 5;
+            outcome.delta.exp += 2;
+        }
+        if(Math.random() < 0.11){
+            outcome.supplyLog = true;
+            outcome.special = true;
+            outcome.logTier = 'odd';
+            outcome.textJa = appendActionLine(outcome.textJa, '供物ログが一行だけ残った');
+            outcome.textEn = `${outcome.textEn}. A one-line offering log remained`;
+        }
+        if(context.anomalyActive && Math.random() < 0.14){
+            outcome.responseSuppressed = true;
+            outcome.textJa = '供物は沈んだ。返事はなかった。';
+            outcome.textEn = 'The offering sank. No answer came back.';
+            outcome.logTier = 'anomaly';
+        }
+    } else if(type === 'sync'){
+        if(context.timeBand === 'dawn'){
+            outcome.delta.happy += 3;
+            outcome.textJa = appendActionLine(outcome.textJa, '夜明けの拍がやわらかく重なった');
+            outcome.textEn = `${outcome.textEn}. Dawn let the rhythm overlap more softly`;
+        } else if(context.timeBand === 'night'){
+            outcome.delta.exp += 3;
+            outcome.textJa = appendActionLine(outcome.textJa, '夜の層で、同期が少し深く沈んだ');
+            outcome.textEn = `${outcome.textEn}. The night layer pulled the sync a little deeper`;
+        }
+        if(context.soundTotal <= 1){
+            outcome.delta.happy = Math.max(4, outcome.delta.happy - 3);
+            outcome.textJa = appendActionLine(outcome.textJa, 'まだ音の記憶が薄く、共鳴は浅い');
+            outcome.textEn = `${outcome.textEn}. The sound memory is still thin, so the resonance stayed shallow`;
+        }
+        if(context.soundStarved){
+            outcome.delta.happy = Math.max(2, Math.round(outcome.delta.happy * 0.45));
+            outcome.textJa = '同期音が一拍だけ遅れた。';
+            outcome.textEn = 'The sync tone lagged behind by one beat.';
+            outcome.logTier = context.anomalyActive ? 'anomaly' : 'odd';
+            registerAnomalyLog(
+                '同期音が一拍だけ遅れた。',
+                'The sync tone lagged behind by one beat.',
+                'sync',
+                context.anomalyActive ? 'anomaly' : 'odd'
+            );
+        }
+        if(context.friendResonance){
+            outcome.delta.happy += 5;
+            outcome.delta.exp += 4;
+            outcome.special = true;
+            outcome.textJa = appendActionLine(outcome.textJa, 'Friend Resonance が短く走った');
+            outcome.textEn = `${outcome.textEn}. A brief Friend Resonance passed through`;
+        }
+    } else {
+        if(context.weather === 'rain'){
+            outcome.delta.exp += 4;
+            outcome.special = true;
+            outcome.textJa = appendActionLine(outcome.textJa, '雨の層で深海ログが濡れていた');
+            outcome.textEn = `${outcome.textEn}. The abyss log came back wet from the rain layer`;
+        }
+        if(context.timeBand === 'night'){
+            outcome.delta.exp += 4;
+            outcome.textJa = appendActionLine(outcome.textJa, '夜の漂流座標が少し深かった');
+            outcome.textEn = `${outcome.textEn}. The night drift coordinates ran a little deeper`;
+        } else if(context.timeBand === 'dawn'){
+            outcome.delta.happy += 2;
+        }
+        if(context.anomalySlotId === 'rare_echo'){
+            outcome.secret = outcome.secret || Math.random() < 0.18;
+            outcome.delta.exp += 3;
+            outcome.textJa = appendActionLine(outcome.textJa, '漂流座標に知らない印が混ざった');
+            outcome.textEn = `${outcome.textEn}. An unknown mark mixed into the drift coordinates`;
+        } else if(context.anomalySlotId === 'ui_shift'){
+            outcome.uiShift = Math.random() < (context.anomalyActive ? 0.18 : 0.08);
+        } else if(context.anomalySlotId === 'audio_bloom'){
+            outcome.special = true;
+            outcome.textJa = appendActionLine(outcome.textJa, '深海の底で鈍い残響がふくらんだ');
+            outcome.textEn = `${outcome.textEn}. A dull bloom of echo opened at the abyss floor`;
+        }
+        if(context.anomalyActive && Math.random() < 0.12){
+            outcome.logTier = 'anomaly';
+            outcome.delta.exp += 6;
+            outcome.deepSeaLog = true;
+            outcome.textJa = pickRandom([
+                '深海ログが先に届いた。',
+                '漂流座標に知らない印が混ざった。',
+                '帰還点の数字が少しずれていた。'
+            ]);
+            outcome.textEn = pickRandom([
+                'A deep-sea log arrived first.',
+                'An unfamiliar mark mixed into the drift coordinates.',
+                'The return-point numbers were slightly misaligned.'
+            ]);
+            outcome.uiShift = outcome.uiShift || Math.random() < 0.5;
+            outcome.anomalyPulse = true;
+        }
+    }
+
+    if(context.repeatCount >= 2){
+        const repeatLineJa = type === 'offer'
+            ? '同じ供物が続いて、波が少し鈍った'
+            : type === 'sync'
+                ? '同じ拍が続いて、共鳴が少し眠った'
+                : '同じ流れを追いすぎて、座標が平坦になった';
+        const repeatLineEn = type === 'offer'
+            ? 'The repeated offering made the tide a little dull'
+            : type === 'sync'
+                ? 'The repeated beat made the resonance drowsy'
+                : 'Following the same current flattened the coordinates';
+        outcome.textJa = appendActionLine(outcome.textJa, repeatLineJa);
+        outcome.textEn = `${outcome.textEn}. ${repeatLineEn}`;
+    }
+
+    const rejectChance = context.repeatCount >= 2
+        ? Math.min(0.2, 0.04 + (context.repeatCount - 1) * 0.05 + (context.anomalyActive ? 0.03 : 0))
+        : 0;
+    if(rejectChance > 0 && Math.random() < rejectChance){
+        return getActionRejectionOutcome(type, context, outcome);
+    }
+    return outcome;
+}
+
 function getActionOutcome(type){
     if(isAnomalyModeActive()){
         ensureDailyState();
@@ -849,6 +1105,12 @@ function getActionOutcome(type){
 }
 
 function applyActionDelta(type, outcome){
+    if(outcome?.delta){
+        G.hunger = clampNumber(G.hunger + (Number(outcome.delta.hunger) || 0), 0, 100, G.hunger);
+        G.happy = clampNumber(G.happy + (Number(outcome.delta.happy) || 0), 0, 100, G.happy);
+        G.exp = Math.max(0, G.exp + (Number(outcome.delta.exp) || 0));
+        return;
+    }
     if(type === 'offer'){
         G.hunger = Math.min(100, G.hunger + 10 + Math.floor(Math.random() * 9));
         G.happy = Math.min(100, G.happy + 1 + Math.floor(Math.random() * 5));
@@ -883,20 +1145,34 @@ function applyActionDelta(type, outcome){
 
 function getRecommendedAction(){
     const expInLv = G.exp - (G.lv - 1) * 100;
+    const ritual = getActionRitualState();
+    const timeBand = getWalrusTimeBand();
+    const soundStarved = typeof isSoundStarved === 'function' ? !!isSoundStarved() : false;
+    const anomalyActive = isAnomalyModeActive();
     const candidates = [
         {
             key: 'offer',
-            score: G.hunger < 42 ? 120 + (42 - G.hunger) : 20,
+            score: (G.hunger < 42 ? 120 + (42 - G.hunger) : 20)
+                + (timeBand === 'night' ? 6 : 0)
+                + (ritual.lastType === 'offer' ? -22 - ritual.streak * 4 : 8),
             urgency: G.hunger < 24 ? 'urgent' : 'normal'
         },
         {
             key: 'sync',
-            score: G.happy < 45 ? 110 + (45 - G.happy) : 24,
+            score: (G.happy < 45 ? 110 + (45 - G.happy) : 24)
+                + (timeBand === 'dawn' ? 10 : 0)
+                + (soundStarved ? -16 : 12)
+                + (ritual.lastType === 'sync' ? -18 - ritual.streak * 4 : 6)
+                + (isFriendResonanceActive() ? 16 : 0),
             urgency: G.happy < 28 ? 'urgent' : 'normal'
         },
         {
             key: 'drift',
-            score: (G.hunger >= 42 && G.happy >= 45 ? 90 : 28) + Math.max(0, 42 - expInLv) * 0.6,
+            score: ((G.hunger >= 42 && G.happy >= 45 ? 90 : 28) + Math.max(0, 42 - expInLv) * 0.6)
+                + ((G?.daily?.weather === 'rain' || timeBand === 'night') ? 12 : 0)
+                + ((G?.daily?.anomalySlotId === 'rare_echo' || G?.daily?.anomalySlotId === 'ui_shift') ? 10 : 0)
+                + (ritual.lastType === 'drift' ? -20 - ritual.streak * 5 : 8)
+                - (anomalyActive && G.hunger < 34 ? 18 : 0),
             urgency: expInLv < 20 && G.hunger >= 42 ? 'urgent' : 'normal'
         }
     ];
@@ -948,6 +1224,7 @@ function updateActionCards(){
         const hintEl = document.getElementById(def.hintId);
         const btn = document.getElementById(def.buttonId);
         if(!btn) return;
+        const ritual = getActionRitualContext(def.key);
 
         const isFeedNeed = def.key === 'offer' && G.hunger < def.lowThreshold;
         const isPetNeed = def.key === 'sync' && G.happy < def.lowThreshold;
@@ -959,7 +1236,12 @@ function updateActionCards(){
         if(titleEl) titleEl.innerHTML = renderActionTitle(def.key);
         if(verbEl) verbEl.textContent = copy.verb;
         if(hintEl){
-            if(anomalyActive){
+            if(ritual.repeatCount >= 2){
+                hintEl.textContent =
+                    def.key === 'offer' ? (currentLang === 'ja' ? '同じおそなえが続くと、受理は少しずつ鈍る' : 'Repeated offerings become less effective') :
+                    def.key === 'sync' ? (currentLang === 'ja' ? '同じ同期を続けると、拍が少し離れやすい' : 'Repeating sync can push the beat slightly out of phase') :
+                    (currentLang === 'ja' ? '同じ漂流を連ねると、座標は少し平坦になる' : 'Repeated drifting can flatten the coordinates');
+            } else if(anomalyActive){
                 hintEl.textContent =
                     def.key === 'offer' ? (currentLang === 'ja' ? '反応が返らないまま、供物ログだけ残ることがある' : 'The response may vanish while only the offer log remains') :
                     def.key === 'sync' ? (currentLang === 'ja' ? '共鳴とノイズが混線し、音の輪郭が二重になる' : 'Resonance and noise may cross until the sound doubles') :
@@ -973,6 +1255,7 @@ function updateActionCards(){
         btn.classList.toggle('is-recommended', isRecommended);
         btn.classList.toggle('is-muted', !isRecommended);
         btn.classList.toggle('is-urgent', isRecommended && recommendation.urgency === 'urgent');
+        btn.classList.toggle('is-fatigued', ritual.repeatCount >= 2);
         btn.dataset.recommendation = isRecommended ? 'true' : 'false';
     });
 }
@@ -1124,8 +1407,8 @@ function getMoodMsg(){
     const mood=getMood();
     if(mood==='sleepy') return ['お腹空いたよ〜 🐟','誰か助けて…','ふらふらする…'];
     if(mood==='sad')    return ['もっと遊んでよ…','つまんないな','ちょっと寂しい…'];
-    if(mood==='happy')  return ['最高にしあわせ！✨','クーーー！！💚','大好き！なでて！'];
-    return ['クー！','ぷくぷく〜','ウォルラス！','なでて〜','クゥ〜','波が好きだよ🌊','気持ちいい〜'];
+    if(mood==='happy')  return ['最高にしあわせ！✨','クーーー！！💚','大好き！シンクして！'];
+    return ['クー！','ぷくぷく〜','ウォルラス！','信号を合わせて〜','クゥ〜','波が好きだよ🌊','気持ちいい〜'];
 }
 */
 /*
@@ -1133,22 +1416,22 @@ function getMoodMsg(){
     const mood=getMood();
     if(mood==='sleepy') return ['おなか空いたよ〜 🐟','眠くなってきた…','ふらふらするよ…'];
     if(mood==='sad')    return ['もっと遊んでよ…','ちょっとさみしいな','元気が出ないよ…'];
-    if(mood==='happy')  return ['最高にしあわせ！ ✨','クーーー！！','だいすき！ なでて！'];
-    return ['クー！','ぷかぷか〜','ウォルラス！','なでて〜','クゥ〜','波が気持ちいい〜','遊ぼうよ！'];
+    if(mood==='happy')  return ['最高にしあわせ！ ✨','クーーー！！','だいすき！ シンクして！'];
+    return ['クー！','ぷかぷか〜','ウォルラス！','信号を合わせて〜','クゥ〜','波が気持ちいい〜','漂流しようよ！'];
 }
 */
 function getMoodMsgSafe(){
     const mood=getMood();
     if(currentLang === 'ja'){
-        if(mood==='sleepy') return ['おなか空いたよ〜 🐟','眠くなってきた…','ふらふらするよ…'];
-        if(mood==='sad')    return ['もっと遊んでよ…','ちょっとさみしいな','元気が出ないよ…'];
-        if(mood==='happy')  return ['最高にしあわせ！ ✨','クーーー！！','だいすき！ なでて！'];
-        return ['クー！','ぷかぷか〜','ウォルラス！','なでて〜','クゥ〜','波が気持ちいい〜','遊ぼうよ！'];
+        if(mood==='sleepy') return ['おそなえがほしい…','眠くなってきた…','ふらふらするよ…'];
+        if(mood==='sad')    return ['もう少しシンクしたい…','ちょっとさみしいな','元気が出ないよ…'];
+        if(mood==='happy')  return ['最高にしあわせ！ ✨','クーーー！！','この拍、好きかも'];
+        return ['クー！','ぷかぷか〜','ウォルラス！','波が気持ちいい〜','クゥ〜','今日はどこへ漂う？','信号を合わせよう'];
     }
-    if(mood==='sleepy') return ['hungry...','so sleepy...','need fish...'];
-    if(mood==='sad')    return ['play with me...','feeling lonely','need some love'];
+    if(mood==='sleepy') return ['need an offering...','so sleepy...','running low...'];
+    if(mood==='sad')    return ['sync with me...','feeling lonely','the signal feels thin'];
     if(mood==='happy')  return ['so happy!','KUUUU!!','love you!'];
-    return ['kuu!','splash splash','walrus!','pet me!','kuu~','ocean vibes','let us play!'];
+    return ['kuu!','splash splash','walrus!','sync signal?','kuu~','ocean vibes','let us drift!'];
 }
 const getMoodMsg = getMoodMsgSafe;
 
@@ -1334,6 +1617,70 @@ function createActionFx(kind, x, y, cfg, vars = {}, text = ''){
     if(kind === 'dot') el.textContent = text;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1300);
+}
+
+function getRitualFxLayer(){
+    return document.getElementById('ritualFxLayer') || document.body;
+}
+
+function createRitualFxNode(className, styleMap = {}, text = '', ttl = 1200){
+    const layer = getRitualFxLayer();
+    const el = document.createElement('div');
+    el.className = className;
+    if(text) el.textContent = text;
+    Object.entries(styleMap).forEach(([key, value]) => el.style.setProperty(key, value));
+    layer.appendChild(el);
+    window.setTimeout(() => el.remove(), ttl);
+    return el;
+}
+
+function triggerAnomalyHueGlitch(duration = 400){
+    const main = document.getElementById('mainScreen');
+    if(!main) return;
+    main.classList.remove('ritual-anomaly-glitch');
+    void main.offsetWidth;
+    main.classList.add('ritual-anomaly-glitch');
+    window.setTimeout(() => main.classList.remove('ritual-anomaly-glitch'), duration);
+}
+
+function triggerRitualScreenFx(type, outcome = {}){
+    const stage = document.getElementById('petStage');
+    const center = getStageCenter();
+    const rect = stage?.getBoundingClientRect();
+    if(type === 'offer'){
+        for(let i = 0; i < 10; i += 1){
+            createRitualFxNode('ritual-fx ritual-offer-grain', {
+                '--x': `${center.x + (Math.random() - 0.5) * 44}px`,
+                '--y': `${center.y - 16 + Math.random() * 24}px`,
+                '--dx': `${(Math.random() - 0.5) * 18}px`,
+                '--dy': `${40 + Math.random() * 46}px`,
+                '--delay': `${i * 0.03}s`
+            }, '', 980);
+        }
+    } else if(type === 'sync'){
+        for(let i = 0; i < 2; i += 1){
+            createRitualFxNode('ritual-fx ritual-sync-ring', {
+                '--x': `${center.x}px`,
+                '--y': `${center.y}px`,
+                '--size': `${110 + i * 42}px`,
+                '--delay': `${i * 0.08}s`
+            }, '', 900);
+        }
+    } else if(rect){
+        for(let i = 0; i < 8; i += 1){
+            createRitualFxNode('ritual-fx ritual-drift-bubble', {
+                '--x': `${rect.left - 10 + Math.random() * (rect.width + 20)}px`,
+                '--y': `${rect.top + 26 + Math.random() * Math.max(24, rect.height - 32)}px`,
+                '--dx': `${120 + Math.random() * 120}px`,
+                '--dy': `${-12 + Math.random() * 24}px`,
+                '--size': `${7 + Math.random() * 12}px`,
+                '--delay': `${i * 0.04}s`
+            }, '', 1100);
+        }
+    }
+    if(outcome.uiShift || outcome.anomalyPulse){
+        triggerAnomalyHueGlitch(400);
+    }
 }
 
 function setBabyMsg(txt){
@@ -1650,13 +1997,15 @@ function performWalrusAction(type){
     }[type];
     if(!map) return;
     dismissNewbornGuide();
+    const context = getActionRitualContext(type);
     recordBehaviorAction(map.count);
     pulseActionButtons(map.button, type === 'offer' ? '.tama-btn-a' : type === 'sync' ? '.tama-btn-b' : '.tama-btn-c');
     map.sfx(); haptic(map.hapticMs);
     triggerWalrusActionResponse(type);
-    const outcome = getActionOutcome(type);
+    const outcome = buildRitualActionOutcome(type, getActionOutcome(type), context);
     const anomaly = isAnomalyModeActive() ? ensureAnomalyState() : null;
     applyActionDelta(type, outcome);
+    commitActionRitualState(type);
     if(anomaly){
         anomaly.lastActionAt[type] = Date.now();
     }
@@ -1667,8 +2016,13 @@ function performWalrusAction(type){
     } else if(outcome.special){
         addWalMateLog(outcome.textJa, outcome.textEn, 'ritual', { id: `ritual:${type}:${Date.now()}` });
     }
+    registerAnomalyLog(
+        outcome.textJa,
+        outcome.textEn,
+        type,
+        outcome.anomalyTier || outcome.logTier || (outcome.secret ? 'rare' : outcome.special ? 'odd' : 'normal')
+    );
     if(anomaly && outcome.anomalyTier){
-        registerAnomalyLog(outcome.textJa, outcome.textEn, type, outcome.anomalyTier);
         if(type === 'drift' && outcome.driftElapsedTier === 'long'){
             anomaly.hueShift = -24 + Math.round(Math.random() * 48);
             if(Math.random() < 0.58) triggerAnomalySound?.();
@@ -1677,6 +2031,7 @@ function performWalrusAction(type){
             triggerAnomalySound?.();
         }
     }
+    triggerRitualScreenFx?.(type, outcome);
     animPet(map.cls);
     const c=getStageCenter(); spawnParticles(map.particles,c.x,c.y);
     spawnActionFx(type);
