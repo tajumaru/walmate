@@ -22,6 +22,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
     applyLanguage();
     initMotionPreferenceControls();
     ensureDailyState();
+    ensureWalrusDexState?.();
+    renderWalrusDexButton?.();
+    renderWalrusDexGrid?.();
     refreshWalrusMenu();
     ensureWalrusMenuLayer?.();
     const petStage = document.getElementById('petStage');

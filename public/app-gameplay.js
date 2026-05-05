@@ -105,6 +105,28 @@ function createDefaultAnomalyState(){
     };
 }
 
+function createDefaultWalrusDexState(){
+    return {
+        unlockedIds: [],
+        lastDailyUnlockDate: '',
+        lastUnlockedId: '',
+        pendingDiscoveryId: '',
+        discoveryHistory: [],
+        entries: {}
+    };
+}
+
+function createDefaultWalrusDexEntryLog(){
+    return {
+        unlocked: false,
+        firstObservedAt: 0,
+        lastPlayedAt: 0,
+        playCount: 0,
+        stateText: '',
+        status: 'quiet'
+    };
+}
+
 function normalizeBehaviorState(behavior){
     const base = createDefaultBehaviorState();
     const next = (behavior && typeof behavior === 'object') ? behavior : {};
@@ -152,6 +174,51 @@ function normalizeAnomalyState(anomaly){
     return base;
 }
 
+function normalizeWalrusDexState(dex){
+    const base = createDefaultWalrusDexState();
+    const next = (dex && typeof dex === 'object') ? dex : {};
+    const unlockedIds = Array.isArray(next.unlockedIds) ? next.unlockedIds : [];
+    const discoveryHistory = Array.isArray(next.discoveryHistory) ? next.discoveryHistory : [];
+    const rawEntries = (next.entries && typeof next.entries === 'object') ? next.entries : {};
+    base.unlockedIds = Array.from(new Set(
+        unlockedIds
+            .filter(id => typeof id === 'string')
+            .map(id => id.trim())
+            .filter(Boolean)
+    )).slice(0, 64);
+    base.lastDailyUnlockDate = typeof next.lastDailyUnlockDate === 'string' ? next.lastDailyUnlockDate : '';
+    base.lastUnlockedId = typeof next.lastUnlockedId === 'string' ? next.lastUnlockedId : '';
+    base.pendingDiscoveryId = typeof next.pendingDiscoveryId === 'string' ? next.pendingDiscoveryId : '';
+    base.discoveryHistory = discoveryHistory
+        .filter(entry => entry && typeof entry === 'object')
+        .slice(0, 30)
+        .map(entry => ({
+            id: typeof entry.id === 'string' ? entry.id : '',
+            dateKey: typeof entry.dateKey === 'string' ? entry.dateKey : '',
+            ts: Math.max(0, Number(entry.ts) || 0)
+        }))
+        .filter(entry => entry.id);
+    base.entries = {};
+    Object.keys(rawEntries).slice(0, 128).forEach((id) => {
+        const entry = rawEntries[id];
+        if(typeof id !== 'string' || !id.trim() || !entry || typeof entry !== 'object') return;
+        const normalized = createDefaultWalrusDexEntryLog();
+        normalized.unlocked = !!entry.unlocked;
+        normalized.firstObservedAt = Math.max(0, Number(entry.firstObservedAt) || 0);
+        normalized.lastPlayedAt = Math.max(0, Number(entry.lastPlayedAt) || 0);
+        normalized.playCount = Math.max(0, Number(entry.playCount) || 0);
+        normalized.stateText = typeof entry.stateText === 'string' ? entry.stateText.slice(0, 80) : '';
+        normalized.status = typeof entry.status === 'string' ? entry.status.slice(0, 32) : 'quiet';
+        base.entries[id.trim()] = normalized;
+    });
+    base.unlockedIds.forEach((id) => {
+        if(!base.entries[id]) base.entries[id] = createDefaultWalrusDexEntryLog();
+        base.entries[id].unlocked = true;
+        if(!base.entries[id].firstObservedAt) base.entries[id].firstObservedAt = Date.now();
+    });
+    return base;
+}
+
 const DEFAULT_GAME_STATE = Object.freeze({
     hunger: 70,
     happy: 50,
@@ -174,7 +241,8 @@ const DEFAULT_GAME_STATE = Object.freeze({
     daily: createDefaultDailyState(),
     idleEvent: createDefaultIdleEventState(),
     behavior: createDefaultBehaviorState(),
-    anomaly: createDefaultAnomalyState()
+    anomaly: createDefaultAnomalyState(),
+    walrusDex: createDefaultWalrusDexState()
 });
 
 function createGameState(overrides = {}){
@@ -190,7 +258,8 @@ function createGameState(overrides = {}){
         daily: normalizeDailyState(overrides.daily || DEFAULT_GAME_STATE.daily),
         idleEvent: normalizeIdleEventState(overrides.idleEvent || DEFAULT_GAME_STATE.idleEvent),
         behavior: normalizeBehaviorState(overrides.behavior || DEFAULT_GAME_STATE.behavior),
-        anomaly: normalizeAnomalyState(overrides.anomaly || DEFAULT_GAME_STATE.anomaly)
+        anomaly: normalizeAnomalyState(overrides.anomaly || DEFAULT_GAME_STATE.anomaly),
+        walrusDex: normalizeWalrusDexState(overrides.walrusDex || DEFAULT_GAME_STATE.walrusDex)
     };
     return normalizeGameState(merged);
 }
@@ -213,6 +282,7 @@ function normalizeGameState(state){
     state.idleEvent = normalizeIdleEventState(state.idleEvent);
     state.behavior = normalizeBehaviorState(state.behavior);
     state.anomaly = normalizeAnomalyState(state.anomaly);
+    state.walrusDex = normalizeWalrusDexState(state.walrusDex);
     state.hunger = clampNumber(state.hunger, 0, 100, DEFAULT_GAME_STATE.hunger);
     state.happy = clampNumber(state.happy, 0, 100, DEFAULT_GAME_STATE.happy);
     state.lv = clampNumber(state.lv, 1, 4, DEFAULT_GAME_STATE.lv);
@@ -1362,6 +1432,8 @@ function updateUI(){
     refreshMyShareCode();
     renderWalrusStorageStatus();
     updateWalkHero();
+    renderWalrusDexButton?.();
+    renderWalrusDexGrid?.();
     const bubble = document.getElementById('msgBubble');
     bubble.classList.toggle('mood-happy', expression === 'happy' || expression === 'ecstatic');
     bubble.classList.toggle('mood-sleepy', expression === 'sleepy');
@@ -1369,6 +1441,7 @@ function updateUI(){
     bubble.classList.toggle('anomaly-bubble', anomalyActive);
     bubble.classList.toggle('friend-resonance', isFriendResonanceActive());
     applyIdleRandomEventVisuals?.();
+    maybeShowPendingWalrusDexDiscovery?.();
     saveG();
 }
 

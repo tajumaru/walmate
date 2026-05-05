@@ -374,6 +374,145 @@ const SOUND_DEF = {
 };
 const ZONE_EMOJI = { beach:'🌊', forest:'🌿', city:'🏙', ruins:'🏚' };
 const SLOT_KEYS = ['drum','bass','melody','fx'];
+const WALRUS_DEX_ENTRIES = Object.freeze([
+    {
+        id:'deep_blue_01',
+        name:'Deep Blue Walrus',
+        nameJa:'Deep Blue Walrus',
+        color:'#2f6bff',
+        soundId:'deep_bloop',
+        element:'deep',
+        mood:'lonely',
+        rarity:'common',
+        tempo:'slow',
+        hintJa:'深い時間に反応するらしい',
+        hintEn:'Seems to react during the deepest hours.',
+        logJa:'観測ブイの真下でだけ、低い泡音を三度返してから沈む。',
+        logEn:'Returns a low bloop three times beneath observation buoys before sinking.',
+        stateJa:'やや孤独',
+        stateEn:'Slightly lonely'
+    },
+    {
+        id:'warm_amber_02',
+        name:'Warm Amber Walrus',
+        nameJa:'Warm Amber Walrus',
+        color:'#e6b45f',
+        soundId:'warm_glow',
+        element:'warm',
+        mood:'calm',
+        rarity:'common',
+        tempo:'slow',
+        hintJa:'夕方のやわらかい潮で寄ってくるらしい',
+        hintEn:'Drawn in by soft evening currents.',
+        logJa:'薄明の海面で、灯りみたいな和音を残してゆっくり浮遊する。',
+        logEn:'Drifts near dusk leaving a warm chord like a distant lamp.',
+        stateJa:'ぬくもり安定',
+        stateEn:'Warm and stable'
+    },
+    {
+        id:'crystal_mist_03',
+        name:'Crystal Mist Walrus',
+        nameJa:'Crystal Mist Walrus',
+        color:'#7be7ff',
+        soundId:'crystal_ping',
+        element:'crystal',
+        mood:'curious',
+        rarity:'rare',
+        tempo:'shimmer',
+        hintJa:'雨粒の多い漂流ログに混ざるらしい',
+        hintEn:'Appears in drift logs filled with rain droplets.',
+        logJa:'細い高音を散らしながら、海霧と一緒に視界へ滑り込む。',
+        logEn:'Slides into view with the sea mist, scattering thin crystal highs.',
+        stateJa:'きらめき観測中',
+        stateEn:'Shimmering under observation'
+    },
+    {
+        id:'glitch_purple_01',
+        name:'Glitch Purple Walrus',
+        nameJa:'Glitch Purple Walrus',
+        color:'#8b5cf6',
+        soundId:'glitch_noise',
+        element:'glitch',
+        mood:'unstable',
+        rarity:'rare',
+        tempo:'broken',
+        hintJa:'同じ音を何度も聴くと現れるらしい',
+        hintEn:'Said to appear when the same sound is heard too many times.',
+        logJa:'位相のズレた紫の尾を引き、途切れた信号みたいに瞬く。',
+        logEn:'Leaves a purple phase trail and flickers like a broken signal.',
+        stateJa:'やや不安定',
+        stateEn:'Slightly unstable'
+    },
+    {
+        id:'void_silt_04',
+        name:'Void Silt Walrus',
+        nameJa:'Void Silt Walrus',
+        color:'#2d3446',
+        soundId:'void_hush',
+        element:'void',
+        mood:'silent',
+        rarity:'epic',
+        tempo:'still',
+        hintJa:'静かすぎる海域でだけ輪郭が見えるらしい',
+        hintEn:'Its outline appears only in waters that are too quiet.',
+        logJa:'音が消えたあとにだけ現れる。記録波形はほとんど無音に近い。',
+        logEn:'Appears only after sound drops away, leaving a waveform close to silence.',
+        stateJa:'無音域に潜伏',
+        stateEn:'Hiding in silence'
+    },
+    {
+        id:'abyss_mint_05',
+        name:'Abyss Mint Walrus',
+        nameJa:'Abyss Mint Walrus',
+        color:'#47d4b8',
+        soundId:'abyss_hum',
+        element:'deep',
+        mood:'watchful',
+        rarity:'rare',
+        tempo:'pulse',
+        hintJa:'深海ログが濃い日に観測されやすい',
+        hintEn:'Easier to observe on days with dense abyss logs.',
+        logJa:'深海圧に合わせて胸元が明滅し、鼓動みたいな低音を揺らす。',
+        logEn:'Its chest pulses with abyss pressure, releasing heartbeat-like lows.',
+        stateJa:'深圧に同調',
+        stateEn:'Synced to abyss pressure'
+    },
+    {
+        id:'storm_ink_06',
+        name:'Storm Ink Walrus',
+        nameJa:'Storm Ink Walrus',
+        color:'#6d7dff',
+        soundId:'storm_click',
+        element:'glitch',
+        mood:'restless',
+        rarity:'epic',
+        tempo:'fractured',
+        hintJa:'荒れた日の観測ログにだけ混線するらしい',
+        hintEn:'Crosses into logs only on rough-weather days.',
+        logJa:'藍色のノイズを散らしながら高速でかすめ、記録を少しだけ乱す。',
+        logEn:'Skims by at speed scattering indigo noise and distorting the record slightly.',
+        stateJa:'乱流で興奮',
+        stateEn:'Agitated by turbulence'
+    },
+    {
+        id:'legend_moon_07',
+        name:'Moon Brine Walrus',
+        nameJa:'Moon Brine Walrus',
+        color:'#cdbdff',
+        soundId:'moon_drift',
+        element:'crystal',
+        mood:'mythic',
+        rarity:'legend',
+        tempo:'ritual',
+        hintJa:'深夜の観測で、ごく稀にだけ漂着するらしい',
+        hintEn:'Only rarely drifts in during midnight observation.',
+        logJa:'月光に反応して輪郭がほどけ、塩の光みたいな残響だけを置いていく。',
+        logEn:'Its silhouette loosens under moonlight, leaving only a saline afterglow.',
+        stateJa:'伝承級の反応',
+        stateEn:'Legend-grade resonance'
+    }
+]);
+let walrusDexDiscoveryTimer = 0;
 const DAILY_SPECIAL_SOUNDS = {
     rain_bass: {
         id: 'rain_bass',
@@ -412,6 +551,498 @@ const DAILY_SPECIAL_SOUNDS = {
         condEn: 'Morning / more common from level 3'
     }
 };
+
+function ensureWalrusDexState(){
+    G.walrusDex = normalizeWalrusDexState(G.walrusDex);
+    return G.walrusDex;
+}
+
+function getWalrusDexDefinition(id){
+    return WALRUS_DEX_ENTRIES.find(entry => entry.id === id) || null;
+}
+
+function getWalrusDexEntryLog(id){
+    const dex = ensureWalrusDexState();
+    if(!dex.entries[id]) dex.entries[id] = createDefaultWalrusDexEntryLog();
+    return dex.entries[id];
+}
+
+function formatWalrusDexDate(ts){
+    if(!ts) return currentLang === 'ja' ? '未記録' : 'Not logged';
+    try {
+        return new Date(ts).toLocaleString(localeCode(), { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    } catch(e){
+        return new Date(ts).toISOString();
+    }
+}
+
+function getWalrusDexElementMeta(element){
+    const map = {
+        deep: {
+            label: 'deep',
+            labelJa: 'deep',
+            toneJa: '低音・深海・静か',
+            toneEn: 'Low, deep-sea, quiet'
+        },
+        glitch: {
+            label: 'glitch',
+            labelJa: 'glitch',
+            toneJa: 'ノイズ・不安定・紫',
+            toneEn: 'Noisy, unstable, violet'
+        },
+        crystal: {
+            label: 'crystal',
+            labelJa: 'crystal',
+            toneJa: '高音・きらめき・水色',
+            toneEn: 'Bright, shimmering, aqua'
+        },
+        void: {
+            label: 'void',
+            labelJa: 'void',
+            toneJa: '無音に近い・黒',
+            toneEn: 'Near-silent, dark'
+        },
+        warm: {
+            label: 'warm',
+            labelJa: 'warm',
+            toneJa: 'やわらかい・黄色',
+            toneEn: 'Soft, warm, amber'
+        }
+    };
+    return map[element] || map.deep;
+}
+
+function getWalrusDexRarityMeta(rarity){
+    const map = {
+        common: { label:'COMMON', weight: 1 },
+        rare: { label:'RARE', weight: 0.45 },
+        epic: { label:'EPIC', weight: 0.16 },
+        legend: { label:'LEGEND', weight: 0.03 }
+    };
+    return map[rarity] || map.common;
+}
+
+function getWalrusDexDisplayLevel(entry){
+    const map = {
+        common: 1,
+        rare: 2,
+        epic: 3,
+        legend: 4
+    };
+    return map[entry?.rarity] || 1;
+}
+
+function getWalrusDexDisplayExpression(entry){
+    const map = {
+        lonely: 'normal',
+        calm: 'happy',
+        curious: 'happy',
+        unstable: 'sad',
+        silent: 'sleepy',
+        watchful: 'normal',
+        restless: 'hungry',
+        mythic: 'ecstatic'
+    };
+    return map[entry?.mood] || 'normal';
+}
+
+function makeWalrusDexIcon(entry, unlocked){
+    const level = getWalrusDexDisplayLevel(entry);
+    const expression = getWalrusDexDisplayExpression(entry);
+    const baseColor = unlocked ? (entry?.color || '#7ec8ff') : '#536176';
+    const accentColor = unlocked
+        ? (entry?.element === 'warm'
+            ? '#f5d080'
+            : entry?.element === 'glitch'
+                ? '#bca7ff'
+                : entry?.element === 'void'
+                    ? '#89a0c8'
+                    : entry?.element === 'crystal'
+                        ? '#9ef3ff'
+                        : '#79e7d2')
+        : '#7b8ea8';
+    const palette = {
+        body: baseColor,
+        head: mixHexColors(baseColor, '#f4fbff', unlocked ? 0.18 : 0.08),
+        belly: mixHexColors(baseColor, unlocked ? '#f3f8ff' : '#c3cfde', unlocked ? 0.42 : 0.2),
+        outline: shadeHexColor(baseColor, unlocked ? -52 : -28),
+        shadow: shadeHexColor(baseColor, unlocked ? -22 : -10),
+        flipper: shadeHexColor(baseColor, unlocked ? -10 : -4),
+        accent: accentColor,
+        nose: shadeHexColor(baseColor, unlocked ? -92 : -44),
+        tusk: unlocked ? '#fff8df' : '#c8d0dc',
+        tuskEdge: unlocked ? '#d8cfae' : '#97a3b5',
+        blush: unlocked ? (level >= 4 ? 'rgba(255, 208, 128, 0.24)' : 'rgba(255, 122, 170, 0.24)') : 'rgba(255,255,255,0.08)'
+    };
+    const tusks = level >= 2;
+    const crown = level >= 4;
+    return `
+    <div class="pixel-walrus" data-level="${level}" data-expression="${expression}" aria-hidden="true"
+        style="--pw-body:${palette.body};--pw-head:${palette.head};--pw-belly:${palette.belly};--pw-outline:${palette.outline};--pw-shadow:${palette.shadow};--pw-flipper:${palette.flipper};--pw-accent:${palette.accent};--pw-nose:${palette.nose};--pw-tusk:${palette.tusk};--pw-tusk-edge:${palette.tuskEdge};--pw-blush:${palette.blush};">
+        <div class="pw-shadow"></div>
+        <div class="pw-flipper pw-flipper-l"></div>
+        <div class="pw-flipper pw-flipper-r"></div>
+        <div class="pw-body"></div>
+        <div class="pw-belly"></div>
+        <div class="pw-head"></div>
+        <div class="pw-muzzle"></div>
+        <div class="pw-blush pw-blush-l"></div>
+        <div class="pw-blush pw-blush-r"></div>
+        <div class="pw-whisker pw-whisker-l"></div>
+        <div class="pw-whisker pw-whisker-r"></div>
+        <div class="pw-eye pw-eye-l"></div>
+        <div class="pw-eye pw-eye-r"></div>
+        <div class="pw-nose"></div>
+        <div class="pw-mouth"></div>
+        ${tusks ? '<div class="pw-tusk pw-tusk-l"></div><div class="pw-tusk pw-tusk-r"></div>' : ''}
+        ${crown ? '<div class="pw-crown-base"></div><div class="pw-crown-spike pw-crown-spike-a"></div><div class="pw-crown-spike pw-crown-spike-b"></div><div class="pw-crown-spike pw-crown-spike-c"></div><div class="pw-crown-gem pw-crown-gem-a"></div><div class="pw-crown-gem pw-crown-gem-b"></div><div class="pw-crown-gem pw-crown-gem-c"></div>' : ''}
+    </div>`;
+}
+
+function getWalrusDexStatusText(entry, log){
+    if(log?.stateText) return log.stateText;
+    const moodMapJa = {
+        lonely: 'やや孤独',
+        calm: '穏やか',
+        curious: '観測に興味あり',
+        unstable: 'やや不安定',
+        silent: '無音域を漂流',
+        watchful: '深海を警戒中',
+        restless: 'ざわついている',
+        mythic: '伝承級の反応'
+    };
+    const moodMapEn = {
+        lonely: 'Slightly lonely',
+        calm: 'Calm',
+        curious: 'Curious about observation',
+        unstable: 'Slightly unstable',
+        silent: 'Drifting through silence',
+        watchful: 'Watching the abyss',
+        restless: 'Restless',
+        mythic: 'Legend-grade signal'
+    };
+    if((log?.playCount || 0) >= 12) return currentLang === 'ja' ? '再生に慣れてきた' : 'Growing used to replay';
+    if((log?.playCount || 0) >= 4) return currentLang === 'ja' ? 'こちらを観測している' : 'Observing you back';
+    return currentLang === 'ja' ? (moodMapJa[entry.mood] || '観測中') : (moodMapEn[entry.mood] || 'Under observation');
+}
+
+function buildWalrusDexSoundPattern(soundId){
+    const patterns = {
+        deep_bloop: [[146,'sine',0.22,0.055,0],[220,'sine',0.18,0.03,90],[164,'triangle',0.14,0.022,240]],
+        warm_glow: [[320,'triangle',0.14,0.04,0],[430,'sine',0.16,0.032,90],[540,'triangle',0.12,0.026,180]],
+        crystal_ping: [[880,'triangle',0.09,0.03,0],[1180,'sine',0.12,0.032,60],[1420,'sine',0.08,0.018,155]],
+        glitch_noise: [[540,'square',0.05,0.03,0],[880,'square',0.04,0.022,45],[620,'triangle',0.06,0.018,110],[1260,'sine',0.04,0.016,160]],
+        void_hush: [[92,'sine',0.18,0.028,0],[110,'sine',0.22,0.018,80]],
+        abyss_hum: [[148,'sine',0.22,0.06,0],[222,'sine',0.18,0.035,90],[296,'triangle',0.16,0.03,210]],
+        storm_click: [[180,'square',0.07,0.04,0],[270,'square',0.07,0.03,55],[540,'triangle',0.1,0.03,150]],
+        moon_drift: [[330,'sine',0.16,0.042,0],[494,'triangle',0.18,0.038,110],[740,'sine',0.16,0.03,250]]
+    };
+    return patterns[soundId] || patterns.deep_bloop;
+}
+
+function getWalrusDexEntries(){
+    const dex = ensureWalrusDexState();
+    const unlocked = new Set(dex.unlockedIds);
+    return WALRUS_DEX_ENTRIES.map(entry => ({
+        ...entry,
+        unlocked: unlocked.has(entry.id),
+        log: getWalrusDexEntryLog(entry.id)
+    }));
+}
+
+function getWalrusDexCount(){
+    const entries = getWalrusDexEntries();
+    const unlockedCount = entries.filter(entry => entry.unlocked).length;
+    return { unlockedCount, total: entries.length };
+}
+
+function playWalrusDexNoise(){
+    try{
+        const ctx = getAudioCtx();
+        if(!ctx) return;
+        if(ctx.state === 'suspended') ctx.resume().catch(()=>{});
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+        const source = ctx.createBufferSource();
+        const size = Math.max(64, Math.floor(ctx.sampleRate * 0.05));
+        const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for(let i = 0; i < size; i += 1){
+            data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+        }
+        source.buffer = buffer;
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1440, ctx.currentTime);
+        filter.Q.value = 0.7;
+        gain.gain.setValueAtTime(0.045, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(getMasterGain() || ctx.destination);
+        source.onended = () => { try { source.disconnect(); filter.disconnect(); gain.disconnect(); } catch(_){} };
+        source.start(ctx.currentTime);
+        source.stop(ctx.currentTime + 0.06);
+    }catch(e){}
+}
+
+function playWalrusDexSound(soundId){
+    const notes = buildWalrusDexSoundPattern(soundId);
+    try{
+        const ctx = getAudioCtx();
+        if(!ctx) return;
+        if(ctx.state === 'suspended') ctx.resume().catch(()=>{});
+    }catch(e){}
+    notes.forEach(([freq, type, dur, vol, delay]) => {
+        window.setTimeout(() => playTone(freq, type, dur, vol), delay);
+    });
+}
+
+function playWalrusDexDiscoverySting(entry){
+    if(!entry) return;
+    playWalrusDexSound(entry.soundId);
+    window.setTimeout(() => playTone(1180, 'triangle', 0.08, 0.028), 320);
+}
+
+function triggerWalrusDexCardBounce(card){
+    if(!card) return;
+    card.classList.remove('is-bouncing');
+    void card.offsetWidth;
+    card.classList.add('is-bouncing');
+}
+
+function renderWalrusDexButton(){
+    const btn = document.getElementById('btnDex');
+    if(!btn) return;
+    const { unlockedCount, total } = getWalrusDexCount();
+    const label = document.getElementById('btnDexLabel');
+    const sub = document.getElementById('dexBtnSub');
+    if(label) label.textContent = currentLang === 'ja' ? '観測図鑑' : 'Observation Dex';
+    if(sub){
+        sub.textContent = currentLang === 'ja'
+            ? `${unlockedCount}/${total} 体を観測中`
+            : `${unlockedCount}/${total} observed`;
+    }
+    btn.classList.toggle('has-update', !!ensureWalrusDexState().pendingDiscoveryId);
+}
+
+function renderWalrusDexGrid(){
+    const grid = document.getElementById('walrusDexGrid');
+    if(!grid) return;
+    const entries = getWalrusDexEntries();
+    const { unlockedCount, total } = getWalrusDexCount();
+    const status = document.getElementById('walrusDexStatus');
+    const note = document.getElementById('walrusDexUnlockNote');
+    const actionBtn = document.getElementById('walrusDexTodayBtn');
+    const title = document.getElementById('walrusDexModalTitle');
+    const copy = document.getElementById('walrusDexCopy');
+    const lastId = ensureWalrusDexState().lastUnlockedId;
+    const lastEntry = getWalrusDexDefinition(lastId);
+    const dex = ensureWalrusDexState();
+    const today = getLocalDateKey();
+    if(title) title.textContent = currentLang === 'ja' ? '🫧 音つきWalrus図鑑 v1' : '🫧 Sound Walrus Dex v1';
+    if(copy) copy.textContent = currentLang === 'ja'
+        ? '深海観測端末が、色・音・漂流の手がかりを記録しています。'
+        : 'The abyss observation terminal is recording color, sound, and drift clues.';
+    if(status){
+        status.textContent = currentLang === 'ja'
+            ? `OBSERVED ${unlockedCount}/${total}`
+            : `OBSERVED ${unlockedCount}/${total}`;
+    }
+    if(note){
+        note.textContent = lastEntry
+            ? (currentLang === 'ja'
+                ? `最新浮上ログ: ${lastEntry.nameJa}`
+                : `Latest surfaced log: ${lastEntry.nameEn}`)
+            : (currentLang === 'ja'
+                ? '一日一回、未取得のWalrusが海面へ浮上します'
+                : 'One undiscovered Walrus surfaces each day');
+    }
+    if(actionBtn){
+        const opened = dex.lastDailyUnlockDate === today;
+        actionBtn.disabled = opened || unlockedCount >= total;
+        actionBtn.textContent = opened
+            ? (currentLang === 'ja' ? '今日の観測は完了' : 'Today logged')
+            : (currentLang === 'ja' ? '今日の観測' : 'Today\'s Scan');
+    }
+    grid.innerHTML = entries.map((entry, index) => {
+        const unlocked = !!entry.unlocked;
+        const elementMeta = getWalrusDexElementMeta(entry.element);
+        const rarityMeta = getWalrusDexRarityMeta(entry.rarity);
+        const name = unlocked ? (currentLang === 'ja' ? entry.nameJa : entry.nameEn) : '???';
+        const hintText = currentLang === 'ja' ? entry.hintJa : entry.hintEn;
+        const observationLog = currentLang === 'ja' ? entry.logJa : entry.logEn;
+        const statusText = getWalrusDexStatusText(entry, entry.log);
+        const colorLabel = unlocked ? entry.color.toUpperCase() : 'UNKNOWN';
+        const metaRows = unlocked
+            ? `<div class="walrus-dex-meta-row"><span>COLOR</span><strong>${escapeHtml(colorLabel)}</strong></div>
+               <div class="walrus-dex-meta-row"><span>RARITY</span><strong>${escapeHtml(rarityMeta.label)}</strong></div>
+               <div class="walrus-dex-meta-row"><span>${currentLang === 'ja' ? '音属性' : 'AUDIO'}</span><strong>${escapeHtml(elementMeta.label)} / ${escapeHtml(entry.tempo)}</strong></div>`
+            : `<div class="walrus-dex-meta-row"><span>RARITY</span><strong>${escapeHtml(rarityMeta.label)}</strong></div>
+               <div class="walrus-dex-meta-row"><span>${currentLang === 'ja' ? '音属性' : 'AUDIO'}</span><strong>???</strong></div>
+               <div class="walrus-dex-meta-row"><span>COLOR</span><strong>UNKNOWN</strong></div>`;
+        const footer = unlocked
+            ? `<div class="walrus-dex-log-block">
+                    <div class="walrus-dex-log-title">${currentLang === 'ja' ? '観測ログ' : 'Observation Log'}</div>
+                    <div class="walrus-dex-log-copy">${escapeHtml(observationLog)}</div>
+                    <div class="walrus-dex-log-stats">
+                        <span>${currentLang === 'ja' ? '初観測' : 'First'}: ${escapeHtml(formatWalrusDexDate(entry.log.firstObservedAt))}</span>
+                        <span>${currentLang === 'ja' ? '最終再生' : 'Last Play'}: ${escapeHtml(formatWalrusDexDate(entry.log.lastPlayedAt))}</span>
+                        <span>${currentLang === 'ja' ? '再生回数' : 'Plays'}: ${entry.log.playCount}</span>
+                        <span>${currentLang === 'ja' ? '状態' : 'State'}: ${escapeHtml(statusText)}</span>
+                    </div>
+                </div>`
+            : `<div class="walrus-dex-log-block locked">
+                    <div class="walrus-dex-log-title">${currentLang === 'ja' ? '未取得ヒント' : 'Hint'}</div>
+                    <div class="walrus-dex-log-copy">${escapeHtml(hintText)}</div>
+                    <div class="walrus-dex-log-stats">
+                        <span>${escapeHtml(currentLang === 'ja' ? elementMeta.toneJa : elementMeta.toneEn)}</span>
+                    </div>
+                </div>`;
+        return `<button class="walrus-dex-card ${unlocked ? 'is-unlocked' : 'is-locked'}" type="button" onclick="tapWalrusDexCard(${index}, event)" data-walrus-dex-id="${entry.id}" aria-label="${escapeHtml(name)}">
+            <span class="walrus-dex-card-glow" style="--dex-color:${escapeHtml(entry.color)}"></span>
+            <span class="walrus-dex-card-top">
+                <span class="walrus-dex-swatch" style="--dex-color:${escapeHtml(entry.color)}"></span>
+                <span class="walrus-dex-index">LOG ${String(index + 1).padStart(2, '0')}</span>
+            </span>
+            <span class="walrus-dex-card-icon">${makeWalrusDexIcon(entry, unlocked)}</span>
+            <span class="walrus-dex-card-name">${escapeHtml(name)}</span>
+            <span class="walrus-dex-card-note">${escapeHtml(unlocked ? hintText : hintText)}</span>
+            <span class="walrus-dex-chip-row">
+                <span class="walrus-dex-chip">${escapeHtml(rarityMeta.label)}</span>
+                <span class="walrus-dex-chip">${escapeHtml(elementMeta.label)}</span>
+                <span class="walrus-dex-chip">${escapeHtml(entry.tempo)}</span>
+            </span>
+            <span class="walrus-dex-meta">${metaRows}</span>
+            ${footer}
+        </button>`;
+    }).join('');
+}
+
+function openWalrusDexModal(){
+    const modal = document.getElementById('walrusDexModal');
+    if(!modal) return;
+    maybeUnlockDailyWalrusDexEntry({ source: 'open' });
+    renderWalrusDexGrid();
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    haptic(12);
+    maybeShowPendingWalrusDexDiscovery(true);
+}
+
+function closeWalrusDexModal(){
+    const modal = document.getElementById('walrusDexModal');
+    if(!modal) return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+function tapWalrusDexCard(index, event){
+    const entry = getWalrusDexEntries()[index];
+    if(!entry) return;
+    const card = event?.currentTarget || document.querySelector(`[data-walrus-dex-id="${entry.id}"]`);
+    triggerWalrusDexCardBounce(card);
+    haptic(entry.unlocked ? 18 : 10);
+    if(entry.unlocked){
+        playWalrusDexSound(entry.soundId);
+        const log = getWalrusDexEntryLog(entry.id);
+        log.unlocked = true;
+        if(!log.firstObservedAt) log.firstObservedAt = Date.now();
+        log.lastPlayedAt = Date.now();
+        log.playCount = Math.max(0, Number(log.playCount) || 0) + 1;
+        log.stateText = getWalrusDexStatusText(entry, log);
+        saveG();
+        renderWalrusDexGrid();
+    } else {
+        playWalrusDexNoise();
+    }
+}
+
+function pickDailyWalrusDexEntry(lockedEntries){
+    if(!lockedEntries.length) return null;
+    const scored = lockedEntries.map((entry) => ({
+        entry,
+        weight: getWalrusDexRarityMeta(entry.rarity).weight
+    }));
+    const totalWeight = scored.reduce((sum, item) => sum + item.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for(let i = 0; i < scored.length; i += 1){
+        roll -= scored[i].weight;
+        if(roll <= 0) return scored[i].entry;
+    }
+    return scored[scored.length - 1]?.entry || lockedEntries[0];
+}
+
+function maybeUnlockDailyWalrusDexEntry(options = {}){
+    const dex = ensureWalrusDexState();
+    const today = getLocalDateKey();
+    if(dex.lastDailyUnlockDate === today) return null;
+    const lockedEntries = WALRUS_DEX_ENTRIES.filter(entry => !dex.unlockedIds.includes(entry.id));
+    if(!lockedEntries.length){
+        dex.lastDailyUnlockDate = today;
+        saveG();
+        return null;
+    }
+    const picked = pickDailyWalrusDexEntry(lockedEntries);
+    dex.lastDailyUnlockDate = today;
+    dex.unlockedIds = dex.unlockedIds.concat(picked.id);
+    dex.lastUnlockedId = picked.id;
+    dex.pendingDiscoveryId = picked.id;
+    dex.discoveryHistory.unshift({ id: picked.id, dateKey: today, ts: Date.now() });
+    dex.discoveryHistory = dex.discoveryHistory.slice(0, 30);
+    const log = getWalrusDexEntryLog(picked.id);
+    log.unlocked = true;
+    log.firstObservedAt = log.firstObservedAt || Date.now();
+    log.stateText = currentLang === 'ja' ? picked.stateJa : picked.stateEn;
+    log.status = picked.mood;
+    saveG();
+    renderWalrusDexButton();
+    renderWalrusDexGrid();
+    return picked;
+}
+
+function runWalrusDexDailyObservation(){
+    const unlocked = maybeUnlockDailyWalrusDexEntry({ source: 'button' });
+    if(unlocked){
+        maybeShowPendingWalrusDexDiscovery(true);
+        showToast(currentLang === 'ja' ? '🫧 新しい漂流音を観測しました' : '🫧 New drift sound observed');
+    } else {
+        showToast(currentLang === 'ja' ? '今日はすでに観測済みです' : 'Today\'s observation is already complete', true);
+    }
+    renderWalrusDexGrid();
+}
+
+function maybeShowPendingWalrusDexDiscovery(force = false){
+    const dex = ensureWalrusDexState();
+    if(!dex.pendingDiscoveryId) return;
+    const mainScreen = document.getElementById('mainScreen');
+    if(!force && mainScreen?.classList.contains('hidden')) return;
+    const entry = getWalrusDexDefinition(dex.pendingDiscoveryId);
+    const overlay = document.getElementById('walrusDexDiscovery');
+    if(!entry || !overlay){
+        dex.pendingDiscoveryId = '';
+        saveG();
+        return;
+    }
+    const title = document.getElementById('walrusDexDiscoveryTitle');
+    const name = document.getElementById('walrusDexDiscoveryName');
+    const note = document.getElementById('walrusDexDiscoveryCopy');
+    if(title) title.textContent = currentLang === 'ja' ? '新しい漂流音を観測' : 'New Sound Discovered';
+    if(name) name.textContent = currentLang === 'ja' ? entry.nameJa : entry.nameEn;
+    if(note) note.textContent = currentLang === 'ja' ? entry.hintJa : entry.hintEn;
+    overlay.classList.remove('show');
+    void overlay.offsetWidth;
+    overlay.classList.add('show');
+    window.clearTimeout(walrusDexDiscoveryTimer);
+    walrusDexDiscoveryTimer = window.setTimeout(() => {
+        overlay.classList.remove('show');
+    }, 2600);
+    playWalrusDexDiscoverySting(entry);
+    setMsg(currentLang === 'ja' ? `🫧 新しい音源を記録したよ: ${entry.nameJa}` : `🫧 Logged a new sound source: ${entry.nameEn}`);
+    dex.pendingDiscoveryId = '';
+    saveG();
+    renderWalrusDexButton();
+    renderWalrusDexGrid();
+}
 const DAILY_PATHS = {
     sea: {
         emoji: '🌊',
